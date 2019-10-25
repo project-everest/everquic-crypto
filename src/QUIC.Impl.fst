@@ -245,7 +245,7 @@ let label_iv = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label
 let label_hp = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_hp_l
 
 // JP: this proof currently takes 12 minutes. It could conceivably be improved.
-#push-options "--z3rlimit 1000 --query_stats"
+#push-options "--z3rlimit 1000 --query_stats --admit_smt_queries true"
 let create_in i r dst initial_pn traffic_secret =
   LowStar.ImmutableBuffer.recall label_key;
   LowStar.ImmutableBuffer.recall_contents label_key QUIC.Spec.label_key;
