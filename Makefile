@@ -41,7 +41,7 @@ clean-dist:
 	rm -rf dist
 
 clean: clean-dist
-	rm -rf obj
+	rm -rf obj .depend
 
 # Verification
 # ------------
@@ -75,4 +75,4 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 dist/libeverquic.a: dist/Makefile.basic
 	$(MAKE) -C dist -f Makefile.basic
 
-.PHONY: clean
+.PHONY: clean clean-dist
