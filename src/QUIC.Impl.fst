@@ -116,6 +116,8 @@ let packet_number_of_state #i s =
   let State _ _ _ _ _ _ _ pn _ = !*s in
   !*pn
 
+let bug : bool = 18
+
 #push-options "--max_ifuel 1 --initial_ifuel 1"
 /// One ifuel for inverting on the hash algorithm for computing bounds (the
 /// various calls to assert_norm should help ensure this proof goes through
