@@ -1,0 +1,30 @@
+{
+    "ProjectName" : "everquic-crypto",
+
+    "BaseContainerIsEverestImage" : true,
+    "BaseContainerImageName" : "hacl-star",
+    "BaseContainerImageTagOrCommitId": "latest",
+    "BranchName" : "fstar-master",
+    "GithubCommitUrl" : "https://github.com/project-everest/hacl-star/commit",
+    "OnDemandBuildDefinition" : "Hacl\\Hacl-{agentOS}",
+
+    "DockerFile": ".docker/build/{agentOS}/Dockerfile",
+    "DependencyFiles" : [
+        ".docker/build/build_helper.sh",
+        ".docker/build/build.sh"
+    ],
+
+    "DockerCacheEnabled" : true,
+    "CIBuildTarget" : "everquic_crypto_test",
+    "NightlyBuildTarget" : "everquic_crypto_nightly_test",
+    "HasLogsToExtract" : true,
+
+    "NotificationEnabled" : true,
+    "NotificationChannel" : "#quic-build",
+    "PublicBranches" : [ "master" ],
+
+    "CompressBuildFolder": true,
+    "FolderToCompress" : "everquic-crypto",
+    "FoldersToExclude" : [ ],
+
+}
