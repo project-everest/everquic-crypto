@@ -11,7 +11,7 @@ export HACL_HOME=$(pwd)/hacl-star
 # FIXME: The HACL* image should have been built on top of a KReMLin
 # image.  But currently this is not the case, so we reuse the KReMLin
 # that was pulled within the HACL* image.
-export KREMLIN_HOME=$(HACL_HOME)/kremlin
+export KREMLIN_HOME=$HACL_HOME/kremlin
 
 # Add ssh identity
 eval $(ssh-agent)
