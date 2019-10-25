@@ -19,7 +19,7 @@ module C = EverCrypt.Cipher
 module SAEAD = Spec.AEAD
 module SH = Spec.Hash
 module SHD = Spec.Hash.Definitions
-module SQ = Spec.QUIC
+module SQ = QUIC.Spec
 
 module U64 = FStar.UInt64
 module U32 = FStar.UInt32
@@ -28,7 +28,7 @@ module U8 = FStar.UInt8
 (*
 This file defines the interface for the packet stream encryption
 functionality. It provides functional correctness with respect
-to the spec in Spec.QUIC of single packet encryption, automatic
+to the spec in QUIC.Spec of single packet encryption, automatic
 management of the packet stream (using a counter for sending packets
 and a reference to the highest packet number successfully decrypted
 sequence number for incoming packets), and cryptographic security
@@ -273,7 +273,7 @@ val leakT: #i:id -> s:state i -> h:mem ->
 let if_safe (i:id) (t:Type) (f:Type) =
   (safe i ==> t) /\ (~(safe i) ==> f)
 
-(* QUIC HKDF labels, move to Spec.QUIC? *)
+(* QUIC HKDF labels, move to QUIC.Spec? *)
 val label_key : SQ.lbytes 3
 val label_iv : SQ.lbytes 2
 val label_hp : SQ.lbytes 2

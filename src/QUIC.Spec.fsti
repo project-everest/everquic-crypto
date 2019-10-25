@@ -1,4 +1,4 @@
-module Spec.QUIC
+module QUIC.Spec
 
 module S = FStar.Seq
 module HD = Spec.Hash.Definitions
