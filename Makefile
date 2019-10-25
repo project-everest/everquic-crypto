@@ -15,6 +15,7 @@ FSTAR=$(FSTAR_HOME)/bin/fstar.exe \
 	--cache_checked_modules \
 	--cache_dir obj \
 	--odir obj \
+	--use_hints \
 	--warn_error @241 \
 	$(OTHERFLAGS)
 
@@ -27,7 +28,7 @@ obj/.depend: $(FST_FILES)
 -include obj/.depend
 
 $(ALL_CHECKED_FILES): %.checked:
-	$(FSTAR) $<
+	$(FSTAR) --hint_file hints/$(notdir $*).hints $<
 
 verify: $(ALL_CHECKED_FILES)
 
