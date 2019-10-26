@@ -934,3 +934,5 @@ let encrypt #i s dst h plain plain_len pn_len =
 
 let decrypt #i s dst packet len cid_len =
   admit ()
+
+let filter_packet_header_byte x = QUIC.Parse.filter_header_byte x

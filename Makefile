@@ -8,6 +8,7 @@ include $(HACL_HOME)/Makefile.include
 FSTAR_INCLUDE_PATH= \
 	src \
 	$(KREMLIN_HOME)/kremlib \
+	$(QD_HOME)/src/lowparse \
 	$(ALL_HACL_DIRS) \
 
 
@@ -67,6 +68,7 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	  -add-include '<stdbool.h>' \
 	  -add-include '<string.h>' \
 	  -o libeverquic.a \
+	  -bundle LowParse.* \
 	  -bundle LowStar.* \
 	  -bundle Prims,C.Failure,C,C.String,C.Loops,Spec.Loops,C.Endianness,FStar.*[rename=EverQuic_Kremlib] \
 	  -bundle 'Meta.*,Hacl.*,Vale.*,Spec.*,Lib.*,EverCrypt,EverCrypt.*[rename=EverQuic_EverCrypt]' \

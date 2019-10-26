@@ -1,4 +1,4 @@
-module Test
+module QUIC.Parse
 open FStar.HyperStack.ST
 
 open LowParse.Spec.BitSum
@@ -315,11 +315,3 @@ let message : bitsum = BitSum
   )
 
 #pop-options
-
-let main
-  (argc: Int32.t)
-  (argv: LowStar.Buffer.buffer C.String.t)
-: ST C.exit_code
-    (requires (fun h -> True))
-    (ensures (fun _ _ _ -> True))
-= C.EXIT_SUCCESS
