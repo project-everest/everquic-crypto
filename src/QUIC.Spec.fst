@@ -470,6 +470,7 @@ let rec lemma_bitfield (k:nat) (n:nat{n < pow2 k})
   if k = 0 then ()
   else lemma_bitfield (k-1) (n/2)
 
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
 let rec lemma_bitfield_inv (l:list bool)
   : Lemma (to_bitfield (List.Tot.length l) (of_bitfield l) == l)
   =
@@ -511,6 +512,7 @@ let rec lemma_bitfield_upper_bound (n:nat) (l:list bool) : Lemma
   | h :: t ->
     assert (forall i. List.Tot.index t i = List.Tot.index l (i+1));
     lemma_bitfield_upper_bound (n-1) t
+#pop-options
 
 
 type bitfield8 = l:list bool{List.Tot.length l = 8}
@@ -1486,7 +1488,7 @@ let rec xor_inplace_commutative (b b1 b2:bytes) (pos1 pos2:nat) : Lemma
   FStar.Classical.forall_intro step
 
 
-let rec and_inplace (b1 b2:bytes) (pos:nat)
+let and_inplace (b1 b2:bytes) (pos:nat)
   : Pure bytes
   (requires S.length b2 + pos <= S.length b1)
   (ensures fun b -> S.length b == S.length b1)
@@ -1506,7 +1508,7 @@ packet[pn_offset..pn_offset+4] ^= pn_mask &
   | 2 -> mask & 0xFFFFFF00
   | 3 -> mask & 0xFFFFFFFF
 *)
-inline_for_extraction private
+inline_for_extraction
 let pn_sizemask (pn_len:nat2) : lbytes 4 =
   let open FStar.Endianness in
   n_to_be 4 (pow2 32 - pow2 (24 - (8 `op_Multiply` pn_len)))
@@ -1527,11 +1529,15 @@ let block_of_sample a (k: Cipher.key a) (sample: lbytes 16): lbytes 16 =
   in
   S.slice (Cipher.ctr_block a k iv ctr) 0 16
 
+let pn_offset h =
+  assert_norm(max_cipher_length < pow2 62);
+  match h with
+    | Short _ _ cid -> 1 + S.length cid
+    | Long _ _ dcil scil _ _ pl -> 6 + add3 dcil + add3 scil + vlen pl
+
 let header_encrypt a hpk h npn c =
   assert_norm(max_cipher_length < pow2 62);
-  let pn_offset = match h with
-    | Short _ _ cid -> 1 + S.length cid
-    | Long _ _ dcil scil _ _ pl -> 6 + add3 dcil + add3 scil + vlen pl in
+  let pn_offset = pn_offset h in
   let pn_len = S.length npn - 1 in
   let sample = S.slice c (3-pn_len) (19-pn_len) in
   let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
@@ -2590,6 +2596,7 @@ let encrypt a k siv hpk pn_len seqn h plain =
   assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12));
   // packet number bytes
   let pnb = FStar.Endianness.n_to_be 12 seqn in
+  // network packet number: truncated lower bytes
   let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
   let header = format_header h npn in
   lemma_format_len a h npn;
