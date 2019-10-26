@@ -361,8 +361,8 @@ let create_in i r dst initial_pn traffic_secret =
   begin match res with
   | Success ->
       (**) let h11 = ST.get () in
-      (**) assert (AEAD.invariant #aead_alg h11 aead_state);
-      (**) assert (CTR.invariant #(as_cipher_alg aead_alg) h11 ctr_state);
+      (**) assert (AEAD.invariant #aead_alg h11 (B.deref h3 aead_state));
+      (**) assert (CTR.invariant #(as_cipher_alg aead_alg) h11 (B.deref h3 ctr_state));
       (**) B.popped_modifies h10 h11;
       (**) assert B.(modifies (loc_buffer dst) h0 h11);
       (**) assert (ST.equal_stack_domains h0 h11);
