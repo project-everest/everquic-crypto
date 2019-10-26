@@ -1,0 +1,28 @@
+EVERQUIC_HOME ?= .
+
+HACL_HOME ?= $(EVERQUIC_HOME)/../hacl-star
+QD_HOME ?= $(EVERQUIC_HOME)/../quackyducky
+
+include $(HACL_HOME)/Makefile.include
+
+FSTAR_INCLUDE_PATH= \
+	$(EVERQUIC_HOME)/src \
+	$(KREMLIN_HOME)/kremlib \
+	$(QD_HOME)/src/lowparse \
+	$(ALL_HACL_DIRS)
+
+FSTAR_FLAGS= \
+	$(addprefix --include ,$(FSTAR_INCLUDE_PATH)) \
+	--already_cached '*,-QUIC' \
+	--cache_checked_modules \
+	--cache_dir $(EVERQUIC_HOME)/obj \
+	--odir $(EVERQUIC_HOME)/obj \
+	--cmi \
+	--use_hints \
+	--warn_error @241 \
+	$(OTHERFLAGS)
+
+FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
+
+%.fst-in %.fsti-in:
+	echo $(FSTAR_FLAGS)

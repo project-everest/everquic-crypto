@@ -3,25 +3,7 @@ all: dist/libeverquic.a
 # Boilerplate
 # -----------
 
-include $(HACL_HOME)/Makefile.include
-
-FSTAR_INCLUDE_PATH= \
-	src \
-	$(KREMLIN_HOME)/kremlib \
-	$(QD_HOME)/src/lowparse \
-	$(ALL_HACL_DIRS) \
-
-
-FSTAR=$(FSTAR_HOME)/bin/fstar.exe \
-	$(addprefix --include ,$(FSTAR_INCLUDE_PATH)) \
-	--already_cached '*,-QUIC' \
-	--cache_checked_modules \
-	--cache_dir obj \
-	--odir obj \
-	--cmi \
-	--use_hints \
-	--warn_error @241 \
-	$(OTHERFLAGS)
+include Makefile.include
 
 FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti)
 

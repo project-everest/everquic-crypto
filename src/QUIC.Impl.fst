@@ -930,9 +930,12 @@ let encrypt #i s dst h plain plain_len pn_len =
     AEAD.as_kv (B.deref h0 aead_state) `S.equal` k /\
     B.as_seq h0 iv `S.equal` iv_seq /\
     B.as_seq h0 hp_key `S.equal` hp_key_seq);
+
+  push_frame ();
+  let pnb = B.alloca 0uy 12ul in
   admit ()
 
 let decrypt #i s dst packet len cid_len =
   admit ()
 
-let filter_packet_header_byte x = QUIC.Parse.filter_header_byte x
+// let filter_packet_header_byte x = QUIC.Parse.filter_header_byte x
