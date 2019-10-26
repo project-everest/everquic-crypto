@@ -27,4 +27,7 @@
     "FolderToCompress" : "everquic-crypto",
     "FoldersToExclude" : [ ],
 
+    "RepoVersions" : {
+        "qd_version" : "origin/taramana_bitfields"
+    }
 }
