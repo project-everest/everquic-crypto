@@ -25,6 +25,7 @@ function exec_build() {
     local status_file="../status.txt"
     echo -n false >$status_file
 
+    export CC=gcc-6
     make -j $threads &&
     { echo -n true >$status_file ; }
 
