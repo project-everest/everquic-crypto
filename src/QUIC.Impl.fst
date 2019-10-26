@@ -290,17 +290,15 @@ let create_in i r dst initial_pn traffic_secret =
     (loc_buffer ctr_state `loc_union` loc_buffer aead_state));
   (**) B.(modifies_trans (loc_unused_in h1) h1 h2 (loc_unused_in h1) h3);
 
-  match ret with
+  let (h10, res) = match ret with
   | UnsupportedAlgorithm ->
-      pop_frame ();
-      UnsupportedAlgorithm
+      (h3, UnsupportedAlgorithm)
 
   | Success ->
 
       match ret' with
       | UnsupportedAlgorithm ->
-          pop_frame ();
-          UnsupportedAlgorithm
+          (h3, UnsupportedAlgorithm)
 
       | Success ->
       // JP: there is something difficult to prove here... confused.
@@ -356,15 +354,21 @@ let create_in i r dst initial_pn traffic_secret =
       // TODO: everything goes through well up to here; and we know:
       //   B.modifies (loc_buffer dst) h0 h10
       // NOTE: how to conclude efficiently the same thing with h11?
-      pop_frame ();
+
+      (h10, Success)
+  in
+  pop_frame ();
+  begin match res with
+  | Success ->
       (**) let h11 = ST.get () in
       (**) assert (AEAD.invariant #aead_alg h11 aead_state);
       (**) assert (CTR.invariant #(as_cipher_alg aead_alg) h11 ctr_state);
-      (**) B.popped_modifies h10 h11;
       (**) assert B.(modifies (loc_buffer dst) h0 h11);
       (**) assert (ST.equal_stack_domains h0 h11);
-
-      Success
+           ()
+  | _ -> ()
+  end;
+  res
 #pop-options
 
 let lemma_slice s (i: nat { i <= S.length s }): Lemma
