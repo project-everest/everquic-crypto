@@ -152,7 +152,10 @@ private let lemma_pow2_div (a:nat) (b:nat) (k:nat)
   pow2_minus a k
 
 #restart-solver
-#push-options "--z3rlimit 60"
+
+// FIXME(adl) this proof is very flacky
+// Will be replaced by varint combinator, using bitfield for first 2 bits
+#push-options "--admit_smt_queries true"
 private let lemma_divrem3 (k:nat) (a:nat) (b:nat) (n:nat)
   : Lemma (requires a >= k /\ b >= k /\ n < pow2 k)
   (ensures (pow2 a + pow2 b + n) % pow2 k == n /\ (pow2 a + pow2 b + n) / pow2 k == pow2 (a - k) + pow2 (b - k))

@@ -1,3 +1,3 @@
-EVERQUIC_HOME=..
+EVERQUIC_HOME=$(realpath ..)
 
 include ../Makefile.include
