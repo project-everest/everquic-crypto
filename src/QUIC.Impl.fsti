@@ -294,7 +294,7 @@ val encrypt: #i:G.erased index -> (
       B.live h0 plain /\ B.live h0 dst /\
       header_live h h0 /\
       header_disjoint h /\
-      B.(all_disjoint [ loc_buffer dst; header_footprint h; loc_buffer plain ]) /\
+      B.(all_disjoint [ footprint h0 s; loc_buffer dst; header_footprint h; loc_buffer plain ]) /\
 
       invariant h0 s /\
 
