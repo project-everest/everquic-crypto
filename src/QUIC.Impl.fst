@@ -83,7 +83,9 @@ let invariant_s #i h s =
   in
   hash_is_keysized s; (
   AEAD.invariant h aead_state /\
+  not (B.g_is_null aead_state) /\
   CTR.invariant h ctr_state /\
+  not (B.g_is_null ctr_state) /\
   B.(all_live h [ buf iv; buf hp_key; buf pn ])  /\
   B.(all_disjoint [ CTR.footprint h ctr_state;
     AEAD.footprint h aead_state; loc_buffer iv; loc_buffer hp_key; loc_buffer pn ]) /\
@@ -595,17 +597,6 @@ let op_inplace (dst: B.buffer U8.t)
       (U32.v ofs);
   }
 
-let header_footprint (h: header) =
-  let open B in
-  match h with
-  | Short _ _ cid _ -> loc_buffer cid
-  | Long _ _ dcid _ scid _ _ -> loc_buffer dcid `loc_union` loc_buffer scid
-
-let header_disjoint (h: header) =
-  let open B in
-  match h with
-  | Short _ _ cid _ -> True
-  | Long _ _ dcid _ scid _ _ -> B.disjoint dcid scid
 
 let format_header (dst: B.buffer U8.t) (h: header) (npn: B.buffer U8.t) (pn_len: u2):
   Stack unit
@@ -840,7 +831,7 @@ let proj_aead_state #i (s: state i): Stack (AEAD.state i.aead_alg)
   let State _ _ _ _ s _ _ _ _ = !*s in
   s
 
-#push-options "--z3rlimit 1000 --query_stats"
+#push-options "--z3rlimit 1000"
 let header_encrypt i dst dst_len s h cipher k iv npn pn_len =
   // [@inline_let]
   let u32_of_u8 = FStar.Int.Cast.uint8_to_uint32 in
@@ -916,7 +907,99 @@ let header_encrypt i dst dst_len s h cipher k iv npn pn_len =
   (**) let h7 = ST.get () in
   ()
 
+let proj_pn #i (s: state i): Stack u62
+  (requires fun h0 -> invariant h0 s)
+  (ensures fun h0 x h1 ->
+    U64.v x = g_packet_number (B.deref h0 s) h0 /\
+    h0 == h1)
+=
+  let State _ _ _ _ _ _ _ pn _ = !*s in
+  !*pn
+
+open FStar.Mul
+
+let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
+  (requires i <= S.length s)
+  (ensures FStar.Endianness.be_to_n (S.slice s i (S.length s)) =
+    FStar.Endianness.be_to_n s % pow2 (8 `op_Multiply` (S.length s - i)))
+  (decreases (S.length s))
+=
+  FStar.Endianness.reveal_be_to_n s;
+  if S.length s = 0 then
+    ()
+  else
+    let open FStar.Endianness in
+    if i = S.length s then begin
+      reveal_be_to_n S.empty;
+      assert_norm (pow2 (8 * 0) = 1);
+      assert (S.slice s (S.length s) (S.length s) `S.equal` S.empty);
+      assert (be_to_n S.empty = 0);
+      assert (be_to_n s % 1 = 0)
+    end else
+      let s' = (S.slice s i (S.length s)) in
+      let s_prefix = (S.slice s 0 (S.length s - 1)) in
+      assert (S.length s' <> 0);
+      assert (8 <= 8 * (S.length s - i));
+      FStar.Math.Lemmas.pow2_le_compat (8 * (S.length s - i)) 8;
+      assert_norm (pow2 (8 * 1) = 256);
+      assert (U8.v (S.last s) < pow2 (8 * (S.length s - i)));
+      assert (S.length s' = S.length s_prefix - i + 1);
+      FStar.Math.Lemmas.pow2_le_compat (8 * (S.length s')) (8 * (S.length s - i));
+      calc (==) {
+        be_to_n s';
+      (==) {
+        lemma_be_to_n_is_bounded s';
+        FStar.Math.Lemmas.small_mod (be_to_n s') (pow2 (8 * (S.length s - i)))
+      }
+        (be_to_n s') % (pow2 (8 * (S.length s - i)));
+      (==) { reveal_be_to_n s' }
+        (U8.v (S.last s') + pow2 8 * be_to_n (S.slice s' 0 (S.length s' - 1))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { }
+        (U8.v (S.last s) + pow2 8 * be_to_n (S.slice s i (S.length s - 1))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { }
+        (U8.v (S.last s) + pow2 8 * (be_to_n (S.slice s_prefix i (S.length s_prefix)))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { be_to_n_slice s_prefix i }
+        (U8.v (S.last s) + pow2 8 * (be_to_n s_prefix % pow2 (8 * (S.length s_prefix - i)))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { FStar.Math.Lemmas.pow2_multiplication_modulo_lemma_2
+        (be_to_n s_prefix) (8 * (S.length s_prefix - i) + 8) 8
+      }
+        (U8.v (S.last s) +
+          ((be_to_n s_prefix * pow2 8) % pow2 (8 * (S.length s_prefix - i) + 8))
+        ) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { }
+        (U8.v (S.last s) +
+          ((be_to_n s_prefix * pow2 8) % pow2 (8 * (S.length s - i)))
+        ) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { FStar.Math.Lemmas.lemma_mod_add_distr
+        (U8.v (S.last s))
+        (be_to_n s_prefix * pow2 8)
+        (pow2 (8 * (S.length s - i)))
+      }
+        (U8.v (S.last s) + pow2 8 * be_to_n (S.slice s 0 (S.length s - 1))) %
+          pow2 (8 * (S.length s - i));
+      }
+
+let tag_len (a: Spec.Agile.AEAD.alg): x:U32.t { U32.v x = Spec.Agile.AEAD.tag_length a } =
+  let open Spec.Agile.AEAD in
+  match a with
+  | AES128_CCM8       ->  8ul
+  | AES256_CCM8       ->  8ul
+  | AES128_GCM        -> 16ul
+  | AES256_GCM        -> 16ul
+  | CHACHA20_POLY1305 -> 16ul
+  | AES128_CCM        -> 16ul
+  | AES256_CCM        -> 16ul
+
+#set-options "--query_stats"
 let encrypt #i s dst h plain plain_len pn_len =
+  // [@inline_let]
+  let u32_of_u8 = FStar.Int.Cast.uint8_to_uint32 in
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
     aead_state iv hp_key pn ctr_state = !*s
   in
@@ -932,10 +1015,40 @@ let encrypt #i s dst h plain plain_len pn_len =
     B.as_seq h0 hp_key `S.equal` hp_key_seq);
 
   push_frame ();
-  let pnb = B.alloca 0uy 12ul in
+  let pnb0 = B.alloca 0uy 16ul in
+  // JP: cannot inline this in the call below; why?
+  let pn: U64.t = !*pn in
+  let pn128: FStar.UInt128.t = FStar.Int.Cast.Full.uint64_to_uint128 pn in
+  LowStar.Endianness.store128_be pnb0 pn128;
+  let pnb = B.sub pnb0 4ul 12ul in
+  (**) let h1 = ST.get () in
+  (
+  let open FStar.Endianness in
+  assert_norm (pow2 64 < pow2 (8 * 12));
+  calc (==) {
+    be_to_n (B.as_seq h1 pnb);
+  (==) { }
+    be_to_n (S.slice (B.as_seq h1 pnb0) 4 16);
+  (==) { be_to_n_slice (B.as_seq h1 pnb0) 4 }
+    be_to_n (B.as_seq h1 pnb0) % pow2 (8 * 12);
+  (==) { FStar.Math.Lemmas.small_mod (U64.v pn) (pow2 (8 * 12)) }
+    be_to_n (B.as_seq h1 pnb0);
+  });
+  assert (B.as_seq h1 pnb `S.equal`
+    FStar.Endianness.n_to_be 12 (g_packet_number (B.deref h1 s) h1));
+
+  let npn = B.sub pnb (11ul `U32.sub` u32_of_u8 pn_len) (1ul `U32.add` u32_of_u8 pn_len) in
+  assert (B.as_seq h1 npn `S.equal` S.slice (B.as_seq h1 pnb) (11 - U8.v pn_len) 12);
+  let dst_h = B.sub dst 0ul (header_len h pn_len) in
+  let dst_ciphertag = B.sub dst (header_len h pn_len) (plain_len `U32.add` tag_len aead_alg) in
+  let dst_cipher = B.sub dst_ciphertag 0ul plain_len in
+  let dst_tag = B.sub dst_ciphertag plain_len (tag_len aead_alg) in
+  format_header dst_h h npn pn_len;
+  QUIC.Spec.lemma_format_len aead_alg (g_header h h0) (B.as_seq h1 npn);
+  op_inplace pnb 12ul iv 12ul 0ul U8.logxor;
   admit ()
+  // AEAD.encrypt #(G.hide aead_alg) aead_state
+  //   pnb 12ul dst_h (header_len h pn_len) plain plain_len dst_cipher dst_tag;
 
 let decrypt #i s dst packet len cid_len =
   admit ()
-
-// let filter_packet_header_byte x = QUIC.Parse.filter_header_byte x
