@@ -1,5 +1,6 @@
-EVERQUIC_HOME ?= .
+EVERQUIC_HOME ?= $(realpath .)
 
+KREMLIN_HOME ?= $(EVERQUIC_HOME)/../kremlin
 HACL_HOME ?= $(EVERQUIC_HOME)/../hacl-star
 QD_HOME ?= $(EVERQUIC_HOME)/../quackyducky
 
@@ -25,4 +26,4 @@ FSTAR_FLAGS= \
 FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
 
 %.fst-in %.fsti-in:
-	echo $(FSTAR_FLAGS)
+	@echo $(FSTAR_FLAGS)
