@@ -10,8 +10,8 @@ FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti)
 ifndef NODEPEND
 ifndef MAKE_RESTARTS
 .depend: .FORCE
-	mkdir -p obj
-	$(FSTAR) --dep full $(FST_FILES) > $@
+	@mkdir -p obj
+	@$(FSTAR) --dep full $(FST_FILES) > $@
 
 .PHONY: .FORCE
 .FORCE:
@@ -30,12 +30,12 @@ clean: clean-dist
 # ------------
 
 %.checked:
-	$(FSTAR) --hint_file hints/$(notdir $*).hints $< && touch -c $@
+	$(FSTAR) --hint_file hints/$(notdir $*).hints $(notdir $<) && touch -c $@
 
 %.krml:
 	$(FSTAR) --codegen Kremlin \
-	    --extract_module $(basename $(notdir $(subst .checked,,$<))) \
-	    $(notdir $(subst .checked,,$<))
+	--extract_module $(basename $(notdir $(subst .checked,,$<))) \
+	$(notdir $(subst .checked,,$<))
 
 # Kremlin
 # -------
