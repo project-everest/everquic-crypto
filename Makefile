@@ -46,6 +46,7 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	$(KRML) $(KOPTS) -library EverCrypt,EverCrypt.* $^ -tmpdir dist -skip-compilation \
 	  -minimal \
 	  -add-include '"kremlin/internal/target.h"' \
+	  -add-include '"kremlin/lowstar_endianness.h"' \
 	  -add-include '<stdint.h>' \
 	  -add-include '<stdbool.h>' \
 	  -add-include '<string.h>' \

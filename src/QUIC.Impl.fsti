@@ -191,6 +191,18 @@ let header_live (h: header) (m: HS.mem) =
   | Short _ _ cid _ -> m `B.live` cid
   | Long _ _ dcid _ scid _ _ -> m `B.live` dcid /\ m `B.live` scid
 
+let header_footprint (h: header) =
+  let open B in
+  match h with
+  | Short _ _ cid _ -> loc_buffer cid
+  | Long _ _ dcid _ scid _ _ -> loc_buffer dcid `loc_union` loc_buffer scid
+
+let header_disjoint (h: header) =
+  let open B in
+  match h with
+  | Short _ _ cid _ -> True
+  | Long _ _ dcid _ scid _ _ -> B.disjoint dcid scid
+
 let g_header (h: header) (m: HS.mem): GTot QUIC.Spec.header =
   match h with
   | Short spin phase cid cid_len ->
@@ -281,7 +293,8 @@ val encrypt: #i:G.erased index -> (
       // Memory & preservation
       B.live h0 plain /\ B.live h0 dst /\
       header_live h h0 /\
-      B.disjoint plain dst /\ // JP: probably needed, along with many others -- TBD as we go
+      header_disjoint h /\
+      B.(all_disjoint [ loc_buffer dst; header_footprint h; loc_buffer plain ]) /\
 
       invariant h0 s /\
 

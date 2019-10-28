@@ -595,17 +595,6 @@ let op_inplace (dst: B.buffer U8.t)
       (U32.v ofs);
   }
 
-let header_footprint (h: header) =
-  let open B in
-  match h with
-  | Short _ _ cid _ -> loc_buffer cid
-  | Long _ _ dcid _ scid _ _ -> loc_buffer dcid `loc_union` loc_buffer scid
-
-let header_disjoint (h: header) =
-  let open B in
-  match h with
-  | Short _ _ cid _ -> True
-  | Long _ _ dcid _ scid _ _ -> B.disjoint dcid scid
 
 let format_header (dst: B.buffer U8.t) (h: header) (npn: B.buffer U8.t) (pn_len: u2):
   Stack unit
@@ -994,10 +983,21 @@ let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
           pow2 (8 * (S.length s - i));
       }
 
-// (ensures FStar.Endianness.be_to_n (S.slice s i (S.length s)) =
-//   FStar.Endianness.be_to_n s % pow2 (8 `op_Multiply` (S.length s - i)))
+let tag_len (a: Spec.Agile.AEAD.alg): x:U32.t { U32.v x = Spec.Agile.AEAD.tag_length a } =
+  let open Spec.Agile.AEAD in
+  match a with
+  | AES128_CCM8       ->  8ul
+  | AES256_CCM8       ->  8ul
+  | AES128_GCM        -> 16ul
+  | AES256_GCM        -> 16ul
+  | CHACHA20_POLY1305 -> 16ul
+  | AES128_CCM        -> 16ul
+  | AES256_CCM        -> 16ul
 
+#set-options "--query_stats"
 let encrypt #i s dst h plain plain_len pn_len =
+  // [@inline_let]
+  let u32_of_u8 = FStar.Int.Cast.uint8_to_uint32 in
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
     aead_state iv hp_key pn ctr_state = !*s
   in
@@ -1034,7 +1034,19 @@ let encrypt #i s dst h plain plain_len pn_len =
   });
   assert (B.as_seq h1 pnb `S.equal`
     FStar.Endianness.n_to_be 12 (g_packet_number (B.deref h1 s) h1));
+
+  let npn = B.sub pnb (11ul `U32.sub` u32_of_u8 pn_len) (1ul `U32.add` u32_of_u8 pn_len) in
+  assert (B.as_seq h1 npn `S.equal` S.slice (B.as_seq h1 pnb) (11 - U8.v pn_len) 12);
+  let dst_h = B.sub dst 0ul (header_len h pn_len) in
+  let dst_ciphertag = B.sub dst (header_len h pn_len) (plain_len `U32.add` tag_len aead_alg) in
+  let dst_cipher = B.sub dst_ciphertag 0ul plain_len in
+  let dst_tag = B.sub dst_ciphertag plain_len (tag_len aead_alg) in
+  format_header dst_h h npn pn_len;
+  QUIC.Spec.lemma_format_len aead_alg (g_header h h0) (B.as_seq h1 npn);
+  op_inplace pnb 12ul iv 12ul 0ul U8.logxor;
   admit ()
+  // AEAD.encrypt #(G.hide aead_alg) aead_state
+  //   pnb 12ul dst_h (header_len h pn_len) plain plain_len dst_cipher dst_tag;
 
 let decrypt #i s dst packet len cid_len =
   admit ()
