@@ -840,7 +840,7 @@ let proj_aead_state #i (s: state i): Stack (AEAD.state i.aead_alg)
   let State _ _ _ _ s _ _ _ _ = !*s in
   s
 
-#push-options "--z3rlimit 1000 --query_stats"
+#push-options "--z3rlimit 1000"
 let header_encrypt i dst dst_len s h cipher k iv npn pn_len =
   // [@inline_let]
   let u32_of_u8 = FStar.Int.Cast.uint8_to_uint32 in
@@ -916,6 +916,87 @@ let header_encrypt i dst dst_len s h cipher k iv npn pn_len =
   (**) let h7 = ST.get () in
   ()
 
+let proj_pn #i (s: state i): Stack u62
+  (requires fun h0 -> invariant h0 s)
+  (ensures fun h0 x h1 ->
+    U64.v x = g_packet_number (B.deref h0 s) h0 /\
+    h0 == h1)
+=
+  let State _ _ _ _ _ _ _ pn _ = !*s in
+  !*pn
+
+open FStar.Mul
+
+let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
+  (requires i <= S.length s)
+  (ensures FStar.Endianness.be_to_n (S.slice s i (S.length s)) =
+    FStar.Endianness.be_to_n s % pow2 (8 `op_Multiply` (S.length s - i)))
+  (decreases (S.length s))
+=
+  FStar.Endianness.reveal_be_to_n s;
+  if S.length s = 0 then
+    ()
+  else
+    let open FStar.Endianness in
+    if i = S.length s then begin
+      reveal_be_to_n S.empty;
+      assert_norm (pow2 (8 * 0) = 1);
+      assert (S.slice s (S.length s) (S.length s) `S.equal` S.empty);
+      assert (be_to_n S.empty = 0);
+      assert (be_to_n s % 1 = 0)
+    end else
+      let s' = (S.slice s i (S.length s)) in
+      let s_prefix = (S.slice s 0 (S.length s - 1)) in
+      assert (S.length s' <> 0);
+      assert (8 <= 8 * (S.length s - i));
+      FStar.Math.Lemmas.pow2_le_compat (8 * (S.length s - i)) 8;
+      assert_norm (pow2 (8 * 1) = 256);
+      assert (U8.v (S.last s) < pow2 (8 * (S.length s - i)));
+      assert (S.length s' = S.length s_prefix - i + 1);
+      FStar.Math.Lemmas.pow2_le_compat (8 * (S.length s')) (8 * (S.length s - i));
+      calc (==) {
+        be_to_n s';
+      (==) {
+        lemma_be_to_n_is_bounded s';
+        FStar.Math.Lemmas.small_mod (be_to_n s') (pow2 (8 * (S.length s - i)))
+      }
+        (be_to_n s') % (pow2 (8 * (S.length s - i)));
+      (==) { reveal_be_to_n s' }
+        (U8.v (S.last s') + pow2 8 * be_to_n (S.slice s' 0 (S.length s' - 1))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { }
+        (U8.v (S.last s) + pow2 8 * be_to_n (S.slice s i (S.length s - 1))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { }
+        (U8.v (S.last s) + pow2 8 * (be_to_n (S.slice s_prefix i (S.length s_prefix)))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { be_to_n_slice s_prefix i }
+        (U8.v (S.last s) + pow2 8 * (be_to_n s_prefix % pow2 (8 * (S.length s_prefix - i)))) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { FStar.Math.Lemmas.pow2_multiplication_modulo_lemma_2
+        (be_to_n s_prefix) (8 * (S.length s_prefix - i) + 8) 8
+      }
+        (U8.v (S.last s) +
+          ((be_to_n s_prefix * pow2 8) % pow2 (8 * (S.length s_prefix - i) + 8))
+        ) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { }
+        (U8.v (S.last s) +
+          ((be_to_n s_prefix * pow2 8) % pow2 (8 * (S.length s - i)))
+        ) %
+          (pow2 (8 * (S.length s - i)));
+      (==) { FStar.Math.Lemmas.lemma_mod_add_distr
+        (U8.v (S.last s))
+        (be_to_n s_prefix * pow2 8)
+        (pow2 (8 * (S.length s - i)))
+      }
+        (U8.v (S.last s) + pow2 8 * be_to_n (S.slice s 0 (S.length s - 1))) %
+          pow2 (8 * (S.length s - i));
+      }
+
+// (ensures FStar.Endianness.be_to_n (S.slice s i (S.length s)) =
+//   FStar.Endianness.be_to_n s % pow2 (8 `op_Multiply` (S.length s - i)))
+
 let encrypt #i s dst h plain plain_len pn_len =
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
     aead_state iv hp_key pn ctr_state = !*s
@@ -932,10 +1013,28 @@ let encrypt #i s dst h plain plain_len pn_len =
     B.as_seq h0 hp_key `S.equal` hp_key_seq);
 
   push_frame ();
-  let pnb = B.alloca 0uy 12ul in
+  let pnb0 = B.alloca 0uy 16ul in
+  // JP: cannot inline this in the call below; why?
+  let pn: U64.t = !*pn in
+  let pn128: FStar.UInt128.t = FStar.Int.Cast.Full.uint64_to_uint128 pn in
+  LowStar.Endianness.store128_be pnb0 pn128;
+  let pnb = B.sub pnb0 4ul 12ul in
+  (**) let h1 = ST.get () in
+  (
+  let open FStar.Endianness in
+  assert_norm (pow2 64 < pow2 (8 * 12));
+  calc (==) {
+    be_to_n (B.as_seq h1 pnb);
+  (==) { }
+    be_to_n (S.slice (B.as_seq h1 pnb0) 4 16);
+  (==) { be_to_n_slice (B.as_seq h1 pnb0) 4 }
+    be_to_n (B.as_seq h1 pnb0) % pow2 (8 * 12);
+  (==) { FStar.Math.Lemmas.small_mod (U64.v pn) (pow2 (8 * 12)) }
+    be_to_n (B.as_seq h1 pnb0);
+  });
+  assert (B.as_seq h1 pnb `S.equal`
+    FStar.Endianness.n_to_be 12 (g_packet_number (B.deref h1 s) h1));
   admit ()
 
 let decrypt #i s dst packet len cid_len =
   admit ()
-
-// let filter_packet_header_byte x = QUIC.Parse.filter_header_byte x
