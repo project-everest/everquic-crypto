@@ -83,7 +83,9 @@ let invariant_s #i h s =
   in
   hash_is_keysized s; (
   AEAD.invariant h aead_state /\
+  not (B.g_is_null aead_state) /\
   CTR.invariant h ctr_state /\
+  not (B.g_is_null ctr_state) /\
   B.(all_live h [ buf iv; buf hp_key; buf pn ])  /\
   B.(all_disjoint [ CTR.footprint h ctr_state;
     AEAD.footprint h aead_state; loc_buffer iv; loc_buffer hp_key; loc_buffer pn ]) /\
