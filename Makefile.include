@@ -12,18 +12,22 @@ FSTAR_INCLUDE_PATH= \
 	$(QD_HOME)/src/lowparse \
 	$(ALL_HACL_DIRS)
 
-FSTAR_FLAGS= \
+# In interactive mode, chill out and don't roll over if something isn't cached
+# somewhere.
+FSTAR_CHILL_FLAGS= \
 	$(addprefix --include ,$(FSTAR_INCLUDE_PATH)) \
-	--already_cached '*,-QUIC' \
 	--cache_checked_modules \
 	--cache_dir $(EVERQUIC_HOME)/obj \
 	--odir $(EVERQUIC_HOME)/obj \
 	--cmi \
 	--use_hints \
-	--warn_error @241 \
 	$(OTHERFLAGS)
+
+FSTAR_FLAGS=$(FSTAR_CHILL_FLAGS) \
+	--already_cached '*,-QUIC' \
+	--warn_error @241 \
 
 FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
 
 %.fst-in %.fsti-in:
-	@echo $(FSTAR_FLAGS)
+	@echo $(FSTAR_CHILL_FLAGS)
