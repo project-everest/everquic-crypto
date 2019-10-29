@@ -401,3 +401,127 @@ let parse_varint_eq
     end
 
 #pop-options
+
+inline_for_extraction
+let get_tag
+  (x: varint_t)
+: Tot (bitfield uint8 2)
+= if x `U64.lt` 64uL
+  then 0uy
+  else if x `U64.lt` 16384uL
+  then 1uy
+  else if x `U64.lt` 1073741824uL
+  then 2uy
+  else 3uy
+
+inline_for_extraction
+let get_msb
+  (x: varint_t)
+: Tot varint_msb_t
+= if x `U64.lt` 64uL
+  then x
+  else if x `U64.lt` 16384uL
+  then (x `U64.div` 256uL)
+  else if x `U64.lt` 1073741824uL
+  then (x `U64.div` 16777216uL)
+  else (x `U64.div` 72057594037927936uL)
+
+inline_for_extraction
+let get_first_byte
+  (x: varint_t)
+: Tot U8.t
+= uint8.set_bitfield (uint8.set_bitfield 0uy 0 6 (Cast.uint64_to_uint8 (get_msb x))) 6 8 (get_tag x)
+
+#push-options "--z3rlimit 16"
+
+let serialize_varint_payload
+  (x: varint_t)
+: GTot bytes
+=
+  assert_norm (pow2 8 == 256);
+  assert_norm (pow2 6 == 64);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  if x `U64.lt` 64uL
+  then Seq.empty
+  else if x `U64.lt` 16384uL
+  then serialize serialize_u8 (Cast.uint64_to_uint8 x)
+  else if x `U64.lt` 1073741824uL
+  then serialize (serialize_bounded_integer 3) (Cast.uint64_to_uint32 (x `U64.rem` 16777216uL))
+  else serialize (serialize_u32 `serialize_nondep_then` serialize_bounded_integer 3) (Cast.uint64_to_uint32 (x `U64.div` 16777216uL), Cast.uint64_to_uint32 (x `U64.rem` 16777216uL))
+
+let serialize_varint'
+  (x: varint_t)
+: GTot bytes
+= serialize serialize_u8 (get_first_byte x) `Seq.append` serialize_varint_payload x
+
+#pop-options
+
+#push-options "--z3rlimit 128"
+
+let serialize_varint_correct
+  (x: varint_t)
+: Lemma
+  (let y = serialize_varint' x in
+    parse_varint' y == Some (x, Seq.length y)
+  )
+=
+  assert_norm (pow2 8 == 256);
+  assert_norm (pow2 6 == 64);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  let y = serialize_varint' x in
+  let z = get_first_byte x in
+  let hd = serialize serialize_u8 z in
+  assert (parse parse_u8 hd == Some (z, Seq.length hd));
+  assert (Seq.slice hd 0 (Seq.length hd) `Seq.equal` Seq.slice y 0 (Seq.length hd));
+  let tl = serialize_varint_payload x in
+  assert (Seq.slice y (Seq.length hd) (Seq.length y) `Seq.equal` tl);
+  parse_strong_prefix parse_u8 hd y;
+  let tg = get_tag x in
+  assert (uint8.get_bitfield z 6 8 == tg);
+  if tg = 0uy
+  then begin
+    assert (x `U64.lt` 64uL);
+    assert (U64.v x == U8.v (uint8.get_bitfield z 0 6));
+    assert (x == Cast.uint8_to_uint64 (uint8.get_bitfield z 0 6));
+    assert (y `Seq.equal` hd)
+  end else if tg = 1uy
+  then begin
+    assert (64uL `U64.lte` x /\ x `U64.lt` 16384uL);
+    let x' = Cast.uint64_to_uint8 x in
+    assert (parse parse_u8 tl == Some (x', Seq.length tl));
+    assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / 256);
+    assert (U64.v x == (U8.v (uint8.get_bitfield z 0 6) `Prims.op_Multiply` 256) + U8.v x')
+  end else if tg = 2uy
+  then begin
+    assert (16384uL `U64.lte` x /\ x `U64.lt` 1073741824uL);
+    let x' : bounded_integer 3 = Cast.uint64_to_uint32 (x `U64.rem` 16777216uL) in
+    assert (parse (parse_bounded_integer 3) tl == Some (x', Seq.length tl));
+    assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / 16777216);
+    assert (U64.v x == (U8.v (uint8.get_bitfield z 0 6) `Prims.op_Multiply` 16777216) + U32.v x')
+  end else
+    assume False
+
+(*
+  assert (x `U64.lt` 64uL)
+  else if tg = 1uy
+  then assert (64uL `U64.lte` x /\ x `U64.lt` 16384uL)
+  else if tg = 2uy
+  else assert (1073741824uL `U64.lte` x)
+  end;
+  assume False
+    let lo = Cast.uint64_to_uint8 x in
+    let hi = Cast.uint64_to_uint32 (x `U64.div` 16777216uL) in
+    assert (parse p7 tl == Some ((hi, lo), Seq.length tl));
+    assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / );    
+
+
+*)
+
+let serialize_varint =
+  Classical.forall_intro parse_varint_eq;
+  Classical.forall_intro serialize_varint_correct;
+  serialize_varint'

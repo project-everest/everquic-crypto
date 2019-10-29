@@ -21,3 +21,5 @@ let parse_varint_kind = {
 }
 
 val parse_varint : LP.parser parse_varint_kind varint_t
+
+val serialize_varint : LP.serializer parse_varint
