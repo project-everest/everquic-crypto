@@ -53,6 +53,7 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	  -add-include '<stdint.h>' \
 	  -add-include '<stdbool.h>' \
 	  -add-include '<string.h>' \
+	  -fparentheses \
 	  -o libeverquic.a \
 	  -bundle LowParse.* \
 	  -bundle LowStar.* \

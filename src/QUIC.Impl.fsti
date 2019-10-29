@@ -104,6 +104,9 @@ val g_initial_packet_number: #i:index -> (s: state_s i) -> GTot QUIC.Spec.nat62
 
 val invariant_s: (#i:index) -> HS.mem -> state_s i -> Type0
 let invariant (#i:index) (m: HS.mem) (s: state i) =
+  let r = B.frameOf s in
+  ST.is_eternal_region r /\
+  B.loc_includes (B.loc_region_only true r) (footprint m s) /\
   B.live m s /\
   B.(loc_disjoint (loc_addr_of_buffer s) (footprint_s m (B.deref m s))) /\
   invariant_s m (B.get m s 0)
@@ -255,7 +258,8 @@ let create_in_st (i:index) =
       // this (see AEAD) so for now, let's make the caller's life easier and not
       // demand anything.
       ST.is_eternal_region r /\
-      B.live h0 dst /\ B.live h0 traffic_secret)
+      B.live h0 dst /\ B.live h0 traffic_secret /\
+      B.disjoint dst traffic_secret)
     (ensures (fun h0 e h1 ->
       match e with
       | UnsupportedAlgorithm ->
@@ -267,7 +271,6 @@ let create_in_st (i:index) =
 
           B.(modifies (loc_buffer dst) h0 h1) /\
           B.fresh_loc (footprint h1 s) h0 h1 /\
-          B.(loc_includes (loc_region_only true r) (footprint h1 s)) /\
 
           g_initial_packet_number (B.deref h1 s) == U64.v initial_pn
       | _ ->
@@ -310,7 +313,7 @@ val encrypt: #i:G.erased index -> (
           // Memory & preservation
           B.(modifies (footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst)) h0 h1 /\
           invariant h1 s /\
-          footprint h1 s == footprint h0 s /\ (
+          footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\ (
 
           // Functional correctness
           let s0 = g_traffic_secret (B.deref h0 s) in
@@ -322,9 +325,10 @@ val encrypt: #i:G.erased index -> (
           let packet: packet = B.as_seq h1 dst in
           let ctr = g_packet_number (B.deref h0 s) h0 in
           packet ==
-            QUIC.Spec.encrypt i.aead_alg k iv pne (U8.v pn_len) ctr (g_header h h0) plain)
+            QUIC.Spec.encrypt i.aead_alg k iv pne (U8.v pn_len) ctr (g_header h h0) plain /\
+          g_packet_number (B.deref h1 s) h1 = ctr + 1)
       | _ ->
-          False)) // JP: this will be refined as we go to figure out the error conditions
+          False))
 
 // Callers allocate this type prior to calling decrypt. The contents are only
 // meaningful, and plain is only non-null, if the decryption was a success.
