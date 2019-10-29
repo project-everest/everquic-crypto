@@ -37,6 +37,8 @@ clean: clean-dist
 	--extract_module $(basename $(notdir $(subst .checked,,$<))) \
 	$(notdir $(subst .checked,,$<))
 
+verify: $(ALL_CHECKED_FILES)
+
 # Kremlin
 # -------
 
@@ -61,4 +63,4 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 dist/libeverquic.a: dist/Makefile.basic
 	$(MAKE) -C dist -f Makefile.basic
 
-.PHONY: clean clean-dist
+.PHONY: clean clean-dist verify
