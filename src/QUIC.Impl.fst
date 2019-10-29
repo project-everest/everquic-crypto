@@ -811,7 +811,8 @@ val header_encrypt: i:G.erased index -> (
       B.as_seq h1 dst `S.equal`
         QUIC.Spec.header_encrypt i.aead_alg (g_hp_key h0 s) (g_header h h0)
           (B.as_seq h0 npn) (G.reveal cipher) /\
-      invariant h1 s))
+      invariant h1 s /\
+      footprint h0 s == footprint h1 s))
 
 #push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
 let upd_op_inplace (#a:eqtype) op (s: S.seq a) (x: a): Lemma
@@ -1167,8 +1168,11 @@ let encrypt #i s dst h plain plain_len pn_len =
   (**) assert B.(modifies (loc_all_regions_from false (HS.get_tip h01) `loc_union`
   (**)   footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst) h01 h4);
 
-  // TODO:
-  assume (invariant h5 s);
+  (**) B.popped_modifies h4 h5;
+  (**) frame_invariant B.(loc_region_only false (HS.get_tip h4)) s h4 h5;
+  (**) assert (invariant h5 s);
+  (**) assert (footprint h4 s == footprint h3 s);
+
   admit ();
 
     (*// Functional correctness
