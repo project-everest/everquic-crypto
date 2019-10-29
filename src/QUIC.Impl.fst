@@ -1032,6 +1032,99 @@ let encrypt #i s dst h plain plain_len pn_len =
 
   Success
 
+/// Initial secrets
+/// ---------------
+
+val initial_secrets (dst_client: B.buffer U8.t)
+  (dst_server: B.buffer U8.t)
+  (cid: B.buffer U8.t)
+  (cid_len: U32.t):
+  Stack unit
+    (requires (fun h0 ->
+      B.(all_live h0 [ buf dst_client; buf dst_server; buf cid ]) /\
+      B.length dst_client = Spec.Agile.Hash.(hash_length SHA2_256) /\
+      B.length dst_server = Spec.Agile.Hash.(hash_length SHA2_256) /\
+      B.length cid = U32.v cid_len /\
+      U32.v cid_len <= 20 /\
+      B.(all_disjoint [ loc_buffer dst_client; loc_buffer dst_server; loc_buffer cid ])))
+    (ensures (fun h0 _ h1 ->
+      B.(modifies (loc_buffer dst_client `loc_union` loc_buffer dst_server) h0 h1)))
+
+// TODO: these three should be immutable buffers but we don't have const
+// pointers yet for HKDF.
+let initial_salt: initial_salt:B.buffer U8.t {
+  B.length initial_salt = 20 /\
+  B.recallable initial_salt
+} =
+  [@inline_let]
+  let l = [
+    0xc3uy; 0xeeuy; 0xf7uy; 0x12uy; 0xc7uy; 0x2euy; 0xbbuy; 0x5auy;
+    0x11uy; 0xa7uy; 0xd2uy; 0x43uy; 0x2buy; 0xb4uy; 0x63uy; 0x65uy;
+    0xbeuy; 0xf9uy; 0xf5uy; 0x02uy
+  ] in
+  assert_norm (List.Tot.length l = 20);
+  B.gcmalloc_of_list HS.root l
+
+let server_in: server_in:B.buffer U8.t {
+  B.length server_in = 9 /\
+  B.recallable server_in
+} =
+  [@inline_let]
+  let l = [
+    0x73uy; 0x65uy; 0x72uy; 0x76uy; 0x65uy; 0x72uy; 0x20uy; 0x69uy; 0x6euy
+  ] in
+  assert_norm (List.Tot.length l = 9);
+  B.gcmalloc_of_list HS.root l
+
+let client_in: client_in:B.buffer U8.t {
+  B.length client_in = 9 /\
+  B.recallable client_in
+} =
+  [@inline_let]
+  let l = [
+    0x63uy; 0x6cuy; 0x69uy; 0x65uy; 0x6euy; 0x74uy; 0x20uy; 0x69uy; 0x6euy
+  ] in
+  assert_norm (List.Tot.length l = 9);
+  B.gcmalloc_of_list HS.root l
+
+let initial_secrets dst_client dst_server cid cid_len =
+  (**) let h0 = ST.get () in
+  (**) B.recall initial_salt;
+  (**) B.recall server_in;
+  (**) B.recall client_in;
+  assert_norm (Spec.Agile.Hash.(hash_length SHA2_256) = 32);
+
+  push_frame ();
+  (**) let h1 = ST.get () in
+  (**) let mloc = G.hide (B.(loc_buffer dst_client `loc_union`
+    loc_buffer dst_server `loc_union` loc_region_only true (HS.get_tip h1))) in
+
+  let secret = B.alloca 0uy 32ul in
+  (**) let h2 = ST.get () in
+  (**) B.(modifies_loc_includes (G.reveal mloc) h1 h2 loc_none);
+
+  (**) hash_is_keysized_ Spec.Agile.Hash.SHA2_256;
+  EverCrypt.HKDF.extract Spec.Agile.Hash.SHA2_256 secret initial_salt 20ul
+    cid cid_len;
+  (**) let h3 = ST.get () in
+  (**) B.(modifies_loc_includes (G.reveal mloc) h2 h3 (loc_buffer secret));
+  (**) B.(modifies_trans (G.reveal mloc) h1 h2 (G.reveal mloc) h3);
+
+  EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_client secret 32ul client_in 9ul 32ul;
+  (**) let h4 = ST.get () in
+  (**) B.(modifies_loc_includes (G.reveal mloc) h3 h4 (loc_buffer dst_client));
+  (**) B.(modifies_trans (G.reveal mloc) h1 h3 (G.reveal mloc) h4);
+
+  EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_server secret 32ul server_in 9ul 32ul;
+  (**) let h5 = ST.get () in
+  (**) B.(modifies_loc_includes (G.reveal mloc) h4 h5 (loc_buffer dst_server));
+  (**) B.(modifies_trans (G.reveal mloc) h1 h4 (G.reveal mloc) h5);
+
+  pop_frame ();
+  (**) let h6 = ST.get () in
+  (**) B.modifies_fresh_frame_popped h0 h1
+  (**)   B.(loc_buffer dst_client `loc_union` loc_buffer dst_server) h5 h6
+
 let decrypt #i s dst packet len cid_len =
   admit ()
 
