@@ -325,9 +325,10 @@ val encrypt: #i:G.erased index -> (
           let packet: packet = B.as_seq h1 dst in
           let ctr = g_packet_number (B.deref h0 s) h0 in
           packet ==
-            QUIC.Spec.encrypt i.aead_alg k iv pne (U8.v pn_len) ctr (g_header h h0) plain)
+            QUIC.Spec.encrypt i.aead_alg k iv pne (U8.v pn_len) ctr (g_header h h0) plain /\
+          g_packet_number (B.deref h1 s) h1 = ctr + 1)
       | _ ->
-          False)) // JP: this will be refined as we go to figure out the error conditions
+          False))
 
 // Callers allocate this type prior to calling decrypt. The contents are only
 // meaningful, and plain is only non-null, if the decryption was a success.
