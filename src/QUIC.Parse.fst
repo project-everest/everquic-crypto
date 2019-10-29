@@ -379,7 +379,7 @@ let parse_header_body
 : Tot (k: parser_kind & parser k (bitsum_type_of_tag (header short_dcid_len) k'))
 = match coerce (bitsum'_key_type first_byte) k' with
   | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
-    (| _, parse_flbytes (U32.v short_dcid_len) `nondep_then` parse_flbytes (U32.v pn_length) |)
+    (| _, weaken (strong_parser_kind 0 20 None) (parse_flbytes (U32.v short_dcid_len)) `nondep_then` parse_flbytes (U32.v pn_length) |)
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
     (| _, parse_common_long `nondep_then` (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len) `nondep_then` parse_payload_length_pn pn_length) |)
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
@@ -392,15 +392,20 @@ let parse_header_body
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let parse_header_kind
+let parse_header_kind'
   (short_dcid_len: short_dcid_len_t)
 : Tot parser_kind
 = parse_bitsum_kind parse_u8_kind (header short_dcid_len) (parse_header_body short_dcid_len)
 
+inline_for_extraction
+let parse_header_kind : parser_kind =
+  normalize_term (parse_header_kind' 0ul)
+
 let parse_header
   (short_dcid_len: short_dcid_len_t)
-: Tot (parser (parse_header_kind short_dcid_len) (header_t short_dcid_len))
-= parse_bitsum
+: Tot (parser parse_header_kind (header_t short_dcid_len))
+= assert_norm (parse_header_kind' short_dcid_len == parse_header_kind);
+  parse_bitsum
     (header short_dcid_len)
     parse_u8
     (parse_header_body short_dcid_len)
