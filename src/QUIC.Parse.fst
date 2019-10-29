@@ -410,4 +410,41 @@ let parse_header
     parse_u8
     (parse_header_body short_dcid_len)
 
+let serialize_common_long : serializer parse_common_long =
+  serialize_flbytes 4 `serialize_nondep_then` (serialize_bounded_vlbytes 0 20 `serialize_nondep_then` serialize_bounded_vlbytes 0 20)
+
+let serialize_payload_length_pn
+  (pn_length: packet_number_length_t)
+: Tot (serializer (parse_payload_length_pn pn_length))
+= serialize_varint `serialize_nondep_then` serialize_flbytes (U32.v pn_length)
+
+[@filter_bitsum'_t_attr]
+inline_for_extraction
+noextract
+let serialize_header_body
+  (short_dcid_len: short_dcid_len_t)
+  (k' : bitsum'_key_type (header short_dcid_len).b)
+: Tot (serializer (dsnd (parse_header_body short_dcid_len k')))
+= match coerce (bitsum'_key_type first_byte) k' with
+  | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
+    serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v short_dcid_len)) `serialize_nondep_then` serialize_flbytes (U32.v pn_length)
+  | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
+    serialize_common_long `serialize_nondep_then` (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn pn_length)
+  | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
+    serialize_common_long `serialize_nondep_then` serialize_payload_length_pn pn_length
+  | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
+    serialize_common_long `serialize_nondep_then` serialize_payload_length_pn pn_length
+  | (| Long, (| (), (| Retry, () |) |) |) ->
+    serialize_common_long `serialize_nondep_then` serialize_bounded_vlbytes 0 20
+
+let serialize_header
+  (short_dcid_len: short_dcid_len_t)
+: Tot (serializer (parse_header short_dcid_len))
+= assert_norm (parse_header_kind' short_dcid_len == parse_header_kind);
+  serialize_bitsum
+    (header short_dcid_len)
+    serialize_u8
+    #(parse_header_body short_dcid_len)
+    (serialize_header_body short_dcid_len)
+
 #pop-options
