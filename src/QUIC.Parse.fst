@@ -32,11 +32,14 @@ let varint_bound : (varint_bound: U64.t { U64.v varint_bound == pow2 62 }) =
 inline_for_extraction
 let varint_t = (x: U64.t { U64.v x < U64.v varint_bound })
 
+inline_for_extraction
+let varint_msb_t = (x: U64.t { U64.v x < 64 })
+
 #push-options "--z3rlimit 32"
 
 inline_for_extraction
 let synth_u14
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (lsb: U8.t)
 : Tot varint_t
 = [@inline_let] let _ =
@@ -46,7 +49,7 @@ let synth_u14
   (msb `U64.mul` 256uL) `U64.add` Cast.uint8_to_uint64 lsb  
 
 let synth_u14_injective
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
 : Lemma
   (synth_injective (synth_u14 msb))
   [SMTPat (synth_injective (synth_u14 msb))]
@@ -54,7 +57,7 @@ let synth_u14_injective
 
 inline_for_extraction
 let synth_u30
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (lsb: bounded_integer 3)
 : Tot varint_t
 = [@inline_let] let _ =
@@ -65,7 +68,7 @@ let synth_u30
    (msb `U64.mul` 16777216uL) `U64.add` Cast.uint32_to_uint64 lsb
 
 let synth_u30_injective
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
 : Lemma
   (synth_injective (synth_u30 msb))
   [SMTPat (synth_injective (synth_u30 msb))]
@@ -73,28 +76,28 @@ let synth_u30_injective
 
 inline_for_extraction
 let synth_u62
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (lsb: (U32.t & bounded_integer 3))
 : Tot varint_t
-= [@inline_let]
-  let (hi, lo) = lsb in
-  [@inline_let] let _ =
-    assert_norm (pow2 8 == 256);
-    assert (pow2 62 == U64.v varint_bound);
-    assert_norm (pow2 24 == 16777216);
-    assert_norm (pow2 32 == 4294967296)
+= [@inline_let] let _ =
+  assert_norm (pow2 8 == 256);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296)
   in
+  match lsb with
+  | (hi, lo) ->
   Cast.uint32_to_uint64 lo `U64.add` (16777216uL `U64.mul` (Cast.uint32_to_uint64 hi `U64.add` (4294967296uL `U64.mul` msb)))
 
 let synth_u62_msb
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (lsb: (U32.t & bounded_integer 3))
 : Lemma
   (U64.v (synth_u62 msb lsb) / 72057594037927936 == U64.v msb)
 = ()
 
 let synth_u62_injective
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
 : Lemma
   (synth_injective (synth_u62 msb))
   [SMTPat (synth_injective (synth_u62 msb))]
@@ -125,7 +128,7 @@ let id_u14
 = y
 
 let parse_varint_payload_u14
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
 : Tot (parser parse_varint_payload_kind varint_t)
 = 
   weaken parse_varint_payload_kind
@@ -140,7 +143,7 @@ let id_u30
 = y
 
 let parse_varint_payload_u30
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
 : Tot (parser parse_varint_payload_kind varint_t)
 = 
   weaken parse_varint_payload_kind
@@ -154,17 +157,19 @@ let id_u62
 : Tot varint_t
 = y
 
+let p7 = parse_u32 `nondep_then` parse_bounded_integer 3
+
 let parse_varint_payload_u62
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
 : Tot (parser parse_varint_payload_kind varint_t)
 = 
   weaken parse_varint_payload_kind
-    ((((parse_u32 `nondep_then` parse_bounded_integer 3) `parse_synth` synth_u62 msb)
+    ((((p7) `parse_synth` synth_u62 msb)
     `parse_filter` filter_u62)
     `parse_synth` id_u62)
 
 let parse_varint_payload_14_interval
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (b: bytes)
 : Lemma
   (requires (Some? (parse (parse_varint_payload_u14 msb) b)))
@@ -185,7 +190,7 @@ let parse_varint_payload_14_interval
    parse_synth_eq ((parse_u8 `parse_synth` (synth_u14 msb)) `parse_filter` filter_u14) id_u14 b
 
 let parse_varint_payload_30_interval
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (b: bytes)
 : Lemma
   (requires (Some? (parse (parse_varint_payload_u30 msb) b)))
@@ -201,7 +206,7 @@ let parse_varint_payload_30_interval
     parse_synth_eq ((parse_bounded_integer 3 `parse_synth` (synth_u30 msb)) `parse_filter` filter_u30) (id_u30) b
 
 let parse_varint_payload_62_interval
-  (msb: U64.t { U64.v msb < 64 })
+  (msb: varint_msb_t)
   (b: bytes)
 : Lemma
   (requires (Some? (parse (parse_varint_payload_u62 msb) b)))
@@ -216,11 +221,11 @@ let parse_varint_payload_62_interval
    assert (pow2 62 == U64.v varint_bound);
    assert_norm (pow2 32 == 4294967296);
    assert_norm (pow2 24 == 16777216);
-   parse_synth_eq (parse_u32 `nondep_then` parse_bounded_integer 3) (synth_u62 msb) b;
-   parse_filter_eq ((parse_u32 `nondep_then` parse_bounded_integer 3) `parse_synth` synth_u62 msb) filter_u62 b;
-   parse_synth_eq (((parse_u32 `nondep_then` parse_bounded_integer 3) `parse_synth` (synth_u62 msb)) `parse_filter` filter_u62) (id_u62) b;
+   parse_synth_eq (p7) (synth_u62 msb) b;
+   parse_filter_eq ((p7) `parse_synth` synth_u62 msb) filter_u62 b;
+   parse_synth_eq (((p7) `parse_synth` (synth_u62 msb)) `parse_filter` filter_u62) (id_u62) b;
    let Some (v, _) = parse (parse_varint_payload_u62 msb) b in
-   let Some (lsb, _) = parse (parse_u32 `nondep_then` parse_bounded_integer 3) b in
+   let Some (lsb, _) = parse (p7) b in
    synth_u62_msb msb lsb
 
 let parse_varint_payload
@@ -232,7 +237,7 @@ let parse_varint_payload
   assert_norm (pow2 32 == 4294967296);
   assert_norm (pow2 24 == 16777216);
   let kd = uint8.get_bitfield x 6 8 in
-  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield x 0 6) in
+  let msb : varint_msb_t = Cast.uint8_to_uint64 (uint8.get_bitfield x 0 6) in
   if kd = 0uy
   then weaken parse_varint_payload_kind (parse_ret msb)
   else if kd = 1uy
@@ -306,6 +311,111 @@ let parse_varint_payload_and_then_cases_injective : squash (and_then_cases_injec
 let parse_varint : parser _ varint_t =
   parse_u8 `and_then` parse_varint_payload
 
+let parse_varint_eq_aux
+  (b: bytes)
+: Lemma
+  (pow2 8 == 256 /\ pow2 62 == U64.v varint_bound /\ pow2 24 == 16777216 /\ pow2 32 == 4294967296 /\
+  parse parse_varint b == (match parse parse_u8 b with
+  | None -> None
+  | Some (hd, consumed) ->
+    let b' = Seq.slice b consumed (Seq.length b) in
+    match parse (parse_varint_payload hd) b' with
+    | None -> None
+    | Some (res, consumed') -> Some (res, consumed + consumed')
+  ))
+= assert_norm (pow2 8 == 256);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  and_then_eq parse_u8 parse_varint_payload b
+
+#push-options "--z3rlimit 128"
+
+let parse_varint'
+  (b: bytes)
+: GTot (option (varint_t & consumed_length b))
+= assert_norm (pow2 8 == 256);
+  assert_norm (pow2 6 == 64);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  match parse parse_u8 b with
+  | None -> None
+  | Some (hd, consumed) ->
+    let tag = uint8.get_bitfield hd 6 8 in
+    let msb = Cast.uint8_to_uint64 (uint8.get_bitfield hd 0 6) in
+    let b' = Seq.slice b consumed (Seq.length b) in
+    if tag = 0uy
+    then
+      Some ((msb <: varint_t), consumed)
+    else if tag = 1uy
+    then begin match parse parse_u8 b' with
+    | None -> None
+    | Some (lsb, consumed') ->
+      let v : varint_t = (msb `U64.mul` 256uL) `U64.add` Cast.uint8_to_uint64 lsb in
+      if 64uL `U64.lte` v
+      then Some (v, consumed + consumed')
+      else None
+      end
+    else if tag = 2uy
+    then begin match parse (parse_bounded_integer 3) b' with
+    | None -> None
+    | Some (lsb, consumed') ->
+      let v : varint_t =
+        (msb `U64.mul` 16777216uL) `U64.add` Cast.uint32_to_uint64 lsb
+      in
+      if 16384uL `U64.lte` v
+      then Some (v, consumed + consumed')
+      else None
+    end else begin match parse (parse_u32 `nondep_then` parse_bounded_integer 3) b' with
+    | None -> None
+    | Some ((hi, lo), consumed') ->
+      let v : varint_t =
+        Cast.uint32_to_uint64 lo `U64.add` (16777216uL `U64.mul` (Cast.uint32_to_uint64 hi `U64.add` (4294967296uL `U64.mul` msb)))
+      in
+      if 1073741824uL `U64.lte` v
+      then Some (v, consumed + consumed')
+      else None
+    end
+
+let parse_varint_eq
+  (b: bytes)
+: Lemma
+  (pow2 8 == 256 /\ pow2 62 == U64.v varint_bound /\ pow2 24 == 16777216 /\ pow2 32 == 4294967296 /\
+  parse parse_varint b == parse_varint' b)
+= assert_norm (pow2 8 == 256);
+  assert_norm (pow2 6 == 64);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  parse_varint_eq_aux b;
+  match parse parse_u8 b with
+  | None -> ()
+  | Some (hd, consumed) ->
+    let tag = uint8.get_bitfield hd 6 8 in
+    let msb8 = uint8.get_bitfield hd 0 6 in
+    let msb = Cast.uint8_to_uint64 msb8 in
+    let b' = Seq.slice b consumed (Seq.length b) in
+    assert (tag == 0uy \/ tag == 1uy \/ tag == 2uy \/ tag == 3uy);
+    if tag = 0uy
+    then ()
+    else if tag = 1uy
+    then begin
+      parse_synth_eq parse_u8 (synth_u14 msb) b';
+      parse_filter_eq (parse_u8 `parse_synth` (synth_u14 msb)) filter_u14 b';
+      parse_synth_eq ((parse_u8 `parse_synth` (synth_u14 msb)) `parse_filter` filter_u14) id_u14 b'
+    end else if tag = 2uy
+    then begin
+      parse_synth_eq (parse_bounded_integer 3) (synth_u30 msb) b';
+      parse_filter_eq (parse_bounded_integer 3 `parse_synth` (synth_u30 msb)) filter_u30 b';
+      parse_synth_eq ((parse_bounded_integer 3 `parse_synth` (synth_u30 msb)) `parse_filter` filter_u30) id_u30 b'
+    end else begin
+      parse_synth_eq (p7) (synth_u62 msb) b';
+      parse_filter_eq (p7 `parse_synth` (synth_u62 msb)) filter_u62 b';
+      parse_synth_eq ((p7 `parse_synth` (synth_u62 msb)) `parse_filter` filter_u62) id_u62 b'
+    end
+
+#pop-options
 
 (* From https://tools.ietf.org/html/draft-ietf-quic-transport-23#section-17 *)
 
