@@ -514,3 +514,39 @@ let serialize_varint =
   Classical.forall_intro parse_varint_eq;
   Classical.forall_intro serialize_varint_correct;
   serialize_varint'
+
+let varint_in_bounds
+  (min: nat)
+  (max: nat { min <= max /\ max < 4294967296 })
+  (x: varint_t)
+: GTot bool
+= min <= U64.v x && U64.v x <= max
+
+inline_for_extraction
+noextract
+let synth_bounded_varint
+  (min: nat)
+  (max: nat { min <= max /\ max < 4294967296 })
+  (x: parse_filter_refine (varint_in_bounds min max))
+: Tot (bounded_int32 min max)
+= Cast.uint64_to_uint32 x
+
+let parse_bounded_varint min max =
+  (parse_varint `parse_filter` varint_in_bounds min max) `parse_synth` synth_bounded_varint min max
+
+inline_for_extraction
+noextract
+let synth_bounded_varint_recip
+  (min: nat)
+  (max: nat { min <= max /\ max < 4294967296 })
+  (x: bounded_int32 min max)
+: Tot (parse_filter_refine (varint_in_bounds min max))
+= Cast.uint32_to_uint64 x
+
+let serialize_bounded_varint min max =
+  serialize_synth
+    _
+    (synth_bounded_varint min max)
+    (serialize_varint `serialize_filter` varint_in_bounds min max)
+    (synth_bounded_varint_recip min max)
+    ()

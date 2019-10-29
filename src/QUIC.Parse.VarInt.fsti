@@ -1,7 +1,7 @@
 module QUIC.Parse.VarInt
 
 module U64 = FStar.UInt64
-module LP = LowParse.Spec.Base
+module LP = LowParse.Spec.AllIntegers
 
 inline_for_extraction
 let varint_bound : (varint_bound: U64.t { U64.v varint_bound == pow2 62 }) =
@@ -23,3 +23,13 @@ let parse_varint_kind = {
 val parse_varint : LP.parser parse_varint_kind varint_t
 
 val serialize_varint : LP.serializer parse_varint
+
+val parse_bounded_varint
+  (min: nat)
+  (max: nat { min <= max /\ max < 4294967296 })
+: Tot (LP.parser parse_varint_kind (LP.bounded_int32 min max))
+
+val serialize_bounded_varint
+  (min: nat)
+  (max: nat { min <= max /\ max < 4294967296 })
+: Tot (LP.serializer (parse_bounded_varint min max))
