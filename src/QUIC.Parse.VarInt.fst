@@ -458,7 +458,7 @@ let serialize_varint'
 
 #pop-options
 
-#push-options "--z3rlimit 128"
+#push-options "--z3rlimit 256"
 
 let serialize_varint_correct
   (x: varint_t)
@@ -502,24 +502,13 @@ let serialize_varint_correct
     assert (parse (parse_bounded_integer 3) tl == Some (x', Seq.length tl));
     assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / 16777216);
     assert (U64.v x == (U8.v (uint8.get_bitfield z 0 6) `Prims.op_Multiply` 16777216) + U32.v x')
-  end else
-    assume False
-
-(*
-  assert (x `U64.lt` 64uL)
-  else if tg = 1uy
-  then assert (64uL `U64.lte` x /\ x `U64.lt` 16384uL)
-  else if tg = 2uy
-  else assert (1073741824uL `U64.lte` x)
-  end;
-  assume False
-    let lo = Cast.uint64_to_uint8 x in
+  end else begin
+    assert (1073741824uL `U64.lte` x);
+    let lo : bounded_integer 3 = Cast.uint64_to_uint32 (x `U64.rem` 16777216uL) in
     let hi = Cast.uint64_to_uint32 (x `U64.div` 16777216uL) in
-    assert (parse p7 tl == Some ((hi, lo), Seq.length tl));
-    assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / );    
-
-
-*)
+    assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / 72057594037927936);
+    assert (U64.v x == U32.v lo + (16777216 `Prims.op_Multiply` (U32.v hi + (4294967296 `Prims.op_Multiply` U8.v (uint8.get_bitfield z 0 6)))))
+  end
 
 let serialize_varint =
   Classical.forall_intro parse_varint_eq;
