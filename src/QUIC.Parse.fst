@@ -88,7 +88,7 @@ let rrpp : bitsum' uint8 4 =
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let header_byte : bitsum' uint8 0 =
+let first_byte : bitsum' uint8 0 =
   BitSum' _ _ header_form (function
     | Short ->
       BitSum' _ _ fixed_bit (fun _ ->
@@ -112,11 +112,11 @@ let header_byte : bitsum' uint8 0 =
   )
 
 [@filter_bitsum'_t_attr]
-let filter_header_byte
+let filter_first_byte
 : (x: FStar.UInt8.t) ->
-  Tot (b: bool { b == filter_bitsum' header_byte x })
+  Tot (b: bool { b == filter_bitsum' first_byte x })
 = norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_filter_bitsum'_t' header_byte)
+  (mk_filter_bitsum'_t' first_byte)
 
 (*
 // How to test normalization:
@@ -129,70 +129,88 @@ let f (x: FStar.UInt8.t) : Tot unit =
 *)
 
 open LowParse.Spec.Bytes
-open LowParse.Spec.DepLen
 
 module FB = FStar.Bytes
 
+inline_for_extraction
+noextract
+let token_max_len = 16383 // arbitrary bound
+
 noeq
-type long_message_specifics =
+type long_header_specifics =
 | MInitial:
-  (token: parse_bounded_vlbytes_t 0 127) -> // TODO: change bounds and use parse_vlgen
+  (token: parse_bounded_vlbytes_t 0 token_max_len) -> // arbitrary bound
+  (payload_length: varint_t) ->
   (packet_number: parse_bounded_vlbytes_t 1 4) ->
-  // TODO: add payload using deplen
-  long_message_specifics
+  long_header_specifics
 | MZeroRTT:
+  (payload_length: varint_t) ->
   (packet_number: parse_bounded_vlbytes_t 1 4) ->
-  // TODO: add payload using deplen
-  long_message_specifics
+  long_header_specifics
 | MHandshake:
+  (payload_length: varint_t) ->
   (packet_number: parse_bounded_vlbytes_t 1 4) ->
-  // TODO: add payload using deplen
-  long_message_specifics
+  long_header_specifics
 | MRetry:
   (unused: bitfield uint8 4) ->
   (odcid: parse_bounded_vlbytes_t 0 20) -> // TODO: change bounds to drop instead of rejecting as invalid
-  // TODO: add retry token (where is its length?)
-  long_message_specifics
+  long_header_specifics
 
 noeq
-type message_t =
+type header_gen =
 | MLong:
   (version: FB.lbytes 4) ->
   (dcid: parse_bounded_vlbytes_t 0 20) ->
   (scid: parse_bounded_vlbytes_t 0 20) ->
-  (spec: long_message_specifics) ->
-  message_t
+  (spec: long_header_specifics) ->
+  header_gen
 | MShort:
   (spin: bool) ->
   (key_phase: bool) ->
-  // TODO: add destination connection ID (where is its length?)
+  (dcid: FB.bytes) ->
   (packet_number: parse_bounded_vlbytes_t 1 4) ->
-  message_t
+  header_gen
+
+inline_for_extraction
+let short_dcid_len_t = (short_dcid_len: U32.t { U32.v short_dcid_len <= 20 })
+
+let header_short_dcid_length_prop
+  (m: header_gen)
+  (short_dcid_len: short_dcid_len_t)
+: GTot bool
+= if MShort? m
+  then FB.length (MShort?.dcid m) = U32.v short_dcid_len
+  else true
+
+inline_for_extraction
+noextract
+type header_t (short_dcid_len: short_dcid_len_t) = (m: header_gen { header_short_dcid_length_prop m short_dcid_len })
 
 #push-options "--z3rlimit 16"
 
 inline_for_extraction
 noextract
-let header_of_message
+let first_byte_of_header
+  (short_dcid_len: short_dcid_len_t)
   (t: Type0)
-  (f: (bitsum'_type header_byte -> Tot t))
-  (m: message_t)
+  (f: (bitsum'_type first_byte -> Tot t))
+  (m: header_t short_dcid_len)
 : Tot t
 = match m with
-  | MShort spin key_phase packet_number ->
+  | MShort spin key_phase dcid packet_number ->
     let spin : bitfield uint8 1 = if spin then 1uy else 0uy in
     let key_phase : bitfield uint8 1 = if key_phase then 1uy else 0uy in
     let pn_length : packet_number_length_t = FB.len packet_number in
     f (| Short, (| (), (spin, (| (), (key_phase, (| pn_length, () |) ) |) ) |) |)
   | MLong version dcid scid spec ->
     begin match spec with
-    | MInitial _ packet_number ->
+    | MInitial _ payload_length packet_number ->
       let pn_length : packet_number_length_t = FB.len packet_number in
       f (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |)
-    | MZeroRTT packet_number ->
+    | MZeroRTT payload_length packet_number ->
       let pn_length : packet_number_length_t = FB.len packet_number in
       f (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |)
-    | MHandshake packet_number ->
+    | MHandshake payload_length packet_number ->
       let pn_length : packet_number_length_t = FB.len packet_number in
       f (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |)
     | MRetry unused _ ->
@@ -208,23 +226,32 @@ let common_long_t
 : Type0
 = (FB.lbytes 4 & (parse_bounded_vlbytes_t 0 20 & parse_bounded_vlbytes_t 0 20))
 
+[@filter_bitsum'_t_attr]
+inline_for_extraction
+noextract
+let payload_length_pn
+  (pn_length: packet_number_length_t)
+: Tot Type0
+= (varint_t & FB.lbytes (U32.v pn_length))
+
 #push-options "--z3rlimit 16 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let body_type
-  (k' : bitsum'_key_type header_byte)
+let header_body_type
+  (short_dcid_len: short_dcid_len_t)
+  (k' : bitsum'_key_type first_byte)
 : Tot Type0
 = match k' with
   | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
-    (FB.lbytes (U32.v pn_length))
+    (FB.lbytes (U32.v short_dcid_len) & FB.lbytes (U32.v pn_length))
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
-    (common_long_t & (parse_bounded_vlbytes_t 0 127 & FB.lbytes (U32.v pn_length)))
+    (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn pn_length))
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
-    (common_long_t & FB.lbytes (U32.v pn_length))
+    (common_long_t & payload_length_pn pn_length)
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
-    (common_long_t & FB.lbytes (U32.v pn_length))
+    (common_long_t & payload_length_pn pn_length)
   | (| Long, (| (), (| Retry, () |) |) |) ->
     (common_long_t & parse_bounded_vlbytes_t 0 20)
 
@@ -237,29 +264,33 @@ open LowParse.Spec.BitSum // again, for coerce
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let mk_message
-  (k' : bitsum'_type header_byte)
-  (pl: body_type (bitsum'_key_of_t header_byte k'))
-: Tot (refine_with_tag (header_of_message (bitsum'_type header_byte) id) k')
+let mk_header
+  (short_dcid_len: short_dcid_len_t)
+  (k' : bitsum'_type first_byte)
+  (pl: header_body_type short_dcid_len (bitsum'_key_of_t first_byte k'))
+: Tot (refine_with_tag (first_byte_of_header short_dcid_len (bitsum'_type first_byte) id) k')
 = match k' with
   | (| Short, (| (), (spin, (| (), (key_phase, (| pn_length, () |) ) |) ) |) |) ->
     let spin = (spin = 1uy) in
     let key_phase = (key_phase = 1uy) in
-    MShort spin key_phase pl
+    begin match coerce (FB.lbytes (U32.v short_dcid_len) & FB.lbytes (U32.v pn_length)) pl with
+    | (dcid, packet_number) ->
+      MShort spin key_phase dcid packet_number
+    end
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
-    begin match coerce (common_long_t & (parse_bounded_vlbytes_t 0 127 & FB.lbytes (U32.v pn_length))) pl with
-    | ((version, (dcid, scid)), (token, packet_number)) ->
-      MLong version dcid scid (MInitial token packet_number)
+    begin match coerce (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn pn_length)) pl with
+    | ((version, (dcid, scid)), (token, (payload_length, packet_number))) ->
+      MLong version dcid scid (MInitial token payload_length packet_number)
     end
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
-    begin match coerce (common_long_t & FB.lbytes (U32.v pn_length)) pl with
-    | ((version, (dcid, scid)), packet_number) ->
-      MLong version dcid scid (MZeroRTT packet_number)
+    begin match coerce (common_long_t & payload_length_pn pn_length) pl with
+    | ((version, (dcid, scid)), (payload_length, packet_number)) ->
+      MLong version dcid scid (MZeroRTT payload_length packet_number)
     end
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
-    begin match coerce (common_long_t & FB.lbytes (U32.v pn_length)) pl with
-    | ((version, (dcid, scid)), packet_number) ->
-      MLong version dcid scid (MHandshake packet_number)
+    begin match coerce (common_long_t & payload_length_pn pn_length) pl with
+    | ((version, (dcid, scid)), (payload_length, packet_number)) ->
+      MLong version dcid scid (MHandshake payload_length packet_number)
     end
   | (| Long, (| (), (| Retry, (unused, ()) |) |) |) ->
     begin match coerce (common_long_t & parse_bounded_vlbytes_t 0 20) pl with
@@ -270,34 +301,35 @@ let mk_message
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let mk_body
-  (k' : bitsum'_type header_byte)
-  (pl: refine_with_tag (header_of_message (bitsum'_type header_byte) id) k')
-: Tot (body_type (bitsum'_key_of_t header_byte k'))
+let mk_header_body
+  (short_dcid_len: short_dcid_len_t)
+  (k' : bitsum'_type first_byte)
+  (pl: refine_with_tag (first_byte_of_header short_dcid_len (bitsum'_type first_byte) id) k')
+: Tot (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k'))
 = match k' with
   | (| Short, (| (), (spin, (| (), (key_phase, (| pn_length, () |) ) |) ) |) |) ->
     begin match pl with
-    | MShort _ _ pl -> pl
+    | MShort _ _ dcid pn -> coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) ((dcid, pn) <: (FB.lbytes (U32.v short_dcid_len) & FB.lbytes (U32.v pn_length)))
     end
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
-    | MLong version dcid scid (MInitial token packet_number) ->
-      coerce (body_type (bitsum'_key_of_t header_byte k')) (((version, (dcid, scid)), (token, packet_number)) <: (common_long_t & (parse_bounded_vlbytes_t 0 127 & FB.lbytes (U32.v pn_length))))
+    | MLong version dcid scid (MInitial token payload_length packet_number) ->
+      coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (token, (payload_length, packet_number))) <: (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn pn_length)))
     end
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
-    | MLong version dcid scid (MZeroRTT packet_number) ->
-      coerce (body_type (bitsum'_key_of_t header_byte k')) (((version, (dcid, scid)), packet_number) <: (common_long_t & FB.lbytes (U32.v pn_length)))
+    | MLong version dcid scid (MZeroRTT payload_length packet_number) ->
+      coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length, packet_number)) <: (common_long_t & payload_length_pn pn_length))
     end
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
-    | MLong version dcid scid (MHandshake packet_number) ->
-      coerce (body_type (bitsum'_key_of_t header_byte k')) (((version, (dcid, scid)), packet_number) <: (common_long_t & FB.lbytes (U32.v pn_length)))
+    | MLong version dcid scid (MHandshake payload_length packet_number) ->
+      coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length, packet_number)) <: (common_long_t & payload_length_pn pn_length))
     end
   | (| Long, (| (), (| Retry, (unused, ()) |) |) |) ->
     begin match pl with
     | MLong version dcid scid (MRetry unused odcid) ->
-      coerce (body_type (bitsum'_key_of_t header_byte k')) (((version, (dcid, scid)), odcid) <: (common_long_t & parse_bounded_vlbytes_t 0 20))
+      coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), odcid) <: (common_long_t & parse_bounded_vlbytes_t 0 20))
     end
 
 #pop-options
@@ -307,21 +339,70 @@ let mk_body
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let message : bitsum = BitSum
+let header
+  (short_dcid_len: short_dcid_len_t)
+: Tot bitsum = BitSum
   _
   _
   _
-  header_byte
+  first_byte
   _
-  header_of_message
+  (first_byte_of_header short_dcid_len)
   (fun _ _ _ -> ())
-  body_type
+  (header_body_type short_dcid_len)
   (SynthCase
-    #_ #_ #_ #header_byte #_ #header_of_message #body_type
-    mk_message
+    #_ #_ #_ #first_byte #_ #(first_byte_of_header short_dcid_len) #(header_body_type short_dcid_len)
+    (mk_header short_dcid_len)
     (fun k x y -> ())
-    mk_body
+    (mk_header_body short_dcid_len)
     (fun k x -> ())
   )
+
+#pop-options
+
+let parse_common_long : parser _ common_long_t =
+  parse_flbytes 4 `nondep_then` (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20)
+
+let parse_payload_length_pn
+  (pn_length: packet_number_length_t)
+: Tot (parser _ (payload_length_pn pn_length))
+= parse_varint `nondep_then` parse_flbytes (U32.v pn_length)
+
+#push-options "--z3rlimit 32 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
+
+[@filter_bitsum'_t_attr]
+inline_for_extraction
+noextract
+let parse_header_body
+  (short_dcid_len: short_dcid_len_t)
+  (k' : bitsum'_key_type (header short_dcid_len).b)
+: Tot (k: parser_kind & parser k (bitsum_type_of_tag (header short_dcid_len) k'))
+= match coerce (bitsum'_key_type first_byte) k' with
+  | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
+    (| _, parse_flbytes (U32.v short_dcid_len) `nondep_then` parse_flbytes (U32.v pn_length) |)
+  | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
+    (| _, parse_common_long `nondep_then` (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len) `nondep_then` parse_payload_length_pn pn_length) |)
+  | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
+    (| _, parse_common_long `nondep_then` parse_payload_length_pn pn_length |)
+  | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
+    (| _, parse_common_long `nondep_then` parse_payload_length_pn pn_length |)
+  | (| Long, (| (), (| Retry, () |) |) |) ->
+    (| _, parse_common_long `nondep_then` parse_bounded_vlbytes 0 20 |)
+
+[@filter_bitsum'_t_attr]
+inline_for_extraction
+noextract
+let parse_header_kind
+  (short_dcid_len: short_dcid_len_t)
+: Tot parser_kind
+= parse_bitsum_kind parse_u8_kind (header short_dcid_len) (parse_header_body short_dcid_len)
+
+let parse_header
+  (short_dcid_len: short_dcid_len_t)
+: Tot (parser (parse_header_kind short_dcid_len) (header_t short_dcid_len))
+= parse_bitsum
+    (header short_dcid_len)
+    parse_u8
+    (parse_header_body short_dcid_len)
 
 #pop-options
