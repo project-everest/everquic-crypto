@@ -406,7 +406,7 @@ let create_in_core i r dst initial_pn traffic_secret aead_state ctr_state =
   (**) B.(modifies_only_not_unused_in (loc_buffer dst) h0 h5)
 #pop-options
 
-#push-options "--z3rlimit 200"
+#push-options "--z3rlimit 256"
 let create_in i r dst initial_pn traffic_secret =
   LowStar.ImmutableBuffer.recall label_key;
   LowStar.ImmutableBuffer.recall_contents label_key QUIC.Spec.label_key;
@@ -483,7 +483,7 @@ let create_in i r dst initial_pn traffic_secret =
       pop_frame ();
       (**) let h7 = ST.get () in
       (**) B.(modifies_fresh_frame_popped h0 h1 (loc_buffer dst) h6 h7);
-      admit ();
+      (**) frame_invariant (B.loc_region_only false (HS.get_tip h6)) (B.deref h7 dst) h6 h7;
 
       Success
 #pop-options
