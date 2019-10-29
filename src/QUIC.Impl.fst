@@ -618,13 +618,6 @@ let block_of_sample (a: Spec.Agile.Cipher.cipher_alg)
   pop_frame ()
 #pop-options
 
-let proj_ctr_state #i (s: state i): Stack (CTR.state (as_cipher_alg i.aead_alg))
-  (requires (fun h0 -> invariant h0 s))
-  (ensures (fun h0 x h1 -> h0 == h1 /\ x == (B.deref h0 s).ctr_state))
-=
-  let State _ _ _ _ _ _ _ _ s = !*s in
-  s
-
 let pn_sizemask (dst: B.buffer U8.t) (pn_len: u2): Stack unit
   (requires fun h0 ->
     B.live h0 dst /\ B.length dst = 4)
@@ -700,14 +693,6 @@ val header_encrypt: i:G.erased index -> (
       invariant h1 s /\
       footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s)))
 
-#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
-let upd_op_inplace (#a:eqtype) op (s: S.seq a) (x: a): Lemma
-  (requires S.length s > 0)
-  (ensures (S.upd s 0 (S.index s 0 `op` x) `S.equal`
-    QUIC.Spec.pointwise_op op s (S.create 1 x) 0))
-=
-  ()
-#pop-options
 
 let pn_offset (h: header): Stack U32.t
   (requires fun h0 -> True)

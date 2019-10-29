@@ -213,6 +213,15 @@ let rec seq_map2_xor0 (s1 s2: S.seq U8.t): Lemma
     seq_map2_xor0 (S.tail s1) (S.tail s2)
 #pop-options
 
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
+let upd_op_inplace (#a:eqtype) op (s: S.seq a) (x: a): Lemma
+  (requires S.length s > 0)
+  (ensures (S.upd s 0 (S.index s 0 `op` x) `S.equal`
+    QUIC.Spec.pointwise_op op s (S.create 1 x) 0))
+=
+  ()
+#pop-options
+
 /// Endianness lemmas
 /// -----------------
 
