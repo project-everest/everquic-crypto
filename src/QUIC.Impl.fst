@@ -312,6 +312,18 @@ let derive_secret a dst dst_len secret label label_len =
   (**) assert (ST.equal_domains h0 h4)
 #pop-options
 
+/// For functions that perform allocations, or even functions that need
+/// temporary state, a style we adopt here is to write the core (i.e. what would
+/// normally go in-between push and pop frame) as a separate function. If
+/// needed, the core of the function takes its temporary allocations as
+/// parameters, and reasons abstractly against a region where the temporary
+/// allocations live. This gives significantly better proof performance.
+///
+/// Another bit of style: after every stateful operation, we restore manually:
+/// the modifies clause (going directly for the one we want); the invariant; the
+/// footprint preservation; then the functional correctness propertise we are
+/// seeking.
+
 val create_in_core:
   i:index ->
   r:HS.rid ->
@@ -367,6 +379,8 @@ let create_in_core i r dst initial_pn traffic_secret aead_state ctr_state =
 
   (**) let h0 = ST.get () in
   (**) assert_norm FStar.Mul.(8 * 12 <= pow2 64 - 1);
+
+  // The modifies clauses that we will transitively carry across this function body.
   let mloc = G.hide (B.(loc_buffer dst `loc_union` loc_unused_in h0)) in
   let e_traffic_secret: G.erased (Spec.Hash.Definitions.bytes_hash i.hash_alg) =
     G.hide (B.as_seq h0 traffic_secret) in
@@ -537,25 +551,6 @@ let block_len (a: Spec.Agile.Cipher.cipher_alg):
 =
   let open Spec.Agile.Cipher in
   match a with | CHACHA20 -> 64ul | _ -> 16ul
-
-#push-options "--max_fuel 1"
-let rec seq_map2_xor0 (s1 s2: S.seq U8.t): Lemma
-  (requires
-    S.length s1 = S.length s2 /\
-    s1 `S.equal` S.create (S.length s2) 0uy)
-  (ensures
-    Spec.Loops.seq_map2 CTR.xor8 s1 s2 `S.equal` s2)
-  (decreases (S.length s1))
-=
-  if S.length s1 = 0 then
-    ()
-  else
-    let open FStar.UInt in
-    logxor_lemma_1 #8 (U8.v (S.head s2));
-    logxor_lemma_1 #8 (U8.v (S.head s1));
-    logxor_commutative (U8.v (S.head s1)) (U8.v (S.head s2));
-    seq_map2_xor0 (S.tail s1) (S.tail s2)
-#pop-options
 
 #push-options "--z3rlimit 100"
 inline_for_extraction

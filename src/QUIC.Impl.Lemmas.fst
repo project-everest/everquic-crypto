@@ -194,9 +194,29 @@ let rec and_inplace_commutative (s1 s2: S.seq U8.t): Lemma
   )
 #pop-options
 
+#push-options "--max_fuel 1"
+let rec seq_map2_xor0 (s1 s2: S.seq U8.t): Lemma
+  (requires
+    S.length s1 = S.length s2 /\
+    s1 `S.equal` S.create (S.length s2) 0uy)
+  (ensures
+    Spec.Loops.seq_map2 EverCrypt.CTR.xor8 s1 s2 `S.equal` s2)
+  (decreases (S.length s1))
+=
+  if S.length s1 = 0 then
+    ()
+  else
+    let open FStar.UInt in
+    logxor_lemma_1 #8 (U8.v (S.head s2));
+    logxor_lemma_1 #8 (U8.v (S.head s1));
+    logxor_commutative (U8.v (S.head s1)) (U8.v (S.head s2));
+    seq_map2_xor0 (S.tail s1) (S.tail s2)
+#pop-options
+
 /// Endianness lemmas
 /// -----------------
 
+#restart-solver
 let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
   (requires i <= S.length s)
   (ensures FStar.Endianness.be_to_n (S.slice s i (S.length s)) =
