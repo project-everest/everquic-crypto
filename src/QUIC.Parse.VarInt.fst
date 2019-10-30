@@ -552,3 +552,171 @@ let serialize_bounded_varint min max =
     (serialize_varint `serialize_filter` varint_in_bounds min max)
     (synth_bounded_varint_recip min max)
     ()
+
+module HST = FStar.HyperStack.ST
+module LL = LowParse.Low.BoundedInt
+module LI = LowParse.Low.Int
+module LC = LowParse.Low.Combinators
+
+#push-options "--z3rlimit 128"
+
+let validate_varint #rrel #rel sl pos =
+  let h = HST.get () in
+  [@inline_let]
+  let _ =
+    assert_norm (pow2 8 == 256);
+    assert_norm (pow2 6 == 64);
+    assert (pow2 62 == U64.v varint_bound);
+    assert_norm (pow2 24 == 16777216);
+    assert_norm (pow2 32 == 4294967296);
+    LL.valid_facts parse_varint h sl pos;
+    parse_varint_eq (LL.bytes_of_slice_from h sl pos);
+    LL.valid_facts parse_u8 h sl pos
+  in
+  let pos1 = LI.validate_u8 () sl pos in
+  if pos1 `U32.gt` LL.validator_max_length
+  then pos1
+  else
+    let b = LI.read_u8 sl pos in
+    let kd = uint8.get_bitfield b 6 8 in
+    let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+    if kd = 0uy
+    then pos1
+    else if kd = 1uy
+    then begin
+      [@inline_let]
+      let _ =
+        LL.valid_facts parse_u8 h sl pos1
+      in
+      let pos2 = LI.validate_u8 () sl pos1 in
+      if pos2 `U32.gt` LL.validator_max_length
+      then pos2
+      else
+        let lsb = LI.read_u8 sl pos1 in
+        let z = synth_u14 msb lsb in
+        if filter_u14 z
+        then pos2
+        else LL.validator_error_generic
+    end else if kd = 2uy
+    then begin
+      [@inline_let]
+      let _ =
+        LL.valid_facts (parse_bounded_integer 3) h sl pos1
+      in
+      let pos2 = LL.validate_bounded_integer 3 sl pos1 in
+      if pos2 `U32.gt` LL.validator_max_length
+      then pos2
+      else
+        let lsb = LL.read_bounded_integer 3 sl pos1 in
+        let z = synth_u30 msb lsb in
+        if filter_u30 z
+        then pos2
+        else LL.validator_error_generic        
+    end else begin
+      [@inline_let]
+      let _ =
+        LL.valid_facts (parse_u32 `nondep_then` parse_bounded_integer 3) h sl pos1
+      in
+      let pos2 = LC.validate_nondep_then (LI.validate_u32 ()) (LL.validate_bounded_integer 3) sl pos1 in
+      if pos2 `U32.gt` LL.validator_max_length
+      then pos2
+      else
+        let pos_hi = LC.accessor_fst LL.parse_u32 () (LL.parse_bounded_integer 3) sl pos1 in
+        let hi = LI.read_u32 sl pos_hi in
+        let pos_lo = LC.accessor_snd LI.jump_u32 (LL.parse_bounded_integer 3) sl pos1 in
+        let lo = LL.read_bounded_integer 3 sl pos_lo in
+        let z = synth_u62 msb (hi, lo) in
+        if filter_u62 z
+        then pos2
+        else LL.validator_error_generic
+    end
+
+let read_varint #rrel #rel sl pos =
+  let h = HST.get () in
+  [@inline_let]
+  let _ =
+    assert_norm (pow2 8 == 256);
+    assert_norm (pow2 6 == 64);
+    assert (pow2 62 == U64.v varint_bound);
+    assert_norm (pow2 24 == 16777216);
+    assert_norm (pow2 32 == 4294967296);
+    LL.valid_facts parse_varint h sl pos;
+    parse_varint_eq (LL.bytes_of_slice_from h sl pos);
+    LL.valid_facts parse_u8 h sl pos
+  in
+  let pos1 = LI.jump_u8 sl pos in
+  let b = LI.read_u8 sl pos in
+  let kd = uint8.get_bitfield b 6 8 in
+  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+  if kd = 0uy
+  then msb
+  else if kd = 1uy
+  then begin
+    [@inline_let]
+    let _ =
+      LL.valid_facts parse_u8 h sl pos1
+    in
+    let lsb = LI.read_u8 sl pos1 in
+    synth_u14 msb lsb
+  end else if kd = 2uy
+  then begin
+    [@inline_let]
+    let _ =
+      LL.valid_facts (parse_bounded_integer 3) h sl pos1
+    in
+    let lsb = LL.read_bounded_integer 3 sl pos1 in
+    synth_u30 msb lsb
+  end else begin
+    [@inline_let]
+    let _ =
+      LL.valid_facts (parse_u32 `nondep_then` parse_bounded_integer 3) h sl pos1
+    in
+    let pos_hi = LC.accessor_fst LL.parse_u32 () (LL.parse_bounded_integer 3) sl pos1 in
+    let hi = LI.read_u32 sl pos_hi in
+    let pos_lo = LC.accessor_snd LI.jump_u32 (LL.parse_bounded_integer 3) sl pos1 in
+    let lo = LL.read_bounded_integer 3 sl pos_lo in
+    synth_u62 msb (hi, lo)
+  end
+
+let jump_varint #rrel #rel sl pos =
+  let h = HST.get () in
+  [@inline_let]
+  let _ =
+    assert_norm (pow2 8 == 256);
+    assert_norm (pow2 6 == 64);
+    assert (pow2 62 == U64.v varint_bound);
+    assert_norm (pow2 24 == 16777216);
+    assert_norm (pow2 32 == 4294967296);
+    LL.valid_facts parse_varint h sl pos;
+    parse_varint_eq (LL.bytes_of_slice_from h sl pos);
+    LL.valid_facts parse_u8 h sl pos
+  in
+  let pos1 = LI.jump_u8 sl pos in
+  let b = LI.read_u8 sl pos in
+  let kd = uint8.get_bitfield b 6 8 in
+  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+  if kd = 0uy
+  then pos1
+  else if kd = 1uy
+  then begin
+    [@inline_let]
+    let _ =
+      LL.valid_facts parse_u8 h sl pos1
+    in
+    LI.jump_u8 sl pos1
+  end else if kd = 2uy
+  then begin
+    [@inline_let]
+    let _ =
+      LL.valid_facts (parse_bounded_integer 3) h sl pos1
+    in
+    LL.jump_bounded_integer 3 sl pos1
+  end else begin
+    [@inline_let]
+    let _ =
+      LL.valid_facts (parse_u32 `nondep_then` parse_bounded_integer 3) h sl pos1
+    in
+    LC.jump_nondep_then (LI.jump_u32) (LL.jump_bounded_integer 3) sl pos1
+  end
+
+#pop-options
