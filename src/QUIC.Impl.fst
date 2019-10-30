@@ -1143,10 +1143,139 @@ let parse_header (packet: B.buffer U8.t) (packet_len: U32.t) (cid_len: u4):
           U32.v npn == FStar.Endianness.be_to_n spec_npn /\
           U8.v pn_len = S.length spec_npn /\
           g_header h h1 == spec_h /\
-          U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len)))))
+          U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
+          U32.v len <= U32.v packet_len /\
+
+          // TR says: we'll need something more precise than this
+          B.(loc_includes (loc_buffer packet) (header_footprint h))
+          ))))
 =
   admit ();
   C.Failure.failwith C.String.(!$"TODO")
+
+val parse_varint (b: B.buffer U8.t) (len: U32.t):
+  Stack (option (u62 & U32.t))
+    (requires (fun h0 ->
+      B.live h0 b /\
+      B.length b = U32.v len))
+    (ensures (fun h0 r h1 ->
+      h0 == h1 /\ (
+
+      let spec_result = QUIC.Spec.parse_varint (B.as_seq h0 b) in
+      match r with
+      | None -> None? spec_result
+      | Some (x, ofs) ->
+          Some? spec_result /\ (
+          let Some (spec_val, spec_rest) = spec_result in
+          U64.v x = spec_val /\
+          U32.v ofs <= B.length b /\
+          U32.v ofs = QUIC.Spec.vlen (U64.v x) /\
+          S.slice (B.as_seq h0 b) (U32.v ofs) (B.length b) `S.equal`
+            spec_rest))))
+let parse_varint b len =
+  admit ();
+  C.Failure.failwith C.String.(!$"TODO")
+
+val parse_long_header_clen (b: B.buffer U8.t) (len: U32.t):
+  Stack (option (u4 & u4))
+    (requires (fun h0 ->
+      B.live h0 b /\
+      B.length b = U32.v len))
+    (ensures (fun h0 r h1 ->
+      h0 == h1 /\ (
+
+      let spec_result = QUIC.Spec.parse_long_header_clen (B.as_seq h0 b) in
+      match r with
+      | None -> None? spec_result
+      | Some (dcil, scil) ->
+          Some? spec_result /\ (
+          let Some (spec_dcil, spec_scil, spec_rest) = spec_result in
+          U8.v dcil == spec_dcil /\
+          U8.v scil == spec_scil /\
+          S.slice (B.as_seq h0 b) 1 (B.length b) `S.equal`
+            spec_rest))))
+let parse_long_header_clen b len =
+  if len = 0ul then
+    None
+  else
+    let x = b.(0ul) in
+    Some (x `U8.div` 0x10uy, x `U8.rem` 0x10uy)
+
+val long_sample (b: B.buffer U8.t) (len: U32.t):
+  Stack (option (U32.t & U32.t))
+    (requires (fun h0 ->
+      B.live h0 b /\
+      B.length b = U32.v len /\
+      21 <= B.length b))
+    (ensures (fun h0 r h1 ->
+      h0 == h1 /\ (
+
+      let spec_result = QUIC.Spec.long_sample (B.as_seq h0 b) in
+      match r with
+      | None -> None? spec_result
+      | Some (sample_ofs, pn_ofs) ->
+          Some? spec_result /\
+          U32.v sample_ofs + 16 <= B.length b /\ (
+          let Some (spec_sample, spec_pn_ofs) = spec_result in
+          S.slice (B.as_seq h0 b) (U32.v sample_ofs) (U32.v sample_ofs + 16) `S.equal`
+            spec_sample /\
+          U32.v pn_ofs == spec_pn_ofs))))
+
+#push-options "--z3rlimit 100"
+let long_sample b b_len =
+  let len5 = b_len `U32.sub` 5ul in
+  let b5 = B.sub b 5ul len5 in
+  match parse_long_header_clen b5 len5 with
+  | Some (dcil, scil) ->
+      let dcil_scil = U32.(u32_of_u8 (add3 dcil) +^ u32_of_u8 (add3 scil)) in
+      if U32.(len5 -^ 1ul <^ dcil_scil) then
+        None
+      else
+        let ofs = 6ul `U32.add` dcil_scil in
+        match parse_varint (B.sub b ofs (b_len `U32.sub` ofs)) (b_len `U32.sub` ofs) with
+        | None -> None
+        | Some (len, ofs') ->
+            assert (U32.v ofs' == QUIC.Spec.vlen (U64.v len));
+            let pn_offset = U32.(ofs +^ ofs') in
+            if U32.(pn_offset +^ 20ul <=^ b_len) then
+              Some (pn_offset `U32.add` 4ul,
+                6ul `U32.add` u32_of_u8 (add3 dcil) `U32.add` u32_of_u8 (add3 scil)
+                `U32.add` ofs')
+            else
+              None
+
+
+val header_decrypt: i:index ->
+  (s: state i) ->
+  (packet: B.buffer U8.t) ->
+  (packet_len: U32.t) ->
+  (cid_len: u4) ->
+  Stack (option (header & U32.t & U32.t & u2))
+    (requires (fun h0 ->
+      B.live h0 packet /\
+      B.length packet = U32.v packet_len /\
+      21 <= B.length packet))
+    (ensures (fun h0 r h1 ->
+      let a = i.aead_alg in
+      let hpk = g_hp_key h0 s in
+      let cid_len = U8.v cid_len in
+      let spec_result = QUIC.Spec.header_decrypt a hpk cid_len (B.as_seq h0 packet) in
+      match r with
+      | None -> QUIC.Spec.H_Failure? spec_result
+      | Some (h, h_len, npn, pn_len) ->
+          QUIC.Spec.H_Success? spec_result /\ (
+          let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
+          U32.v npn == FStar.Endianness.be_to_n spec_npn /\
+          U8.v pn_len = S.length spec_npn /\
+          g_header h h1 == spec_h /\
+          U32.v h_len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
+          U32.v h_len <= U32.v packet_len /\
+
+          B.(modifies (loc_buffer (gsub packet 0ul h_len)) h0 h1)
+          )))
+
+let header_decrypt i s packet packet_len cid_len =
+  admit ()
 
 let decrypt #i s dst packet len cid_len =
   admit ()
