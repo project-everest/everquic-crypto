@@ -141,15 +141,18 @@ type long_header_specifics =
 | MInitial:
   (token: parse_bounded_vlbytes_t 0 token_max_len) -> // arbitrary bound
   (payload_length: varint_t) ->
-  (packet_number: parse_bounded_vlbytes_t 1 4) ->
+  (packet_number_length: packet_number_length_t) ->
+  (packet_number: bounded_integer (U32.v packet_number_length)) ->
   long_header_specifics
 | MZeroRTT:
   (payload_length: varint_t) ->
-  (packet_number: parse_bounded_vlbytes_t 1 4) ->
+  (packet_number_length: packet_number_length_t) ->
+  (packet_number: bounded_integer (U32.v packet_number_length)) ->
   long_header_specifics
 | MHandshake:
   (payload_length: varint_t) ->
-  (packet_number: parse_bounded_vlbytes_t 1 4) ->
+  (packet_number_length: packet_number_length_t) ->
+  (packet_number: bounded_integer (U32.v packet_number_length)) ->
   long_header_specifics
 | MRetry:
   (unused: bitfield uint8 4) ->
@@ -204,14 +207,11 @@ let first_byte_of_header
     f (| Short, (| (), (spin, (| (), (key_phase, (| pn_length, () |) ) |) ) |) |)
   | MLong version dcid scid spec ->
     begin match spec with
-    | MInitial _ payload_length packet_number ->
-      let pn_length : packet_number_length_t = FB.len packet_number in
+    | MInitial _ payload_length pn_length _ ->
       f (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |)
-    | MZeroRTT payload_length packet_number ->
-      let pn_length : packet_number_length_t = FB.len packet_number in
+    | MZeroRTT payload_length pn_length _ ->
       f (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |)
-    | MHandshake payload_length packet_number ->
-      let pn_length : packet_number_length_t = FB.len packet_number in
+    | MHandshake payload_length pn_length _ ->
       f (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |)
     | MRetry unused _ ->
       f (| Long, (| (), (| Retry, (unused, ()) |) |) |)
@@ -232,7 +232,7 @@ noextract
 let payload_length_pn
   (pn_length: packet_number_length_t)
 : Tot Type0
-= (varint_t & FB.lbytes (U32.v pn_length))
+= (varint_t & bounded_integer (U32.v pn_length))
 
 #push-options "--z3rlimit 16 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
@@ -280,23 +280,27 @@ let mk_header
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match coerce (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn pn_length)) pl with
     | ((version, (dcid, scid)), (token, (payload_length, packet_number))) ->
-      MLong version dcid scid (MInitial token payload_length packet_number)
+      MLong version dcid scid (MInitial token payload_length pn_length packet_number)
     end
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match coerce (common_long_t & payload_length_pn pn_length) pl with
     | ((version, (dcid, scid)), (payload_length, packet_number)) ->
-      MLong version dcid scid (MZeroRTT payload_length packet_number)
+      MLong version dcid scid (MZeroRTT payload_length pn_length packet_number)
     end
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match coerce (common_long_t & payload_length_pn pn_length) pl with
     | ((version, (dcid, scid)), (payload_length, packet_number)) ->
-      MLong version dcid scid (MHandshake payload_length packet_number)
+      MLong version dcid scid (MHandshake payload_length pn_length packet_number)
     end
   | (| Long, (| (), (| Retry, (unused, ()) |) |) |) ->
     begin match coerce (common_long_t & parse_bounded_vlbytes_t 0 20) pl with
     | ((version, (dcid, scid)), odcid) ->
       MLong version dcid scid (MRetry unused odcid)
     end
+
+#pop-options
+
+#push-options "--z3rlimit 64 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
@@ -313,17 +317,17 @@ let mk_header_body
     end
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
-    | MLong version dcid scid (MInitial token payload_length packet_number) ->
+    | MLong version dcid scid (MInitial token payload_length _ packet_number) ->
       coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (token, (payload_length, packet_number))) <: (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn pn_length)))
     end
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
-    | MLong version dcid scid (MZeroRTT payload_length packet_number) ->
+    | MLong version dcid scid (MZeroRTT payload_length _ packet_number) ->
       coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length, packet_number)) <: (common_long_t & payload_length_pn pn_length))
     end
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
-    | MLong version dcid scid (MHandshake payload_length packet_number) ->
+    | MLong version dcid scid (MHandshake payload_length _ packet_number) ->
       coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length, packet_number)) <: (common_long_t & payload_length_pn pn_length))
     end
   | (| Long, (| (), (| Retry, (unused, ()) |) |) |) ->
@@ -331,10 +335,6 @@ let mk_header_body
     | MLong version dcid scid (MRetry unused odcid) ->
       coerce (header_body_type short_dcid_len (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), odcid) <: (common_long_t & parse_bounded_vlbytes_t 0 20))
     end
-
-#pop-options
-
-#push-options "--z3rlimit 64 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
@@ -366,7 +366,7 @@ let parse_common_long : parser _ common_long_t =
 let parse_payload_length_pn
   (pn_length: packet_number_length_t)
 : Tot (parser _ (payload_length_pn pn_length))
-= parse_varint `nondep_then` parse_flbytes (U32.v pn_length)
+= parse_varint `nondep_then` parse_bounded_integer (U32.v pn_length)
 
 #push-options "--z3rlimit 32 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
@@ -416,7 +416,7 @@ let serialize_common_long : serializer parse_common_long =
 let serialize_payload_length_pn
   (pn_length: packet_number_length_t)
 : Tot (serializer (parse_payload_length_pn pn_length))
-= serialize_varint `serialize_nondep_then` serialize_flbytes (U32.v pn_length)
+= serialize_varint `serialize_nondep_then` serialize_bounded_integer (U32.v pn_length)
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
