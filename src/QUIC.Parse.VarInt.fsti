@@ -40,3 +40,5 @@ val validate_varint: LL.validator parse_varint
 val read_varint: LL.leaf_reader parse_varint
 
 val jump_varint: LL.jumper parse_varint
+
+val serialize_varint_impl: LL.serializer32 serialize_varint

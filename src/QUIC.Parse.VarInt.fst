@@ -719,4 +719,57 @@ let jump_varint #rrel #rel sl pos =
     LC.jump_nondep_then (LI.jump_u32) (LL.jump_bounded_integer 3) sl pos1
   end
 
+module B = LowStar.Buffer
+
+let seq_slice_i_j_k
+  (#a: Type)
+  (s: Seq.seq a)
+  (i j k: nat)
+: Lemma
+  (requires (i <= j /\ j <= k /\ k <= Seq.length s))
+  (ensures (Seq.slice s i k `Seq.equal` (Seq.slice s i j `Seq.append` Seq.slice s j k)))
+= ()
+
+let serialize_varint_impl
+  x #rrel #rel b pos
+=
+  assert_norm (pow2 8 == 256);
+  assert_norm (pow2 6 == 64);
+  assert (pow2 62 == U64.v varint_bound);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  let fb = get_first_byte x in
+  let h0 = HST.get () in
+  LL.writable_weaken b (U32.v pos) (U32.v pos + Seq.length (serialize serialize_varint x)) h0 (U32.v pos) (U32.v pos + Seq.length (serialize serialize_u8 fb));
+  let len1 = LI.serialize32_u8 fb b pos in
+  let pos1 = pos `U32.add` len1 in
+  let h1 = HST.get () in
+  B.loc_includes_loc_buffer_from_to b pos (pos `U32.add` U32.uint_to_t (Seq.length (serialize serialize_varint x))) pos pos1;
+  LL.writable_modifies b (U32.v pos) (U32.v pos + Seq.length (serialize serialize_varint x)) h0 B.loc_none h1;
+  if x `U64.lt` 64uL
+  then len1
+  else begin
+    LL.writable_weaken b (U32.v pos) (U32.v pos + Seq.length (serialize serialize_varint x)) h1 (U32.v pos1) (U32.v pos1 + Seq.length (serialize_varint_payload x));
+    let len2 =
+      if x `U64.lt` 16384uL
+      then
+        LI.serialize32_u8 (Cast.uint64_to_uint8 x) b pos1
+      else if x `U64.lt` 1073741824uL
+      then
+        LL.serialize32_bounded_integer_3 () (Cast.uint64_to_uint32 (x `U64.rem` 16777216uL)) b pos1
+      else
+        LC.serialize32_nondep_then LI.serialize32_u32 (LL.serialize32_bounded_integer_3 ()) (Cast.uint64_to_uint32 (x `U64.div` 16777216uL), Cast.uint64_to_uint32 (x `U64.rem` 16777216uL)) b pos1
+    in
+    let h2 = HST.get () in
+    let res = len1 `U32.add` len2 in
+    B.loc_includes_loc_buffer_from_to b pos (pos `U32.add` res) pos1 (pos1 `U32.add` len2);
+    B.loc_disjoint_loc_buffer_from_to b pos pos1 pos1 (pos1 `U32.add` len2);
+    B.modifies_buffer_from_to_elim b pos pos1 (B.loc_buffer_from_to b pos1 (pos1 `U32.add` len2)) h1 h2;
+    assert (Seq.length (serialize serialize_varint x) == U32.v res);
+    assert (B.modifies (B.loc_buffer_from_to b pos (pos `U32.add` res)) h0 h2);
+    seq_slice_i_j_k (B.as_seq h2 b) (U32.v pos) (U32.v pos1) (U32.v pos + U32.v res);
+    assert (Seq.slice (B.as_seq h2 b) (U32.v pos) (U32.v pos + U32.v res) `Seq.equal` serialize serialize_varint x);
+    res
+  end
+
 #pop-options
