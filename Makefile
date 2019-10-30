@@ -1,4 +1,7 @@
-all: dist/libeverquic.a
+all: test
+
+test: dist/test.exe
+	$<
 
 # Boilerplate
 # -----------
@@ -65,3 +68,12 @@ dist/libeverquic.a: dist/Makefile.basic
 	$(MAKE) -C dist -f Makefile.basic
 
 .PHONY: clean clean-dist verify
+
+# Tests
+# -----
+
+CFLAGS+=-I$(realpath .)/dist -I$(realpath $(KREMLIN_HOME))/include
+export CFLAGS
+
+dist/test.exe: test/main.o dist/libeverquic.a $(HACL_HOME)/dist/compact-gcc/libevercrypt.a $(KREMLIN_HOME)/kremlib/dist/generic/libkremlib.a
+	$(CC) $^ -o $@
