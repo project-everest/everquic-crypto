@@ -1,7 +1,7 @@
 module QUIC.Parse.VarInt
 
 module U64 = FStar.UInt64
-module LP = LowParse.Spec.AllIntegers
+module LP = LowParse.Spec.BoundedInt // for bounded_int32
 
 inline_for_extraction
 let varint_bound : (varint_bound: U64.t { U64.v varint_bound == pow2 62 }) =

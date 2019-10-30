@@ -458,7 +458,7 @@ let serialize_varint'
 
 #pop-options
 
-#push-options "--z3rlimit 256"
+#push-options "--z3rlimit 1024"
 
 let serialize_varint_correct
   (x: varint_t)
@@ -509,6 +509,8 @@ let serialize_varint_correct
     assert (U8.v (uint8.get_bitfield z 0 6) == U64.v x / 72057594037927936);
     assert (U64.v x == U32.v lo + (16777216 `Prims.op_Multiply` (U32.v hi + (4294967296 `Prims.op_Multiply` U8.v (uint8.get_bitfield z 0 6)))))
   end
+
+#pop-options
 
 let serialize_varint =
   Classical.forall_intro parse_varint_eq;
