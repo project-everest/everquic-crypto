@@ -339,6 +339,7 @@ type result = {
   header: header;
   header_len: U32.t;
   plain_len: n:U32.t{let l = U32.v n in 3 <= l /\ l < QUIC.Spec.max_plain_length};
+  total_len: n:U32.t
 }
 
 noextract
@@ -366,14 +367,17 @@ val decrypt: #i:G.erased index -> (
       // ``packet``; and the plaintext is within ``packet`` in range
       // ``[header_len, header_len + plain_len)``.
       B.live h0 packet /\ B.live h0 dst /\
-      B.disjoint dst packet /\ // JP: todo, more stuff coming up here
+      B.disjoint dst packet /\
 
       invariant h0 s /\
+
       incrementable s h0)
     (ensures fun h0 r h1 ->
       match r with
       | Success ->
-          B.(modifies (footprint_s h0 (deref h0 s) `loc_union` loc_buffer packet) h0 h1) /\
+          B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+            loc_buffer packet `loc_union` loc_buffer dst) h0 h1) /\
+
           invariant h1 s /\
           footprint h1 s == footprint h0 s /\ (
 
@@ -383,18 +387,23 @@ val decrypt: #i:G.erased index -> (
           let curr = g_packet_number (B.deref h1 s) h1 in
           curr == max prev (U64.v r.pn) /\ (
 
+          // Lengths
+          let r = B.deref h1 dst in
+          U32.v r.total_len = U32.v r.header_len + U32.v r.plain_len +
+            Spec.Agile.AEAD.tag_length i.aead_alg /\
+          U32.v r.header_len = QUIC.Spec.header_len (g_header r.header h1) (U8.v r.pn_len) /\ (
+
           let s0 = g_traffic_secret (B.deref h0 s) in
           let k = QUIC.Spec.(derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)) in
           let iv = QUIC.Spec.(derive_secret i.hash_alg s0 label_iv 12) in
           let pne = QUIC.Spec.(derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)) in
-          let r = B.deref h1 dst in
-          U32.v r.header_len + U32.v r.plain_len <= B.length packet /\ (
+          U32.v r.total_len <= B.length packet /\ (
           let plain: QUIC.Spec.pbytes =
             S.slice (B.as_seq h1 packet) (U32.v r.header_len)
               (U32.v r.header_len + U32.v r.plain_len) in
-          let packet: QUIC.Spec.packet = B.as_seq h0 packet in
+          let packet: QUIC.Spec.packet = S.slice (B.as_seq h0 packet) 0 (U32.v r.total_len) in
           (Long? r.header ==> cid_len = 0uy) /\
           QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) packet
-            == QUIC.Spec.Success (U8.v r.pn_len) (U64.v r.pn) (g_header r.header h1) plain)))
+            == QUIC.Spec.Success (U8.v r.pn_len) (U64.v r.pn) (g_header r.header h1) plain))))
       | _ ->
           False))

@@ -1125,6 +1125,28 @@ let initial_secrets dst_client dst_server cid cid_len =
   (**) B.modifies_fresh_frame_popped h0 h1
   (**)   B.(loc_buffer dst_client `loc_union` loc_buffer dst_server) h5 h6
 
+#push-options "--z3rlimit 50"
+let parse_header (packet: B.buffer U8.t) (packet_len: U32.t) (cid_len: u4):
+  Stack (option (header & U32.t & U32.t & u2))
+    (requires (fun h0 ->
+      B.live h0 packet /\
+      B.length packet = U32.v packet_len /\
+      21 <= B.length packet))
+    (ensures (fun h0 r h1 ->
+      B.(modifies loc_none h0 h1) /\ (
+      let spec_result = QUIC.Spec.parse_header (B.as_seq h0 packet) (U8.v cid_len) in
+      match r with
+      | None -> QUIC.Spec.H_Failure? spec_result
+      | Some (h, len, npn, pn_len) ->
+          QUIC.Spec.H_Success? spec_result /\ (
+          let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
+          U32.v npn == FStar.Endianness.be_to_n spec_npn /\
+          U8.v pn_len = S.length spec_npn /\
+          g_header h h1 == spec_h /\
+          U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len)))))
+=
+  admit ();
+  C.Failure.failwith C.String.(!$"TODO")
+
 let decrypt #i s dst packet len cid_len =
   admit ()
-
