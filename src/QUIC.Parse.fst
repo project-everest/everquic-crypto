@@ -111,13 +111,6 @@ let first_byte : bitsum' uint8 0 =
       )
   )
 
-[@filter_bitsum'_t_attr]
-let filter_first_byte
-: (x: FStar.UInt8.t) ->
-  Tot (b: bool { b == filter_bitsum' first_byte x })
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_filter_bitsum'_t' first_byte)
-
 (*
 // How to test normalization:
 module T = FStar.Tactics
@@ -418,9 +411,6 @@ let serialize_payload_length_pn
 : Tot (serializer (parse_payload_length_pn pn_length))
 = serialize_varint `serialize_nondep_then` serialize_bounded_integer (U32.v pn_length)
 
-[@filter_bitsum'_t_attr]
-inline_for_extraction
-noextract
 let serialize_header_body
   (short_dcid_len: short_dcid_len_t)
   (k' : bitsum'_key_type (header short_dcid_len).b)
@@ -447,4 +437,67 @@ let serialize_header
     #(parse_header_body short_dcid_len)
     (serialize_header_body short_dcid_len)
 
-#pop-options
+module LC = LowParse.Low.Combinators
+module LB = LowParse.Low.Bytes
+module LI = LowParse.Low.BoundedInt
+module LJ = LowParse.Low.Int
+module LL = LowParse.Low.BitSum
+
+inline_for_extraction
+let validate_common_long : LC.validator parse_common_long =
+  LB.validate_flbytes 4 4ul `LC.validate_nondep_then` (LB.validate_bounded_vlbytes 0 20 `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20)
+
+inline_for_extraction
+noextract
+let validate_payload_length_pn
+  (pn_length: packet_number_length_t)
+: Tot (LC.validator (parse_payload_length_pn pn_length))
+= validate_varint `LC.validate_nondep_then` LI.validate_bounded_integer (U32.v pn_length)
+
+
+[@filter_bitsum'_t_attr]
+inline_for_extraction
+noextract
+let validate_header_body_cases
+  (short_dcid_len: short_dcid_len_t)
+  (k' : bitsum'_key_type (header short_dcid_len).b)
+: Tot (LC.validator (dsnd (parse_header_body short_dcid_len k')))
+= match coerce (bitsum'_key_type first_byte) k' with
+  | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
+    LC.validate_weaken (strong_parser_kind 0 20 None) (LB.validate_flbytes (U32.v short_dcid_len) short_dcid_len) () `LC.validate_nondep_then` LB.validate_flbytes (U32.v pn_length) pn_length
+  | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
+    validate_common_long `LC.validate_nondep_then` (LB.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (validate_bounded_varint 0ul (U32.uint_to_t token_max_len)) (read_bounded_varint 0 token_max_len) `LC.validate_nondep_then` validate_payload_length_pn pn_length)
+  | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
+    validate_common_long `LC.validate_nondep_then` validate_payload_length_pn pn_length
+  | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
+    validate_common_long `LC.validate_nondep_then` validate_payload_length_pn pn_length
+  | (| Long, (| (), (| Retry, () |) |) |) ->
+    validate_common_long `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20
+
+[@filter_bitsum'_t_attr]
+let filter_first_byte
+  (short_dcid_len: short_dcid_len_t)
+: Tot (filter_bitsum'_t (header short_dcid_len).b)
+= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
+  (mk_filter_bitsum'_t' (header short_dcid_len).b)
+
+inline_for_extraction
+noextract
+let mk_validate_header_body_cases
+  (short_dcid_len: short_dcid_len_t)
+: LL.validate_bitsum_cases_t (header short_dcid_len).b
+= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
+  (LL.mk_validate_bitsum_cases_t' (header short_dcid_len).b)
+
+let validate_header
+  (short_dcid_len: short_dcid_len_t)
+: Tot (LL.validator (parse_header short_dcid_len))
+= assert_norm (parse_header_kind' short_dcid_len == parse_header_kind);
+  LL.validate_bitsum
+    (header short_dcid_len)
+    (LJ.validate_u8 ())
+    LJ.read_u8
+    (filter_first_byte short_dcid_len)
+    (parse_header_body short_dcid_len)
+    (validate_header_body_cases short_dcid_len)
+    (mk_validate_header_body_cases short_dcid_len)
