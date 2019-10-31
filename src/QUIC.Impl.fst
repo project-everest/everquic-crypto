@@ -141,10 +141,12 @@ let key_len (a: QUIC.Spec.ea): x:U8.t { U8.v x = Spec.Agile.AEAD.key_length a } 
 
 let key_len32 a = FStar.Int.Cast.uint8_to_uint32 (key_len a)
 
+#push-options "--warn_error -272"
 let label_key = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_key_l
 let label_iv = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_iv_l
 let label_hp = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_hp_l
 let prefix = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.prefix_l
+#pop-options
 
 /// Actual code
 /// -----------
@@ -1041,6 +1043,7 @@ let encrypt #i s dst h plain plain_len pn_len =
 
 // TODO: these three should be immutable buffers but we don't have const
 // pointers yet for HKDF.
+#push-options "--warn_error -272"
 let initial_salt: initial_salt:B.buffer U8.t {
   B.length initial_salt = 20 /\
   B.recallable initial_salt
@@ -1075,6 +1078,7 @@ let client_in: client_in:B.buffer U8.t {
   ] in
   assert_norm (List.Tot.length l = 9);
   B.gcmalloc_of_list HS.root l
+#pop-options
 
 let initial_secrets dst_client dst_server cid cid_len =
   (**) let h0 = ST.get () in
