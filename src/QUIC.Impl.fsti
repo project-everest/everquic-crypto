@@ -330,6 +330,21 @@ val encrypt: #i:G.erased index -> (
       | _ ->
           False))
 
+val initial_secrets (dst_client: B.buffer U8.t)
+  (dst_server: B.buffer U8.t)
+  (cid: B.buffer U8.t)
+  (cid_len: U32.t):
+  Stack unit
+    (requires (fun h0 ->
+      B.(all_live h0 [ buf dst_client; buf dst_server; buf cid ]) /\
+      B.length dst_client = Spec.Agile.Hash.(hash_length SHA2_256) /\
+      B.length dst_server = Spec.Agile.Hash.(hash_length SHA2_256) /\
+      B.length cid = U32.v cid_len /\
+      U32.v cid_len <= 20 /\
+      B.(all_disjoint [ loc_buffer dst_client; loc_buffer dst_server; loc_buffer cid ])))
+    (ensures (fun h0 _ h1 ->
+      B.(modifies (loc_buffer dst_client `loc_union` loc_buffer dst_server) h0 h1)))
+
 // Callers allocate this type prior to calling decrypt. The contents are only
 // meaningful, and plain is only non-null, if the decryption was a success.
 noeq
