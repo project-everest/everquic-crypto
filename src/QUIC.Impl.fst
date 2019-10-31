@@ -127,6 +127,10 @@ open QUIC.Impl.Lemmas
 
 inline_for_extraction noextract
 let u32_of_u8 = FStar.Int.Cast.uint8_to_uint32
+inline_for_extraction noextract
+let u64_of_u8 = FStar.Int.Cast.uint8_to_uint64
+inline_for_extraction noextract
+let u64_of_u32 = FStar.Int.Cast.uint32_to_uint64
 
 let key_len (a: QUIC.Spec.ea): x:U8.t { U8.v x = Spec.Agile.AEAD.key_length a } =
   let open Spec.Agile.AEAD in
@@ -137,10 +141,12 @@ let key_len (a: QUIC.Spec.ea): x:U8.t { U8.v x = Spec.Agile.AEAD.key_length a } 
 
 let key_len32 a = FStar.Int.Cast.uint8_to_uint32 (key_len a)
 
+#push-options "--warn_error -272"
 let label_key = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_key_l
 let label_iv = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_iv_l
 let label_hp = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.label_hp_l
 let prefix = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.prefix_l
+#pop-options
 
 /// Actual code
 /// -----------
@@ -1035,23 +1041,9 @@ let encrypt #i s dst h plain plain_len pn_len =
 /// Initial secrets
 /// ---------------
 
-val initial_secrets (dst_client: B.buffer U8.t)
-  (dst_server: B.buffer U8.t)
-  (cid: B.buffer U8.t)
-  (cid_len: U32.t):
-  Stack unit
-    (requires (fun h0 ->
-      B.(all_live h0 [ buf dst_client; buf dst_server; buf cid ]) /\
-      B.length dst_client = Spec.Agile.Hash.(hash_length SHA2_256) /\
-      B.length dst_server = Spec.Agile.Hash.(hash_length SHA2_256) /\
-      B.length cid = U32.v cid_len /\
-      U32.v cid_len <= 20 /\
-      B.(all_disjoint [ loc_buffer dst_client; loc_buffer dst_server; loc_buffer cid ])))
-    (ensures (fun h0 _ h1 ->
-      B.(modifies (loc_buffer dst_client `loc_union` loc_buffer dst_server) h0 h1)))
-
 // TODO: these three should be immutable buffers but we don't have const
 // pointers yet for HKDF.
+#push-options "--warn_error -272"
 let initial_salt: initial_salt:B.buffer U8.t {
   B.length initial_salt = 20 /\
   B.recallable initial_salt
@@ -1086,6 +1078,7 @@ let client_in: client_in:B.buffer U8.t {
   ] in
   assert_norm (List.Tot.length l = 9);
   B.gcmalloc_of_list HS.root l
+#pop-options
 
 let initial_secrets dst_client dst_server cid cid_len =
   (**) let h0 = ST.get () in
@@ -1143,10 +1136,333 @@ let parse_header (packet: B.buffer U8.t) (packet_len: U32.t) (cid_len: u4):
           U32.v npn == FStar.Endianness.be_to_n spec_npn /\
           U8.v pn_len = S.length spec_npn /\
           g_header h h1 == spec_h /\
-          U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len)))))
+          U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
+          U32.v len <= U32.v packet_len /\
+
+          // TR says: we'll need something more precise than this
+          B.(loc_includes (loc_buffer packet) (header_footprint h))
+          ))))
 =
   admit ();
   C.Failure.failwith C.String.(!$"TODO")
 
-let decrypt #i s dst packet len cid_len =
-  admit ()
+val parse_varint (b: B.buffer U8.t) (len: U32.t):
+  Stack (option (u62 & U32.t))
+    (requires (fun h0 ->
+      B.live h0 b /\
+      B.length b = U32.v len))
+    (ensures (fun h0 r h1 ->
+      h0 == h1 /\ (
+
+      let spec_result = QUIC.Spec.parse_varint (B.as_seq h0 b) in
+      match r with
+      | None -> None? spec_result
+      | Some (x, ofs) ->
+          Some? spec_result /\ (
+          let Some (spec_val, spec_rest) = spec_result in
+          U64.v x = spec_val /\
+          U32.v ofs <= B.length b /\
+          U32.v ofs = QUIC.Spec.vlen (U64.v x) /\
+          S.slice (B.as_seq h0 b) (U32.v ofs) (B.length b) `S.equal`
+            spec_rest))))
+let parse_varint b len =
+  admit ();
+  C.Failure.failwith C.String.(!$"TODO")
+
+val parse_long_header_clen (b: B.buffer U8.t) (len: U32.t):
+  Stack (option (u4 & u4))
+    (requires (fun h0 ->
+      B.live h0 b /\
+      B.length b = U32.v len))
+    (ensures (fun h0 r h1 ->
+      h0 == h1 /\ (
+
+      let spec_result = QUIC.Spec.parse_long_header_clen (B.as_seq h0 b) in
+      match r with
+      | None -> None? spec_result
+      | Some (dcil, scil) ->
+          Some? spec_result /\ (
+          let Some (spec_dcil, spec_scil, spec_rest) = spec_result in
+          U8.v dcil == spec_dcil /\
+          U8.v scil == spec_scil /\
+          S.slice (B.as_seq h0 b) 1 (B.length b) `S.equal`
+            spec_rest))))
+let parse_long_header_clen b len =
+  if len = 0ul then
+    None
+  else
+    let x = b.(0ul) in
+    Some (x `U8.div` 0x10uy, x `U8.rem` 0x10uy)
+
+val long_sample (b: B.buffer U8.t) (len: U32.t):
+  Stack (option (U32.t & U32.t))
+    (requires (fun h0 ->
+      B.live h0 b /\
+      B.length b = U32.v len /\
+      21 <= B.length b))
+    (ensures (fun h0 r h1 ->
+      h0 == h1 /\ (
+
+      let spec_result = QUIC.Spec.long_sample (B.as_seq h0 b) in
+      match r with
+      | None -> None? spec_result
+      | Some (sample_ofs, pn_ofs) ->
+          Some? spec_result /\
+          U32.v sample_ofs + 16 <= B.length b /\
+          U32.v pn_ofs + 20 <= B.length b /\ (
+          let Some (spec_sample, spec_pn_ofs) = spec_result in
+          S.slice (B.as_seq h0 b) (U32.v sample_ofs) (U32.v sample_ofs + 16) `S.equal`
+            spec_sample /\
+          U32.v pn_ofs == spec_pn_ofs))))
+
+#push-options "--z3rlimit 100"
+let long_sample b b_len =
+  let len5 = b_len `U32.sub` 5ul in
+  let b5 = B.sub b 5ul len5 in
+  match parse_long_header_clen b5 len5 with
+  | Some (dcil, scil) ->
+      let dcil_scil = U32.(u32_of_u8 (add3 dcil) +^ u32_of_u8 (add3 scil)) in
+      if U32.(len5 -^ 1ul <^ dcil_scil) then
+        None
+      else
+        let ofs = 6ul `U32.add` dcil_scil in
+        match parse_varint (B.sub b ofs (b_len `U32.sub` ofs)) (b_len `U32.sub` ofs) with
+        | None -> None
+        | Some (len, ofs') ->
+            assert (U32.v ofs' == QUIC.Spec.vlen (U64.v len));
+            let pn_offset = U32.(ofs +^ ofs') in
+            if U32.(pn_offset +^ 20ul <=^ b_len) then
+              Some (pn_offset `U32.add` 4ul,
+                6ul `U32.add` u32_of_u8 (add3 dcil) `U32.add` u32_of_u8 (add3 scil)
+                `U32.add` ofs')
+            else
+              None
+
+let bound_npn (pn_len: u2): x:U64.t { U64.v x == QUIC.Spec.bound_npn (U8.v pn_len) } =
+  FStar.UInt.shift_left_value_lemma #64 1 (8 * (U8.v pn_len + 1));
+  FStar.Math.Lemmas.pow2_le_compat 32 (8 * (U8.v pn_len + 1));
+  FStar.Math.Lemmas.small_mod (pow2 (8 * (U8.v pn_len + 1))) (pow2 64);
+  1UL `U64.shift_left` U32.(8ul *^ (u32_of_u8 pn_len +^ 1ul))
+
+let p62: x:U64.t { U64.v x = pow2 62 } =
+  assert_norm (pow2 62 = 4611686018427387904);
+  4611686018427387904UL
+
+let reduce_pn (pn_len: u2) (pn: u62):
+  x:u62 { U64.v x == QUIC.Spec.reduce_pn (U8.v pn_len) (U64.v pn) }
+=
+  pn `U64.rem` bound_npn pn_len
+
+/// Start unverified
+/// ----------------
+
+let replace_modulo (a b new_mod: U64.t):
+  Pure U64.t
+    (requires U64.v b > 0 /\ U64.(v new_mod < v b))
+    (ensures (fun x -> U64.v x == QUIC.Spec.replace_modulo (U64.v a) (U64.v b) (U64.v new_mod)))
+=
+  let open U64 in
+  admit ();
+  a -^ (a `rem` b) +^ new_mod
+
+let in_window (pn_len: u2) (last: u62) (pn: u62):
+  x:bool { b2t x == QUIC.Spec.in_window (U8.v pn_len) (U64.v last) (U64.v pn) }
+=
+  assert_norm (pow2 62 + 1 < pow2 64);
+  assert_norm (pow2 62 - pow2 32 > 0);
+  assert_norm (pow2 32 / 2 = pow2 31);
+  let h = bound_npn pn_len in
+  let open FStar.UInt64 in
+  FStar.Math.Lemmas.pow2_le_compat 32 (8 * (U8.v pn_len + 1));
+  admit ();
+  (last +^ 1UL <^ h /^ 2UL && pn <^ h) ||
+  (last +^ 1UL >=^ p62 -^ h /^ 2UL && pn >=^ p62 -^ h) ||
+  (last +^ 1UL <^ pn +^ h /^ 2UL && pn <=^ last +^ 1UL +^ h /^ 2UL)
+
+let expand_pn (pn_len: u2)
+  (last: u62 { U64.v last < pow2 62 - 1 })
+  (npn: u62 { U64.v npn < QUIC.Spec.bound_npn (U8.v pn_len) }):
+  x:u62 { U64.v x == QUIC.Spec.expand_pn (U8.v pn_len) (U64.v last) (U64.v npn) }
+=
+  let open U64 in
+  assert_norm (pow2 62 < pow2 64);
+  let expected = last +^ 1UL in
+  let bound = bound_npn pn_len in
+  let candidate = replace_modulo expected bound npn in
+  admit ();
+  if candidate <=^ last +^ 1UL -^ bound /^ 2UL && candidate <^ p62 -^ bound then
+    candidate +^ bound
+  else if candidate >^ last +^ 1UL +^ bound /^ 2UL && candidate >=^ bound then
+    candidate -^ bound
+  else
+    candidate
+
+let header_decrypt_pre (i:index)
+  (s: state i)
+  (packet: B.buffer U8.t)
+  (packet_len: U32.t)
+  (cid_len: u4)
+  (h0: HS.mem)
+=
+  B.live h0 packet /\
+  B.length packet == U32.v packet_len /\
+  21 <= B.length packet
+
+let header_decrypt_post (i:index)
+  (s: state i)
+  (packet: B.buffer U8.t)
+  (packet_len: U32.t)
+  (cid_len: u4)
+  (h0: HS.mem)
+  (r: (option (header & U32.t & U32.t & u2)))
+  (h1: HS.mem): Ghost _
+    (requires header_decrypt_pre i s packet packet_len cid_len h0)
+    (ensures fun _ -> True)
+=
+  let a = i.aead_alg in
+  let hpk = g_hp_key h0 s in
+  let cid_len = U8.v cid_len in
+  let spec_result = QUIC.Spec.header_decrypt a hpk cid_len (B.as_seq h0 packet) in
+  match r with
+  | None -> b2t (QUIC.Spec.H_Failure? spec_result)
+  | Some (h, h_len, npn, pn_len) ->
+      QUIC.Spec.H_Success? spec_result /\ (
+      let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
+      U32.v npn == FStar.Endianness.be_to_n spec_npn /\
+      U8.v pn_len = S.length spec_npn /\
+      g_header h h1 == spec_h /\
+      U32.v h_len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
+      U32.v h_len <= U32.v packet_len /\
+
+      B.(modifies (loc_buffer (gsub packet 0ul h_len) `loc_union`
+        footprint_s h0 (B.deref h0 s)) h0 h1))
+
+val header_decrypt_core: i:index ->
+  (s: state i) ->
+  (packet: B.buffer U8.t) ->
+  (packet_len: U32.t) ->
+  (cid_len: u4) ->
+  (is_short: bool) ->
+  (sample_offset: U32.t) ->
+  (pn_offset: U32.t) ->
+  Stack (option (header & U32.t & U32.t & u2))
+    (requires fun h0 ->
+      header_decrypt_pre i s packet packet_len cid_len h0 /\
+      U32.v sample_offset + 16 <= U32.v packet_len /\
+      U32.v pn_offset + 20 <= U32.v packet_len /\
+      True) // TODO: tie together is_short, sample_offset and pn_offset
+    (ensures (fun h0 r h1 ->
+      header_decrypt_post i s packet packet_len cid_len h0 r h1))
+
+#set-options "--admit_smt_queries true"
+let header_decrypt_core i s packet packet_len cid_len is_short sample_offset pn_offset =
+  let State _ aead_alg _ _ aead_state _ k _ ctr_state = !*s in
+
+  push_frame ();
+  let mask = B.alloca 0uy 16ul in
+  let pn_mask = B.alloca 0uy 4ul in
+  block_of_sample (as_cipher_alg i.aead_alg) mask ctr_state k (B.sub packet sample_offset 16ul);
+  let sflags = if is_short then 0x1Fuy else 0x0fuy in
+  let flags = packet.(0ul) `U8.logxor` (mask.(0ul) `U8.logand` sflags) in
+  packet.(0ul) <- flags;
+  let pn_len = flags `U8.rem` 4uy in
+  pn_sizemask pn_mask pn_len;
+  op_inplace (B.sub mask 1ul 4ul) 4ul pn_mask 4ul 0ul U8.logand;
+  op_inplace packet packet_len pn_mask 4ul pn_offset U8.logxor;
+  let r = parse_header packet packet_len cid_len in
+  pop_frame ();
+  r
+
+
+val header_decrypt: i:index ->
+  (s: state i) ->
+  (packet: B.buffer U8.t) ->
+  (packet_len: U32.t) ->
+  (cid_len: u4) ->
+  Stack (option (header & U32.t & U32.t & u2))
+    (requires (fun h0 ->
+      B.live h0 packet /\
+      B.length packet = U32.v packet_len /\
+      21 <= B.length packet))
+    (ensures (fun h0 r h1 ->
+      let a = i.aead_alg in
+      let hpk = g_hp_key h0 s in
+      let cid_len = U8.v cid_len in
+      let spec_result = QUIC.Spec.header_decrypt a hpk cid_len (B.as_seq h0 packet) in
+      match r with
+      | None -> QUIC.Spec.H_Failure? spec_result
+      | Some (h, h_len, npn, pn_len) ->
+          QUIC.Spec.H_Success? spec_result /\ (
+          let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
+          U32.v npn == FStar.Endianness.be_to_n spec_npn /\
+          U8.v pn_len = S.length spec_npn /\
+          g_header h h1 == spec_h /\
+          U32.v h_len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
+          U32.v h_len <= U32.v packet_len /\
+
+          B.(modifies (loc_buffer (gsub packet 0ul h_len)) h0 h1)
+          )))
+
+let header_decrypt i s packet packet_len cid_len =
+  let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
+  match (
+    if is_short then
+      let offset = 5ul `U32.add` u32_of_u8 (add3 cid_len) in
+      if U32.(offset +^ 16ul <=^ packet_len) then
+        Some (offset, offset `U32.sub` 4ul)
+      else
+        None
+    else
+      long_sample packet packet_len
+  ) with
+  | None -> None
+  | Some (sample_offset, pn_offset) ->
+      header_decrypt_core i s packet packet_len cid_len is_short sample_offset pn_offset
+
+let decrypt #i s dst packet packet_len cid_len =
+  match parse_header packet packet_len cid_len with
+  | None -> DecodeError
+  | Some (h, h_len, npn, pn_len) ->
+      let State hash_alg aead_alg _ initial_pn aead_state iv hp_key last_pn _ = !*s in
+      let why_oh_why_these_let_bindings_all_the_time = !*last_pn in
+      let pn = expand_pn pn_len why_oh_why_these_let_bindings_all_the_time (u64_of_u32 npn) in
+
+      push_frame ();
+      let pn_buf0 = B.alloca 0uy 12ul in
+      let npn_buf = B.alloca 0uy 4ul in
+      LowStar.Endianness.store128_be pn_buf0 (FStar.Int.Cast.Full.uint64_to_uint128 pn);
+      let pn_buf = B.sub pn_buf0 4ul 12ul in
+      LowStar.Endianness.store32_be npn_buf npn;
+      op_inplace pn_buf 12ul iv 12ul 0ul U8.logxor;
+      let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
+      let tag_len = tag_len aead_alg in
+      let cipher_len =
+        match h with
+        | Short _ _ _ _ -> packet_len `U32.sub` h_len `U32.sub` tag_len
+        | Long _ _ _ _ _ _ ciphertag_len -> ciphertag_len `U32.sub` tag_len
+      in
+      let h_len: U32.t = h_len in
+      let ad = B.sub packet 0ul h_len in
+      let plain = B.sub packet h_len cipher_len in
+      let tag = B.sub packet (h_len `U32.add` cipher_len) tag_len in
+      match AEAD.decrypt #(G.hide aead_alg) aead_state iv 12ul ad h_len
+        plain cipher_len
+        tag
+        plain
+      with
+      | AuthenticationFailure ->
+          pop_frame ();
+          AuthenticationFailure
+      | Success ->
+          pop_frame ();
+          dst *= ({
+            pn_len = pn_len;
+            pn = pn;
+            header = h;
+            header_len = h_len;
+            plain_len = cipher_len;
+            total_len = h_len `U32.add` cipher_len `U32.add` tag_len
+          });
+          if pn `U64.gt` why_oh_why_these_let_bindings_all_the_time then
+            last_pn *= pn;
+          Success
