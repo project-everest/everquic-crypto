@@ -1,5 +1,5 @@
 [
-  "ŸBgπR≤-\u0007\"\tWøN9qá",
+  "ï{w…ìf≈ËÅﬁë)ÆH\u0011l",
   [
     [
       "QUIC.Impl.index",
@@ -14,7 +14,7 @@
         "haseqTm_refine_55cba1a93af5949052c708af40d3b61d"
       ],
       0,
-      "870d272a25abbab31ebc6b7d90746215"
+      "686891c343db6113375b76191aa66f05"
     ],
     [
       "QUIC.Impl.loc_includes_union_l_footprint_s",
@@ -23,7 +23,7 @@
       0,
       [ "@query" ],
       0,
-      "8f894919773432f1981e32f5c0860f1a"
+      "4a0374ebe56d394d5b8c12d2940c4b22"
     ],
     [
       "QUIC.Impl.hash_is_keysized",
@@ -79,7 +79,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4908562e7db38251157d35e4f1e14f67"
+      "0c8dc68e41968fafeb7134380ccb0112"
     ],
     [
       "QUIC.Impl.invariant",
@@ -92,7 +92,7 @@
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e"
       ],
       0,
-      "d7241116492793c97a7262b06616d025"
+      "d6a7b2a65bbaa1d89d4073306a382abf"
     ],
     [
       "QUIC.Impl.incrementable",
@@ -101,7 +101,7 @@
       0,
       [ "@query", "equation_QUIC.Impl.invariant" ],
       0,
-      "d8c44033f78ab47bb62c084a264b651a"
+      "ea2e2eb0d657cae3cbe46a3aa86e1f78"
     ],
     [
       "QUIC.Impl.frame_invariant",
@@ -146,7 +146,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "0a1a791b32ccdf036b971d438d2b1e33"
+      "2e42f8300039e32794a0bbff0b442899"
     ],
     [
       "QUIC.Impl.add3",
@@ -201,7 +201,7 @@
       0,
       [ "@query" ],
       0,
-      "789cf46f12996453067b11194932d9d7"
+      "6c7a00961dd8cbbfd146288a0c3e9c57"
     ],
     [
       "QUIC.Impl.header",
@@ -210,7 +210,7 @@
       0,
       [ "@query" ],
       0,
-      "d4c4bd63ca605a9b580e9cdef11ab066"
+      "bd2813559a547d49ab78ccc5aa53b792"
     ],
     [
       "QUIC.Impl.__proj__Short__item__spin",
@@ -223,7 +223,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "d0efb41c5fef4a454c5ffa7462622170"
+      "0d28817a728bb9b65e4a0f020842edfc"
     ],
     [
       "QUIC.Impl.__proj__Short__item__phase",
@@ -236,7 +236,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "2060496b7b660d6456b641a2ff268ff7"
+      "8aed5e580fe124fa18bb228180be2cbd"
     ],
     [
       "QUIC.Impl.__proj__Short__item__cid",
@@ -249,7 +249,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "3050b18c1800fa80b368f945590e031c"
+      "173b3f0a3dc6929661b94ea326cb2c5c"
     ],
     [
       "QUIC.Impl.__proj__Short__item__cid_len",
@@ -258,7 +258,7 @@
       0,
       [ "@query" ],
       0,
-      "1424c9c24f6f3da605db6a82c032e9d5"
+      "74447108ceda4646771ecfaa79e3ff89"
     ],
     [
       "QUIC.Impl.__proj__Short__item__cid_len",
@@ -273,7 +273,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "0b9f5013b9636fbca9c40add394ea04e"
+      "a899dc015f764d18efd38128deb21fd1"
     ],
     [
       "QUIC.Impl.__proj__Long__item__typ",
@@ -286,7 +286,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "38e807090593ede3b192de1534bca2f7"
+      "158bebf24598a974cca0a22b556027db"
     ],
     [
       "QUIC.Impl.__proj__Long__item__version",
@@ -299,7 +299,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "8358ab570fee596959518e4f525f00e7"
+      "ba412c8a9031a242854079099ec1bfb1"
     ],
     [
       "QUIC.Impl.__proj__Long__item__dcid",
@@ -312,7 +312,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "a3ad41f534fe55b98279fb65105325d3"
+      "4080da2f30c99f901b37284acf06e2a3"
     ],
     [
       "QUIC.Impl.__proj__Long__item__dcil",
@@ -321,7 +321,7 @@
       0,
       [ "@query" ],
       0,
-      "b8dd9f1f70ac1c178a57faf45936648e"
+      "5714e199e34b49e610a86bd16a992198"
     ],
     [
       "QUIC.Impl.__proj__Long__item__dcil",
@@ -336,7 +336,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "b099515fc9413115eb3399973f6234c0"
+      "fdfd877486000793bbf66c91473a4612"
     ],
     [
       "QUIC.Impl.__proj__Long__item__scid",
@@ -349,7 +349,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "885244e869134c1b2199261d46d32b83"
+      "79d5a1fe9e6bd3aba596d46d78e2ee12"
     ],
     [
       "QUIC.Impl.__proj__Long__item__scil",
@@ -358,7 +358,7 @@
       0,
       [ "@query" ],
       0,
-      "e9dd9e26322e60bd188b7f482038f089"
+      "4b561ea88d9cacca02dca316c207fc20"
     ],
     [
       "QUIC.Impl.__proj__Long__item__scil",
@@ -373,7 +373,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "a0a1383fc432cce661514074a985203c"
+      "c74785c6330e87e785ea6d0b3ffa3d90"
     ],
     [
       "QUIC.Impl.__proj__Long__item__plain_len",
@@ -386,7 +386,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "222c2b46fb91c2d30d449d74a42503a7"
+      "469bee06ae93407f5123c533df01f826"
     ],
     [
       "QUIC.Impl.uu___82",
@@ -395,7 +395,7 @@
       0,
       [ "@query" ],
       0,
-      "b28ad74aba22badcf8e5da118a6e9cc8"
+      "5cdeb3be2b78075391cf5b0012c1583e"
     ],
     [
       "QUIC.Impl.header_live",
@@ -499,7 +499,7 @@
         "refinement_interpretation_Tm_refine_9f72cefa61c7cc8e5574a47696da7bf1"
       ],
       0,
-      "631a86a86bc3f1bbf9ef231765d54bdb"
+      "45b18a3ab538ad2a152a96834b5fd001"
     ],
     [
       "QUIC.Impl.create_in_st",
@@ -508,7 +508,7 @@
       0,
       [ "@query", "projection_inverse_BoxBool_proj_0" ],
       0,
-      "0e73de99795c20153434fa6d882eb39c"
+      "2b0d4ca4781c29a68da75dafd20ed198"
     ],
     [
       "QUIC.Impl.encrypt",
@@ -620,7 +620,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "8c833424096e4df6dd0eb499c91e75f4"
+      "24b437ccd7e3e51dc3f5eea8a149ab2d"
     ],
     [
       "QUIC.Impl.decrypt",
@@ -630,8 +630,10 @@
       [
         "@MaxIFuel_assumption", "@query",
         "assumption_FStar.UInt8.t__uu___haseq", "b2t_def", "bool_inversion",
-        "constructor_distinct_FStar.Integers.W128",
+        "bool_typing", "constructor_distinct_FStar.Integers.W128",
         "constructor_distinct_FStar.Integers.W16",
+        "constructor_distinct_FStar.Integers.W63",
+        "constructor_distinct_FStar.Integers.W64",
         "constructor_distinct_FStar.Integers.W8",
         "constructor_distinct_FStar.Integers.Winfinite",
         "constructor_distinct_Lib.IntTypes.PUB",
@@ -639,8 +641,6 @@
         "constructor_distinct_Lib.IntTypes.U1",
         "constructor_distinct_Lib.IntTypes.U128",
         "constructor_distinct_Lib.IntTypes.U16",
-        "constructor_distinct_Lib.IntTypes.U32",
-        "constructor_distinct_Lib.IntTypes.U64",
         "constructor_distinct_Lib.IntTypes.U8",
         "constructor_distinct_Spec.AES.AES128",
         "constructor_distinct_Spec.AES.AES256",
@@ -649,6 +649,8 @@
         "constructor_distinct_Spec.Agile.Cipher.CHACHA20",
         "equality_tok_FStar.Integers.W128@tok",
         "equality_tok_FStar.Integers.W16@tok",
+        "equality_tok_FStar.Integers.W63@tok",
+        "equality_tok_FStar.Integers.W64@tok",
         "equality_tok_FStar.Integers.W8@tok",
         "equality_tok_FStar.Integers.Winfinite@tok",
         "equality_tok_Lib.IntTypes.PUB@tok",
@@ -659,28 +661,27 @@
         "equality_tok_Spec.Agile.Cipher.AES128@tok",
         "equality_tok_Spec.Agile.Cipher.AES256@tok",
         "equality_tok_Spec.Agile.Cipher.CHACHA20@tok",
-        "equation_FStar.Pervasives.inversion", "equation_FStar.UInt.fits",
-        "equation_FStar.UInt.min_int", "equation_FStar.UInt.size",
-        "equation_FStar.UInt.uint_t", "equation_Lib.IntTypes.byte_t",
-        "equation_Lib.IntTypes.int_t", "equation_Lib.IntTypes.pub_int_t",
-        "equation_LowStar.Buffer.buffer",
-        "equation_LowStar.Buffer.trivial_preorder",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_Lib.IntTypes.byte_t", "equation_Lib.IntTypes.int_t",
+        "equation_Lib.IntTypes.pub_int_t", "equation_LowStar.Buffer.buffer",
+        "equation_LowStar.Buffer.trivial_preorder", "equation_Prims.nat",
         "equation_QUIC.Impl.incrementable", "equation_QUIC.Impl.invariant",
         "equation_QUIC.Impl.u2", "equation_QUIC.Impl.u4",
         "equation_QUIC.Impl.u62", "equation_QUIC.Spec.ae_keysize",
         "equation_QUIC.Spec.byte", "equation_QUIC.Spec.ea",
-        "equation_QUIC.Spec.lbytes", "equation_QUIC.Spec.supported_aead",
-        "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
-        "equation_Spec.AES.key_size",
+        "equation_QUIC.Spec.lbytes", "equation_QUIC.Spec.nat2",
+        "equation_QUIC.Spec.supported_aead", "equation_Spec.AES.gf8",
+        "equation_Spec.AES.irred", "equation_Spec.AES.key_size",
         "equation_Spec.Agile.AEAD.cipher_alg_of_supported_alg",
         "equation_Spec.Agile.AEAD.key_length",
+        "equation_Spec.Agile.AEAD.tag_length",
         "equation_Spec.Agile.Cipher.aes_alg_of_alg",
         "equation_Spec.Agile.Cipher.key_length",
         "equation_Spec.Chacha20.size_key", "equation_Spec.GaloisField.gf",
-        "fuel_guarded_inversion_Spec.Agile.AEAD.alg",
         "function_token_typing_FStar.UInt8.t",
         "function_token_typing_Lib.IntTypes.byte_t", "int_inversion",
-        "inversion-interp", "lemma_FStar.Seq.Base.lemma_len_slice",
+        "int_typing", "lemma_FStar.Seq.Base.lemma_len_slice",
         "lemma_LowStar.Monotonic.Buffer.length_as_seq",
         "lemma_LowStar.Monotonic.Buffer.length_null_1",
         "lemma_LowStar.Monotonic.Buffer.length_null_2",
@@ -702,9 +703,14 @@
         "refinement_interpretation_Tm_refine_32b711eee93475a84ac5ac5e40164fd2",
         "refinement_interpretation_Tm_refine_34c5e9aca58394eef7f6989f36873651",
         "refinement_interpretation_Tm_refine_4b3af1a4575604aa8757c1afdf6dfc10",
+        "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_55cba1a93af5949052c708af40d3b61d",
+        "refinement_interpretation_Tm_refine_729ac2961007d72f3f2d1a73e1b04c80",
+        "refinement_interpretation_Tm_refine_7acf795d50ec256996534a97e12bfa61",
         "refinement_interpretation_Tm_refine_81407705a0828c2c1b1976675443f647",
         "refinement_interpretation_Tm_refine_898021ceb48fad753fa907a9fc451fae",
+        "refinement_interpretation_Tm_refine_90a1661541e4f009452ab107b47b5955",
+        "refinement_interpretation_Tm_refine_b88398376ce85f716b63c9632f59cd54",
         "refinement_interpretation_Tm_refine_c8fff0f39008c8fcecf147655f493ce1",
         "refinement_interpretation_Tm_refine_d6a8a43b195c2dddbb9765999acc5adf",
         "refinement_interpretation_Tm_refine_dadd9b4492330a19794ee554d646f7a8",
@@ -713,16 +719,20 @@
         "typing_FStar.UInt32.v", "typing_FStar.UInt64.v",
         "typing_FStar.UInt8.v", "typing_LowStar.Buffer.trivial_preorder",
         "typing_QUIC.Impl.__proj__Mkindex__item__aead_alg",
+        "typing_QUIC.Impl.__proj__Mkresult__item__header",
         "typing_QUIC.Impl.__proj__Mkresult__item__header_len",
         "typing_QUIC.Impl.__proj__Mkresult__item__plain_len",
         "typing_QUIC.Impl.__proj__Mkresult__item__pn",
         "typing_QUIC.Impl.__proj__Mkresult__item__pn_len",
+        "typing_QUIC.Impl.__proj__Mkresult__item__total_len",
+        "typing_QUIC.Impl.g_header", "typing_QUIC.Spec.header_len",
         "typing_QUIC.Spec.label_hp", "typing_QUIC.Spec.label_iv",
         "typing_QUIC.Spec.label_key", "typing_QUIC.Spec.supported_aead",
-        "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
+        "typing_Spec.AES.gf8", "typing_Spec.Agile.AEAD.tag_length",
+        "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "cf5f84cb2447f14349bbf05dbe88ce65"
+      "2ffb614804569c627218832c0fb8f77f"
     ]
   ]
 ]
