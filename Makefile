@@ -73,5 +73,7 @@ dist/libeverquic.a: dist/Makefile.basic
 CFLAGS+=-I$(realpath .)/dist -I$(realpath $(KREMLIN_HOME))/include
 export CFLAGS
 
+test/main.o: dist/Makefile.basic
+
 dist/test.exe: test/main.o dist/libeverquic.a $(HACL_HOME)/dist/compact-gcc/libevercrypt.a $(KREMLIN_HOME)/kremlib/dist/generic/libkremlib.a
 	$(CC) $^ -o $@
