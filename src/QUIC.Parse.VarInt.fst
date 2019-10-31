@@ -762,3 +762,46 @@ let serialize_varint_impl
   end
 
 #pop-options
+
+let validate_bounded_varint
+  min max
+= 
+  LC.validate_synth
+    (LC.validate_filter
+      validate_varint
+      read_varint
+      (varint_in_bounds (U32.v min) (U32.v max))
+      (fun x -> Cast.uint32_to_uint64 min `U64.lte` x && x `U64.lte` Cast.uint32_to_uint64 max))
+    (synth_bounded_varint (U32.v min) (U32.v max))
+    ()
+
+let read_bounded_varint
+  min max
+= LC.read_synth
+    _
+    (synth_bounded_varint min max)
+    (fun x -> synth_bounded_varint min max x)
+    (LC.read_filter
+      read_varint
+      (varint_in_bounds min max))
+    ()
+
+let jump_bounded_varint
+  min max
+= LC.jump_synth
+    (LC.jump_filter
+      jump_varint
+      (varint_in_bounds min max))
+    (synth_bounded_varint min max)
+    ()
+
+let serialize_bounded_varint_impl
+  min max
+= LC.serialize32_synth
+    (LC.serialize32_filter
+      serialize_varint_impl
+      (varint_in_bounds min max))
+    (synth_bounded_varint min max)
+    (synth_bounded_varint_recip min max)
+    (fun x -> synth_bounded_varint_recip min max x)
+    ()
