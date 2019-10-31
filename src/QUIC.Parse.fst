@@ -391,6 +391,7 @@ let parse_header_kind'
 = parse_bitsum_kind parse_u8_kind (header short_dcid_len) (parse_header_body short_dcid_len)
 
 inline_for_extraction
+noextract
 let parse_header_kind : parser_kind =
   normalize_term (parse_header_kind' 0ul)
 
@@ -474,20 +475,30 @@ let validate_header_body_cases
   | (| Long, (| (), (| Retry, () |) |) |) ->
     validate_common_long `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20
 
-[@filter_bitsum'_t_attr]
+let filter_first_byte'
+: (filter_bitsum'_t first_byte)
+= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
+  (mk_filter_bitsum'_t' first_byte)
+
+inline_for_extraction
 let filter_first_byte
   (short_dcid_len: short_dcid_len_t)
 : Tot (filter_bitsum'_t (header short_dcid_len).b)
+= coerce (filter_bitsum'_t (header short_dcid_len).b) filter_first_byte'
+
+inline_for_extraction
+noextract
+let mk_validate_header_body_cases'
+: LL.validate_bitsum_cases_t first_byte
 = norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_filter_bitsum'_t' (header short_dcid_len).b)
+  (LL.mk_validate_bitsum_cases_t' first_byte)
 
 inline_for_extraction
 noextract
 let mk_validate_header_body_cases
   (short_dcid_len: short_dcid_len_t)
 : LL.validate_bitsum_cases_t (header short_dcid_len).b
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (LL.mk_validate_bitsum_cases_t' (header short_dcid_len).b)
+= coerce (LL.validate_bitsum_cases_t (header short_dcid_len).b) mk_validate_header_body_cases' 
 
 let validate_header
   (short_dcid_len: short_dcid_len_t)
@@ -501,3 +512,7 @@ let validate_header
     (parse_header_body short_dcid_len)
     (validate_header_body_cases short_dcid_len)
     (mk_validate_header_body_cases short_dcid_len)
+
+let test b =
+  let sl = LowParse.Slice.make_slice b 42ul in
+  validate_header 18ul sl 0ul

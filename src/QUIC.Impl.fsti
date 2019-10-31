@@ -407,3 +407,6 @@ val decrypt: #i:G.erased index -> (
             == QUIC.Spec.Success (U8.v r.pn_len) (U64.v r.pn) (g_header r.header h1) plain))))
       | _ ->
           False))
+
+// for extraction testing purposes only
+let test_validate = QUIC.Parse.test
