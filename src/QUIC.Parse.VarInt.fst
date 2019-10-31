@@ -458,7 +458,7 @@ let serialize_varint'
 
 #pop-options
 
-#push-options "--z3rlimit 1024"
+#push-options "--z3rlimit 1024 --using_facts_from '*,-FStar.Bytes,-FStar.String,-FStar.Char'"
 
 let serialize_varint_correct
   (x: varint_t)
