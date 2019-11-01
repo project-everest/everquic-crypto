@@ -117,6 +117,208 @@ let f (x: FStar.UInt8.t) : Tot unit =
   )
 *)
 
+(* BEGIN packet number *)
+
+(* From https://tools.ietf.org/html/draft-ietf-quic-transport-22#appendix-A *)
+
+inline_for_extraction
+noextract
+let integer_size = (x: nat { 1 <= x /\ x <= 4 })
+
+inline_for_extraction
+noextract
+let bounded_integer_prop
+  (sz: integer_size)
+  (x: U32.t)
+: Tot Type0
+= match sz with
+  | 1 -> U32.v x < 256
+  | 2 -> U32.v x < 65536
+  | 3 -> U32.v x < 16777296
+  | 4 -> True
+
+inline_for_extraction
+noextract
+let bounded_integer
+  (sz: integer_size)
+: Tot eqtype
+= (x: U32.t { bounded_integer_prop sz x })
+
+let bound_npn' (pn_len:nat (* { pn_len < 4 } *)) = pow2 (8 `op_Multiply` (pn_len + 1))
+
+inline_for_extraction
+let bound_npn
+  (pn_len: packet_number_length_t)
+: Tot (x: U64.t { U64.v x == bound_npn' (U32.v pn_len - 1) })
+= [@inline_let]
+  let res =
+    if pn_len = 1ul
+    then 256uL
+    else if pn_len = 2ul
+    then 65536uL
+    else if pn_len = 3ul
+    then 16777216uL
+    else 4294967296uL
+  in
+  [@inline_let]
+  let _ =
+    assert_norm (pow2 8 == 256);
+    assert_norm (pow2 16 == 65536);
+    assert_norm (pow2 24 == 16777216);
+    assert_norm (pow2 32 == 4294967296)
+  in
+  res
+
+let reduce_pn' pn_len pn = pn % (bound_npn' pn_len)
+
+inline_for_extraction
+let reduce_pn
+  (pn_len: packet_number_length_t)
+  (pn: uint62)
+: Tot (b: bounded_integer (U32.v pn_len) { U32.v b == reduce_pn' (U32.v pn_len - 1) (U64.v pn) })
+= [@inline_let]
+  let _ =
+    assert_norm (pow2 32 == 4294967296)
+  in
+  if pn_len = 4ul
+  then Cast.uint64_to_uint32 pn
+  else Cast.uint64_to_uint32 (pn `U64.rem` bound_npn pn_len)
+
+let replace_modulo' (a b new_mod:nat) : Pure nat
+  (requires b > 0 /\ new_mod < b)
+  (ensures fun res -> res % b = new_mod /\ res / b = a / b) =
+  let open FStar.Math.Lemmas in
+  let res = a - a%b + new_mod in
+  lemma_mod_plus new_mod (a/b) b;
+  small_mod new_mod b;
+  res
+
+let in_window (pn_len: nat) (last pn:nat) =
+  let h = bound_npn' pn_len in
+  (last+1 < h/2 /\ pn < h) \/
+  (last+1 >= pow2 62 - h/2 /\ pn >= pow2 62 - h) \/
+  (last+1 - h/2 < pn /\ pn <= last+1 + h/2)
+
+#push-options "--z3rlimit 20"
+let lemma_replace_modulo_bound_aux (k:nat) (a:nat) (b:nat) (u:nat)
+  : Lemma (requires a < pow2 k /\ a % pow2 u == 0 /\ b < pow2 u /\ u < k)
+  (ensures a + b < pow2 k) =
+  let open FStar.Math.Lemmas in
+  let open FStar.Mul in
+  lemma_div_mod a (pow2 u);
+  assert(a + b == pow2 u * (a / pow2 u) + b);
+  lemma_div_plus b (a / pow2 u) (pow2 u);
+  small_div b (pow2 u);
+  lemma_div_lt_nat a k u;
+  assert((a / pow2 u) < pow2 (k-u));
+  assert(((a + b) / pow2 u) / pow2 (k-u) < 1);
+  division_multiplication_lemma (a+b) (pow2 u) (pow2 (k-u));
+  pow2_plus u (k-u)
+
+let lemma_replace_modulo_bound (a mod_pow new_mod up_pow:nat) : Lemma
+  (requires
+    mod_pow < up_pow /\
+    new_mod < pow2 mod_pow /\
+    a < pow2 up_pow)
+  (ensures replace_modulo' a (pow2 mod_pow) new_mod < pow2 up_pow) =
+  let open FStar.Math.Lemmas in
+  let open FStar.Mul in
+  let (pmod,umod) = (pow2 mod_pow, pow2 up_pow) in
+  lemma_div_mod a pmod;
+  multiple_modulo_lemma (a / pmod) pmod;
+  lemma_replace_modulo_bound_aux up_pow (a-a%pow2 mod_pow) new_mod mod_pow
+#pop-options
+
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
+let expand_pn'
+  (pn_len: nat { pn_len < 4 })
+  (last: nat { last + 1 < pow2 62})
+  (npn: nat { npn < bound_npn' pn_len })
+: Tot (pn: nat { pn < pow2 62 /\ in_window pn_len last pn /\ pn % bound_npn' pn_len == npn })
+=
+  let open FStar.Mul in
+  let open FStar.Math.Lemmas in
+  let expected = last + 1 in
+  let bound = bound_npn' pn_len in
+  let candidate = replace_modulo' expected bound npn in
+  lemma_replace_modulo_bound expected (8*(pn_len+1)) npn 62;
+  if candidate <= last + 1 - bound/2
+     && candidate < pow2 62 - bound then // the test for overflow (candidate < pow2 62 - bound) is not present in draft 22.
+    let _ = lemma_mod_plus candidate 1 bound in
+    candidate + bound
+  else if candidate > last + 1 + bound/2
+          && candidate >= bound then // in draft 22 the test for underflow (candidate >= bound) uses a strict inequality, which makes it impossible to expand npn to 0
+    let _ = lemma_mod_plus candidate (-1) bound in
+    candidate - bound
+  else candidate
+#pop-options
+
+let max (a b:int) : Tot (n:int{n >= a /\ n >= b}) =
+  if a > b then a else b // this must exist somewhere...
+
+let lemma_uniqueness_in_window (pn_len: nat { pn_len < 4 }) (last: nat { last < pow2 62 }) (x: nat {x < pow2 62}) (y:nat {y < pow2 62}) : Lemma
+  (requires (
+    let h = bound_npn' pn_len in
+    in_window pn_len last x /\
+    in_window pn_len last y /\
+    x%h = y%h))
+  (ensures x = y) =
+  let open FStar.Math.Lemmas in
+  pow2_lt_compat 62 (8 `op_Multiply` (pn_len+1));
+  let h = bound_npn' pn_len in
+  if last+1 < h/2 && x < h then
+    lemma_mod_plus_injective h 0 x y
+  else if last+1 >= pow2 62 - h/2 && x >= pow2 62 - h then
+    let low = pow2 62 - h in
+    lemma_mod_plus_injective h low (x-low) (y-low)
+  else
+    let low = max (last+2-h/2) 0 in
+    lemma_mod_plus_injective h low (x-low) (y-low)
+
+val lemma_parse_pn_correct : (pn_len: nat { pn_len < 4 }) -> last:nat{last+1 < pow2 62} -> (pn: nat { pn < pow2 62 }) -> Lemma
+  (requires in_window pn_len last pn)
+  (ensures expand_pn' pn_len last (reduce_pn' pn_len pn) = pn)
+
+let lemma_parse_pn_correct pn_len last pn =
+  lemma_uniqueness_in_window pn_len last pn (expand_pn' pn_len last (reduce_pn' pn_len pn))
+
+
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
+let expand_pn pn_len last npn =
+  let open FStar.Mul in
+  let open FStar.Math.Lemmas in
+  let expected = last + 1 in
+  let bound = bound_npn pn_len in
+  let candidate = replace_modulo expected bound npn in
+  lemma_replace_modulo_bound expected (8*(pn_len+1)) npn 62;
+  if candidate <= last + 1 - bound/2
+     && candidate < pow2 62 - bound then // the test for overflow (candidate < pow2 62 - bound) is not present in draft 22.
+    let _ = lemma_mod_plus candidate 1 bound in
+    candidate + bound
+  else if candidate > last + 1 + bound/2
+          && candidate >= bound then // in draft 22 the test for underflow (candidate >= bound) uses a strict inequality, which makes it impossible to expand npn to 0
+    let _ = lemma_mod_plus candidate (-1) bound in
+    candidate - bound
+  else candidate
+#pop-options
+
+(* END packet number *)
+
+inline_for_extraction
+let short_dcid_len_t = (short_dcid_len: U32.t { U32.v short_dcid_len <= 20 })
+
+let header_short_dcid_length_prop
+  (m: header)
+  (short_dcid_len: short_dcid_len_t)
+: GTot bool
+= if MShort? m
+  then FB.length (MShort?.dcid m) = U32.v short_dcid_len
+  else true
+
+inline_for_extraction
+type header' (short_dcid_len: short_dcid_len_t) = (m: header { header_short_dcid_length_prop m short_dcid_len })
+
+
 open LowParse.Spec.Bytes
 
 module FB = FStar.Bytes

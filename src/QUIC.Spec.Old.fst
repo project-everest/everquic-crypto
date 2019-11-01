@@ -2616,14 +2616,6 @@ let encrypt a k siv hpk pn_len seqn h plain =
 
 // replaces a%b by new_mod
 #restart-solver
-let replace_modulo (a b new_mod:nat) : Pure nat
-  (requires b > 0 /\ new_mod < b)
-  (ensures fun res -> res % b = new_mod /\ res / b = a / b) =
-  let open FStar.Math.Lemmas in
-  let res = a - a%b + new_mod in
-  lemma_mod_plus new_mod (a/b) b;
-  small_mod new_mod b;
-  res
 
 
 
@@ -2681,30 +2673,6 @@ let expand_pn pn_len last npn =
   else candidate
 #pop-options
 
-
-let lemma_uniqueness_in_window (pn_len:nat2) (last x y:nat62) : Lemma
-  (requires (
-    let h = bound_npn pn_len in
-    in_window pn_len last x /\
-    in_window pn_len last y /\
-    x%h = y%h))
-  (ensures x = y) =
-  let open FStar.Math.Lemmas in
-  pow2_lt_compat 62 (8 `op_Multiply` (pn_len+1));
-  let h : nat62 = bound_npn pn_len in
-  if last+1 < h/2 && x < h then
-    lemma_mod_plus_injective h 0 x y
-  else if last+1 >= pow2 62 - h/2 && x >= pow2 62 - h then
-    let low = pow2 62 - h in
-    lemma_mod_plus_injective h low (x-low) (y-low)
-  else
-    let low = max (last+2-h/2) 0 in
-    lemma_mod_plus_injective h low (x-low) (y-low)
-
-
-
-let lemma_parse_pn_correct pn_len last pn =
-  lemma_uniqueness_in_window pn_len last pn (expand_pn pn_len last (reduce_pn pn_len pn))
 
 
 

@@ -45,12 +45,6 @@ val format_header_pn_length: h: header -> Lemma
 
 val pn_offset: (h: header { ~ (is_retry h) }) -> GTot (n: nat { 0 < n /\ n + U32.v (pn_length h) <= header_len h })
 
-val pn_offset_correct
-  (h: header {~ (is_retry h)})
-: Lemma
-  (let off = pn_offset h in
-    FStar.Endianness.be_to_n (Seq.slice (format_header h) off (off + U32.v (pn_length h))) == U32.v (packet_number h))
-
 val putative_pn_offset: (cid_len: nat) -> (x: bytes) -> GTot (option (y: nat {0 < y /\ y <= Seq.length x}))
 
 val putative_pn_offset_frame
