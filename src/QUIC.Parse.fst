@@ -1,5 +1,5 @@
 module QUIC.Parse
-include QUIC.Parse.VarInt
+open QUIC.Spec.Base
 
 open FStar.HyperStack.ST
 
@@ -65,10 +65,6 @@ let reserved_bits : enum unit (bitfield uint8 2) = [
   (), 0uy;
 ]
 
-inline_for_extraction
-noextract
-type packet_number_length_t = bounded_int32 1 4
-
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
@@ -125,63 +121,6 @@ open LowParse.Spec.Bytes
 
 module FB = FStar.Bytes
 
-inline_for_extraction
-noextract
-let token_max_len = 16383 // arbitrary bound
-
-noeq
-type long_header_specifics =
-| MInitial:
-  (token: parse_bounded_vlbytes_t 0 token_max_len) -> // arbitrary bound
-  (payload_length: varint_t) ->
-  (packet_number_length: packet_number_length_t) ->
-  (packet_number: bounded_integer (U32.v packet_number_length)) ->
-  long_header_specifics
-| MZeroRTT:
-  (payload_length: varint_t) ->
-  (packet_number_length: packet_number_length_t) ->
-  (packet_number: bounded_integer (U32.v packet_number_length)) ->
-  long_header_specifics
-| MHandshake:
-  (payload_length: varint_t) ->
-  (packet_number_length: packet_number_length_t) ->
-  (packet_number: bounded_integer (U32.v packet_number_length)) ->
-  long_header_specifics
-| MRetry:
-  (unused: bitfield uint8 4) ->
-  (odcid: parse_bounded_vlbytes_t 0 20) -> // TODO: change bounds to drop instead of rejecting as invalid
-  long_header_specifics
-
-noeq
-type header_gen =
-| MLong:
-  (version: FB.lbytes 4) ->
-  (dcid: parse_bounded_vlbytes_t 0 20) ->
-  (scid: parse_bounded_vlbytes_t 0 20) ->
-  (spec: long_header_specifics) ->
-  header_gen
-| MShort:
-  (spin: bool) ->
-  (key_phase: bool) ->
-  (dcid: FB.bytes) ->
-  (packet_number: parse_bounded_vlbytes_t 1 4) ->
-  header_gen
-
-inline_for_extraction
-let short_dcid_len_t = (short_dcid_len: U32.t { U32.v short_dcid_len <= 20 })
-
-let header_short_dcid_length_prop
-  (m: header_gen)
-  (short_dcid_len: short_dcid_len_t)
-: GTot bool
-= if MShort? m
-  then FB.length (MShort?.dcid m) = U32.v short_dcid_len
-  else true
-
-inline_for_extraction
-noextract
-type header_t (short_dcid_len: short_dcid_len_t) = (m: header_gen { header_short_dcid_length_prop m short_dcid_len })
-
 #push-options "--z3rlimit 16"
 
 inline_for_extraction
@@ -190,7 +129,7 @@ let first_byte_of_header
   (short_dcid_len: short_dcid_len_t)
   (t: Type0)
   (f: (bitsum'_type first_byte -> Tot t))
-  (m: header_t short_dcid_len)
+  (m: header' short_dcid_len)
 : Tot t
 = match m with
   | MShort spin key_phase dcid packet_number ->
@@ -332,7 +271,7 @@ let mk_header_body
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let header
+let header_sum
   (short_dcid_len: short_dcid_len_t)
 : Tot bitsum = BitSum
   _
@@ -368,8 +307,8 @@ inline_for_extraction
 noextract
 let parse_header_body
   (short_dcid_len: short_dcid_len_t)
-  (k' : bitsum'_key_type (header short_dcid_len).b)
-: Tot (k: parser_kind & parser k (bitsum_type_of_tag (header short_dcid_len) k'))
+  (k' : bitsum'_key_type (header_sum short_dcid_len).b)
+: Tot (k: parser_kind & parser k (bitsum_type_of_tag (header_sum short_dcid_len) k'))
 = match coerce (bitsum'_key_type first_byte) k' with
   | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
     (| _, weaken (strong_parser_kind 0 20 None) (parse_flbytes (U32.v short_dcid_len)) `nondep_then` parse_flbytes (U32.v pn_length) |)
@@ -388,7 +327,7 @@ noextract
 let parse_header_kind'
   (short_dcid_len: short_dcid_len_t)
 : Tot parser_kind
-= parse_bitsum_kind parse_u8_kind (header short_dcid_len) (parse_header_body short_dcid_len)
+= parse_bitsum_kind parse_u8_kind (header_sum short_dcid_len) (parse_header_body short_dcid_len)
 
 inline_for_extraction
 noextract
@@ -397,10 +336,10 @@ let parse_header_kind : parser_kind =
 
 let parse_header
   (short_dcid_len: short_dcid_len_t)
-: Tot (parser parse_header_kind (header_t short_dcid_len))
+: Tot (parser parse_header_kind (header' short_dcid_len))
 = assert_norm (parse_header_kind' short_dcid_len == parse_header_kind);
   parse_bitsum
-    (header short_dcid_len)
+    (header_sum short_dcid_len)
     parse_u8
     (parse_header_body short_dcid_len)
 
@@ -414,7 +353,7 @@ let serialize_payload_length_pn
 
 let serialize_header_body
   (short_dcid_len: short_dcid_len_t)
-  (k' : bitsum'_key_type (header short_dcid_len).b)
+  (k' : bitsum'_key_type (header_sum short_dcid_len).b)
 : Tot (serializer (dsnd (parse_header_body short_dcid_len k')))
 = match coerce (bitsum'_key_type first_byte) k' with
   | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
@@ -433,7 +372,7 @@ let serialize_header
 : Tot (serializer (parse_header short_dcid_len))
 = assert_norm (parse_header_kind' short_dcid_len == parse_header_kind);
   serialize_bitsum
-    (header short_dcid_len)
+    (header_sum short_dcid_len)
     serialize_u8
     #(parse_header_body short_dcid_len)
     (serialize_header_body short_dcid_len)
@@ -461,7 +400,7 @@ inline_for_extraction
 noextract
 let validate_header_body_cases
   (short_dcid_len: short_dcid_len_t)
-  (k' : bitsum'_key_type (header short_dcid_len).b)
+  (k' : bitsum'_key_type (header_sum short_dcid_len).b)
 : Tot (LC.validator (dsnd (parse_header_body short_dcid_len k')))
 = match coerce (bitsum'_key_type first_byte) k' with
   | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
@@ -483,8 +422,8 @@ let filter_first_byte'
 inline_for_extraction
 let filter_first_byte
   (short_dcid_len: short_dcid_len_t)
-: Tot (filter_bitsum'_t (header short_dcid_len).b)
-= coerce (filter_bitsum'_t (header short_dcid_len).b) filter_first_byte'
+: Tot (filter_bitsum'_t (header_sum short_dcid_len).b)
+= coerce (filter_bitsum'_t (header_sum short_dcid_len).b) filter_first_byte'
 
 inline_for_extraction
 noextract
@@ -497,15 +436,15 @@ inline_for_extraction
 noextract
 let mk_validate_header_body_cases
   (short_dcid_len: short_dcid_len_t)
-: LL.validate_bitsum_cases_t (header short_dcid_len).b
-= coerce (LL.validate_bitsum_cases_t (header short_dcid_len).b) mk_validate_header_body_cases' 
+: LL.validate_bitsum_cases_t (header_sum short_dcid_len).b
+= coerce (LL.validate_bitsum_cases_t (header_sum short_dcid_len).b) mk_validate_header_body_cases' 
 
 let validate_header
   (short_dcid_len: short_dcid_len_t)
 : Tot (LL.validator (parse_header short_dcid_len))
 = assert_norm (parse_header_kind' short_dcid_len == parse_header_kind);
   LL.validate_bitsum
-    (header short_dcid_len)
+    (header_sum short_dcid_len)
     (LJ.validate_u8 ())
     LJ.read_u8
     (filter_first_byte short_dcid_len)
