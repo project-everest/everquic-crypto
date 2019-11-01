@@ -1,5 +1,5 @@
 [
-  "ï{w…ìf≈ËÅﬁë)ÆH\u0011l",
+  "\u001et\u000f“\"\"á1U%_@ßP\u0004\u0004",
   [
     [
       "QUIC.Impl.index",
@@ -14,7 +14,7 @@
         "haseqTm_refine_55cba1a93af5949052c708af40d3b61d"
       ],
       0,
-      "686891c343db6113375b76191aa66f05"
+      "865ebc598a2a456f37c0a23b8a0f04fb"
     ],
     [
       "QUIC.Impl.loc_includes_union_l_footprint_s",
@@ -23,7 +23,7 @@
       0,
       [ "@query" ],
       0,
-      "4a0374ebe56d394d5b8c12d2940c4b22"
+      "1082dbd0d20cdf6d552f0103df353927"
     ],
     [
       "QUIC.Impl.hash_is_keysized",
@@ -79,7 +79,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "0c8dc68e41968fafeb7134380ccb0112"
+      "3cc0439e9c5d2cd3052cce365c4be1ce"
     ],
     [
       "QUIC.Impl.invariant",
@@ -92,7 +92,7 @@
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e"
       ],
       0,
-      "d6a7b2a65bbaa1d89d4073306a382abf"
+      "469949b6b2f78a95e2a6f05d9c6761e8"
     ],
     [
       "QUIC.Impl.incrementable",
@@ -101,7 +101,7 @@
       0,
       [ "@query", "equation_QUIC.Impl.invariant" ],
       0,
-      "ea2e2eb0d657cae3cbe46a3aa86e1f78"
+      "fa79cb16c9bdc36437ffa0b215ce0e43"
     ],
     [
       "QUIC.Impl.frame_invariant",
@@ -146,7 +146,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "2e42f8300039e32794a0bbff0b442899"
+      "9b07b93f3845f8be44147aebca78716b"
     ],
     [
       "QUIC.Impl.add3",
@@ -201,7 +201,7 @@
       0,
       [ "@query" ],
       0,
-      "6c7a00961dd8cbbfd146288a0c3e9c57"
+      "15be39de3fc3b7a566550a49b19a6570"
     ],
     [
       "QUIC.Impl.header",
@@ -210,7 +210,7 @@
       0,
       [ "@query" ],
       0,
-      "bd2813559a547d49ab78ccc5aa53b792"
+      "d7aad631a639eab9e405bf9a7b46a57d"
     ],
     [
       "QUIC.Impl.__proj__Short__item__spin",
@@ -223,7 +223,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "0d28817a728bb9b65e4a0f020842edfc"
+      "5f4e1a01328a82c3c9cc18727a4b5980"
     ],
     [
       "QUIC.Impl.__proj__Short__item__phase",
@@ -236,7 +236,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "8aed5e580fe124fa18bb228180be2cbd"
+      "b968e5283fc3ebe11b4f790f36fca5f0"
     ],
     [
       "QUIC.Impl.__proj__Short__item__cid",
@@ -249,7 +249,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "173b3f0a3dc6929661b94ea326cb2c5c"
+      "7454cd780b1cdf37e21a20a8e3754822"
     ],
     [
       "QUIC.Impl.__proj__Short__item__cid_len",
@@ -258,7 +258,7 @@
       0,
       [ "@query" ],
       0,
-      "74447108ceda4646771ecfaa79e3ff89"
+      "4ef3117061d74ba69cdef7ca491fa75b"
     ],
     [
       "QUIC.Impl.__proj__Short__item__cid_len",
@@ -273,7 +273,7 @@
         "refinement_interpretation_Tm_refine_f7fed434afca535b1d5969b14cb69e45"
       ],
       0,
-      "a899dc015f764d18efd38128deb21fd1"
+      "0626cb8936bca9d3392f948445c8cf9d"
     ],
     [
       "QUIC.Impl.__proj__Long__item__typ",
@@ -286,7 +286,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "158bebf24598a974cca0a22b556027db"
+      "b175d6b0de384a0e486ef312893afb13"
     ],
     [
       "QUIC.Impl.__proj__Long__item__version",
@@ -299,7 +299,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "ba412c8a9031a242854079099ec1bfb1"
+      "631622e4602d88f8075958c997727d29"
     ],
     [
       "QUIC.Impl.__proj__Long__item__dcid",
@@ -312,7 +312,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "4080da2f30c99f901b37284acf06e2a3"
+      "1d8f981a967ca8e4f6497c476b70f8a8"
     ],
     [
       "QUIC.Impl.__proj__Long__item__dcil",
@@ -321,7 +321,7 @@
       0,
       [ "@query" ],
       0,
-      "5714e199e34b49e610a86bd16a992198"
+      "b3ef1091ac88c7157e4ac1be8872a14a"
     ],
     [
       "QUIC.Impl.__proj__Long__item__dcil",
@@ -336,7 +336,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "fdfd877486000793bbf66c91473a4612"
+      "ae7cbdf50da21f9f32c444b325360ddf"
     ],
     [
       "QUIC.Impl.__proj__Long__item__scid",
@@ -349,7 +349,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "79d5a1fe9e6bd3aba596d46d78e2ee12"
+      "2d5f8ebddef5d066118e84fbad99d84f"
     ],
     [
       "QUIC.Impl.__proj__Long__item__scil",
@@ -358,7 +358,7 @@
       0,
       [ "@query" ],
       0,
-      "4b561ea88d9cacca02dca316c207fc20"
+      "59b78579f577010d490b9bdea8f0d1bc"
     ],
     [
       "QUIC.Impl.__proj__Long__item__scil",
@@ -373,7 +373,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "c74785c6330e87e785ea6d0b3ffa3d90"
+      "beae87199da6c795c33b078b6b055769"
     ],
     [
       "QUIC.Impl.__proj__Long__item__plain_len",
@@ -386,7 +386,7 @@
         "refinement_interpretation_Tm_refine_555296240ebe82b10a0d296172a90053"
       ],
       0,
-      "469bee06ae93407f5123c533df01f826"
+      "e5c4b38d5d805bb0a9b84d152a0dce84"
     ],
     [
       "QUIC.Impl.uu___82",
@@ -395,7 +395,7 @@
       0,
       [ "@query" ],
       0,
-      "5cdeb3be2b78075391cf5b0012c1583e"
+      "1eae73b35ec7fd30d95d80f6773a64e0"
     ],
     [
       "QUIC.Impl.header_live",
@@ -499,7 +499,7 @@
         "refinement_interpretation_Tm_refine_9f72cefa61c7cc8e5574a47696da7bf1"
       ],
       0,
-      "45b18a3ab538ad2a152a96834b5fd001"
+      "73cb33cab9bff8481df2075c1342607a"
     ],
     [
       "QUIC.Impl.create_in_st",
@@ -508,7 +508,7 @@
       0,
       [ "@query", "projection_inverse_BoxBool_proj_0" ],
       0,
-      "2b0d4ca4781c29a68da75dafd20ed198"
+      "da85cd880f284186e1137b4fac8e0773"
     ],
     [
       "QUIC.Impl.encrypt",
@@ -620,7 +620,16 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "24b437ccd7e3e51dc3f5eea8a149ab2d"
+      "3d2f37630158dd75e78f08e63076ea85"
+    ],
+    [
+      "QUIC.Impl.initial_secrets",
+      1,
+      0,
+      0,
+      [ "@query" ],
+      0,
+      "7058dd2000cb1f654a2dc350eb57e807"
     ],
     [
       "QUIC.Impl.decrypt",
@@ -732,7 +741,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "2ffb614804569c627218832c0fb8f77f"
+      "c5474cf855a1c467bcb3d9bd9a52f5be"
     ]
   ]
 ]

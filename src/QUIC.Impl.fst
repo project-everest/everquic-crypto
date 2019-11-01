@@ -968,7 +968,7 @@ let encrypt_core #i s dst h plain plain_len pn_len stack pnb this_iv =
     B.as_seq h4 dst `S.equal` QUIC.Spec.encrypt a k siv hpk pn_len seqn h plain
   )
 
-#set-options "--query_stats --z3rlimit 1000"
+#set-options "--z3rlimit 300"
 let encrypt #i s dst h plain plain_len pn_len =
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
@@ -1419,6 +1419,11 @@ let header_decrypt i s packet packet_len cid_len =
   | Some (sample_offset, pn_offset) ->
       header_decrypt_core i s packet packet_len cid_len is_short sample_offset pn_offset
 
+let if_i_dont_write_this_i_get_a_pattern_warning (h: header) (h_len tag_len packet_len: U32.t): U32.t =
+  match h with
+  | Short _ _ _ _ -> packet_len `U32.sub` h_len `U32.sub` tag_len
+  | Long _ _ _ _ _ _ ciphertag_len -> ciphertag_len `U32.sub` tag_len
+
 let decrypt #i s dst packet packet_len cid_len =
   match parse_header packet packet_len cid_len with
   | None -> DecodeError
@@ -1436,11 +1441,7 @@ let decrypt #i s dst packet packet_len cid_len =
       op_inplace pn_buf 12ul iv 12ul 0ul U8.logxor;
       let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
       let tag_len = tag_len aead_alg in
-      let cipher_len =
-        match h with
-        | Short _ _ _ _ -> packet_len `U32.sub` h_len `U32.sub` tag_len
-        | Long _ _ _ _ _ _ ciphertag_len -> ciphertag_len `U32.sub` tag_len
-      in
+      let cipher_len = if_i_dont_write_this_i_get_a_pattern_warning h h_len tag_len packet_len in
       let h_len: U32.t = h_len in
       let ad = B.sub packet 0ul h_len in
       let plain = B.sub packet h_len cipher_len in
