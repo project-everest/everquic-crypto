@@ -1140,7 +1140,8 @@ let parse_header (packet: B.buffer U8.t) (packet_len: U32.t) (cid_len: u4):
           U32.v len <= U32.v packet_len /\
 
           // TR says: we'll need something more precise than this
-          B.(loc_includes (loc_buffer packet) (header_footprint h))
+          B.(loc_includes (loc_buffer packet) (header_footprint h)) /\
+          header_live h h1
           ))))
 =
   admit ();
@@ -1394,7 +1395,8 @@ let header_decrypt_post (i:index)
       U32.v h_len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
       U32.v h_len <= U32.v packet_len /\
 
-      B.(loc_includes (loc_buffer packet) (header_footprint h)))
+      B.(loc_includes (loc_buffer packet) (header_footprint h)) /\
+      header_live h h1)
 
 val header_decrypt_core: i:index ->
   (s: state i) ->
@@ -1522,7 +1524,8 @@ let modifies_g_header (l: B.loc) (h: header) (h0 h1: HS.mem): Lemma
     B.(loc_disjoint l (header_footprint h)) /\
     B.modifies l h0 h1)
   (ensures (
-    g_header h h0 == g_header h h1))
+    g_header h h0 == g_header h h1 /\
+    header_live h h1))
 =
   ()
 
@@ -1555,7 +1558,6 @@ let header_decrypt i s packet packet_len cid_len =
       begin
         match r with
         | Some (h, _, _, _) ->
-            (**) assume (header_live h h4);
             (**) modifies_g_header B.(loc_all_regions_from false (HS.get_tip h2)) h h4 h5
         | None -> ()
       end;
