@@ -1237,6 +1237,7 @@ let long_sample b b_len =
                 `U32.add` ofs')
             else
               None
+#pop-options
 
 let bound_npn (pn_len: u2): x:U64.t { U64.v x == QUIC.Spec.bound_npn (U8.v pn_len) } =
   FStar.UInt.shift_left_value_lemma #64 1 (8 * (U8.v pn_len + 1));
