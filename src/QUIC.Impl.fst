@@ -1505,46 +1505,66 @@ val header_decrypt: i:index ->
   (cid_len: u4) ->
   Stack (option (header & U32.t & U32.t & u2))
     (requires (fun h0 ->
-      B.live h0 packet /\
-      B.length packet = U32.v packet_len /\
-      21 <= B.length packet))
+      header_decrypt_pre i s packet packet_len cid_len h0 /\
+      B.(loc_disjoint (loc_buffer packet) (footprint h0 s)) /\
+      invariant h0 s))
     (ensures (fun h0 r h1 ->
-      let a = i.aead_alg in
-      let hpk = g_hp_key h0 s in
-      let cid_len = U8.v cid_len in
-      let spec_result = QUIC.Spec.header_decrypt a hpk cid_len (B.as_seq h0 packet) in
-      match r with
-      | None -> QUIC.Spec.H_Failure? spec_result
-      | Some (h, h_len, npn, pn_len) ->
-          QUIC.Spec.H_Success? spec_result /\ (
-          let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
-          U32.v npn == FStar.Endianness.be_to_n spec_npn /\
-          U8.v pn_len = S.length spec_npn /\
-          g_header h h1 == spec_h /\
-          U32.v h_len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
-          U32.v h_len <= U32.v packet_len /\
+      header_decrypt_post i s packet packet_len cid_len h0 r h1 /\
 
-          B.(modifies (loc_buffer (gsub packet 0ul h_len) `loc_union`
-            footprint_s h0 (B.deref h0 s)) h0 h1))))
+      invariant h1 s /\
+      // Note: we could be more precise here and state that packet is modifies
+      // only up to the header length. Doesn't seem worth it for the moment.
+      B.(modifies (loc_buffer packet `loc_union`
+        footprint_s h0 (B.deref h0 s)) h0 h1)))
 
-/// Start unverified
-/// ----------------
+let modifies_g_header (l: B.loc) (h: header) (h0 h1: HS.mem): Lemma
+  (requires header_live h h0 /\
+    B.(loc_disjoint l (header_footprint h)) /\
+    B.modifies l h0 h1)
+  (ensures (
+    g_header h h0 == g_header h h1))
+=
+  ()
 
 let header_decrypt i s packet packet_len cid_len =
   let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
-  match (
-    if is_short then
-      let offset = 5ul `U32.add` u32_of_u8 (add3 cid_len) in
-      if U32.(offset +^ 16ul <=^ packet_len) then
-        Some (offset, offset `U32.sub` 4ul)
-      else
-        None
-    else
-      long_sample packet packet_len
-  ) with
+  (**) let h0 = ST.get () in
+  match sample_offset packet packet_len cid_len is_short with
   | None -> None
   | Some (sample_offset, pn_offset) ->
-      header_decrypt_core i s packet packet_len cid_len is_short sample_offset pn_offset
+      (**) let h1 = ST.get () in
+      push_frame ();
+      (**) let h2 = ST.get () in
+      let mask = B.alloca 0uy 16ul in
+      let pn_mask = B.alloca 0uy 4ul in
+      (**) let h3 = ST.get () in
+      (**) frame_invariant B.loc_none s h2 h3;
+      let r = header_decrypt_core i s packet packet_len cid_len is_short sample_offset pn_offset
+        (G.hide B.(loc_all_regions_from false (HS.get_tip h2))) mask pn_mask in
+      (**) let h4 = ST.get () in
+      pop_frame ();
+      (**) let h5 = ST.get () in
+      (**) frame_invariant B.(loc_all_regions_from false (HS.get_tip h2)) s h4 h5;
+      (**) B.modifies_fresh_frame_popped h1 h2
+      (**)   B.(loc_buffer packet `loc_union` footprint_s h0 (B.deref h0 s)) h4 h5;
+      (**) assert (invariant h5 s);
+      (**) assert (B.as_seq h5 packet `S.equal` B.as_seq h4 packet);
+      (**) assert (B.as_seq h0 packet `S.equal` B.as_seq h3 packet);
+      (**) assert (B.(modifies (loc_buffer packet `loc_union`
+        footprint_s h0 (B.deref h0 s)) h0 h5));
+      begin
+        match r with
+        | Some (h, _, _, _) ->
+            (**) assume (header_live h h4);
+            (**) modifies_g_header B.(loc_all_regions_from false (HS.get_tip h2)) h h4 h5
+        | None -> ()
+      end;
+      r
+
+/// Unverified
+/// ----------
+
+#set-options "--admit_smt_queries true"
 
 let if_i_dont_write_this_i_get_a_pattern_warning (h: header) (h_len tag_len packet_len: U32.t): U32.t =
   match h with
