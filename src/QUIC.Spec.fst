@@ -1565,20 +1565,22 @@ let long_sample (packet:packet) : option (lbytes 16 * (n:nat{n+20 <= S.length pa
         Some (S.slice npn_c 4 20, pn_offset)
       else None
 
+let sample_offset (packet: packet) (cid_len: nat4) (is_short: bool):
+  Tot (option (lbytes 16 * (n:nat{n+20 <= S.length packet})))
+=
+    if is_short then
+      let offset = 5 + add3 cid_len in
+      if offset + 16 <= S.length packet then
+        Some (S.slice packet offset (offset+16), offset-4)
+      else None
+    else long_sample packet
 
 let header_decrypt a hpk cid_len packet =
   let open FStar.Math.Lemmas in
   let f = S.index packet 0 in
   let is_short = U8.(f <^ 128uy) in
   (* See https://tools.ietf.org/html/draft-ietf-quic-tls-19#section-5.4.2 *)
-  let sample_offset : option (lbytes 16 * (n:nat{n+20 <= S.length packet}))=
-    if is_short then
-      let offset = 5 + add3 cid_len in
-      if offset + 16 <= S.length packet then
-        Some (S.slice packet offset (offset+16), offset-4)
-      else None
-    else long_sample packet in
-  match sample_offset with
+  match sample_offset packet cid_len is_short with
   | None -> H_Failure
   | Some (sample,pn_offset) ->
     //let sample = S.slice packet so (so + 16) in
