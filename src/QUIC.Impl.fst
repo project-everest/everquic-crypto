@@ -1253,20 +1253,27 @@ let reduce_pn (pn_len: u2) (pn: u62):
 =
   pn `U64.rem` bound_npn pn_len
 
-/// Start unverified
-/// ----------------
+let modulo_lt (a: nat) (b: pos): Lemma
+  (ensures (a % b <= a))
+=
+  ()
 
 let replace_modulo (a b new_mod: U64.t):
   Pure U64.t
-    (requires U64.v b > 0 /\ U64.(v new_mod < v b))
-    (ensures (fun x -> U64.v x == QUIC.Spec.replace_modulo (U64.v a) (U64.v b) (U64.v new_mod)))
+    (requires
+      U64.v b > 0 /\
+      U64.(v new_mod < v b) /\
+      QUIC.Spec.replace_modulo (U64.v a) (U64.v b) (U64.v new_mod) <= UInt.max_int 64)
+    (ensures fun x ->
+      U64.v x == QUIC.Spec.replace_modulo (U64.v a) (U64.v b) (U64.v new_mod))
 =
   let open U64 in
-  admit ();
+  modulo_lt (U64.v a) (U64.v b);
+  FStar.Math.Lemmas.modulo_range_lemma (U64.v a) (U64.v b);
   a -^ (a `rem` b) +^ new_mod
 
 let in_window (pn_len: u2) (last: u62) (pn: u62):
-  x:bool { b2t x == QUIC.Spec.in_window (U8.v pn_len) (U64.v last) (U64.v pn) }
+  x:bool { b2t x <==> QUIC.Spec.in_window (U8.v pn_len) (U64.v last) (U64.v pn) }
 =
   assert_norm (pow2 62 + 1 < pow2 64);
   assert_norm (pow2 62 - pow2 32 > 0);
@@ -1274,28 +1281,48 @@ let in_window (pn_len: u2) (last: u62) (pn: u62):
   let h = bound_npn pn_len in
   let open FStar.UInt64 in
   FStar.Math.Lemmas.pow2_le_compat 32 (8 * (U8.v pn_len + 1));
-  admit ();
   (last +^ 1UL <^ h /^ 2UL && pn <^ h) ||
   (last +^ 1UL >=^ p62 -^ h /^ 2UL && pn >=^ p62 -^ h) ||
   (last +^ 1UL <^ pn +^ h /^ 2UL && pn <=^ last +^ 1UL +^ h /^ 2UL)
 
-let expand_pn (pn_len: u2)
+inline_for_extraction noextract
+let expand_pn_ (pn_len: u2)
   (last: u62 { U64.v last < pow2 62 - 1 })
   (npn: u62 { U64.v npn < QUIC.Spec.bound_npn (U8.v pn_len) }):
-  x:u62 { U64.v x == QUIC.Spec.expand_pn (U8.v pn_len) (U64.v last) (U64.v npn) }
+  x:U64.t { U64.v x == QUIC.Spec.expand_pn (U8.v pn_len) (U64.v last) (U64.v npn) }
 =
   let open U64 in
-  assert_norm (pow2 62 < pow2 64);
+  (**) assert_norm (pow2 62 - 1 < pow2 64);
   let expected = last +^ 1UL in
   let bound = bound_npn pn_len in
+  (**) QUIC.Spec.lemma_replace_modulo_bound (U64.v expected) (8 * (U8.v pn_len + 1))
+  (**)   (U64.v npn) 64;
   let candidate = replace_modulo expected bound npn in
-  admit ();
-  if candidate <=^ last +^ 1UL -^ bound /^ 2UL && candidate <^ p62 -^ bound then
+  (**) FStar.Math.Lemmas.pow2_le_compat 32 (8 * (U8.v pn_len + 1));
+  (**) assert (U64.v candidate <= pow2 62 + pow2 32);
+  (**) assert_norm (pow2 62 + pow2 32 + pow2 32 / 2 < pow2 64);
+  (**) assert_norm (pow2 62 + pow2 32 < pow2 64);
+  if candidate +^ bound /^ 2UL <=^ expected && candidate +^ bound <^ p62 then
     candidate +^ bound
   else if candidate >^ last +^ 1UL +^ bound /^ 2UL && candidate >=^ bound then
     candidate -^ bound
   else
     candidate
+
+/// Note: rather than fight in the definition above to show that ``candidate``
+/// (third case) is u62, we instead bail on that proof obligation, and rely on
+/// the redefinition below to show it via the refinement that expand_pn computes
+/// QUIC.Spec.expand_pn, which is shown to be a nat62.
+let expand_pn (pn_len: u2)
+  (last: u62 { U64.v last < pow2 62 - 1 })
+  (npn: u62 { U64.v npn < QUIC.Spec.bound_npn (U8.v pn_len) }):
+  x:u62 { U64.v x == QUIC.Spec.expand_pn (U8.v pn_len) (U64.v last) (U64.v npn) }
+=
+  expand_pn_ pn_len last npn
+
+
+/// Start unverified
+/// ----------------
 
 let header_decrypt_pre (i:index)
   (s: state i)
