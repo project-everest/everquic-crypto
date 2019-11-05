@@ -1693,7 +1693,7 @@ let decrypt_core #i s dst packet0 packet packet_len cid_len h h_len npn pn_len
         last_pn *= pn;
       Success
 
-#push-options "--z3rlimit 200"
+#push-options "--z3rlimit 400"
 let decrypt #i s dst packet packet_len cid_len =
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg _ initial_pn aead_state iv hp_key last_pn _ = !*s in
