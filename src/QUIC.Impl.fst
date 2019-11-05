@@ -1127,10 +1127,34 @@ let recover_npn_bound (spec_npn: QUIC.Spec.npn): Lemma
 =
   FStar.Endianness.lemma_be_to_n_is_bounded spec_npn
 
+let parse_header_post_some (packet: B.buffer U8.t)
+  (packet_len: U32.t { B.length packet = U32.v packet_len /\ 21 <= U32.v packet_len })
+  (cid_len: u4)
+  (h1: HS.mem)
+  (spec_result: QUIC.Spec.h_result)
+  (h: header)
+  (len: U32.t)
+  (npn: U32.t)
+  (pn_len: u2): Type0
+=
+  QUIC.Spec.H_Success? spec_result /\ (
+  let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
+  recover_npn_bound spec_npn;
+  U32.v npn == FStar.Endianness.be_to_n spec_npn /\
+  U8.v pn_len + 1 = S.length spec_npn /\ (
+  // This is strictly redundant but useful for callers to save some endianness reasoning.
+  assert (U32.v npn < QUIC.Spec.bound_npn (U8.v pn_len));
+  U32.v npn < QUIC.Spec.bound_npn (U8.v pn_len) /\
+  g_header h h1 == spec_h /\
+  U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
+  U32.v len <= U32.v packet_len /\
+
+  B.(loc_includes (loc_buffer packet) (header_footprint h)) /\
+  header_live h h1))
+
 let parse_header_post (packet: B.buffer U8.t)
   (packet_len: U32.t { B.length packet = U32.v packet_len /\ 21 <= U32.v packet_len })
   (cid_len: u4)
-  (h0: HS.mem)
   (r: option (header & U32.t & U32.t & u2))
   (h1: HS.mem)
   (spec_result: QUIC.Spec.h_result): Type0
@@ -1138,20 +1162,7 @@ let parse_header_post (packet: B.buffer U8.t)
   match r with
   | None -> QUIC.Spec.H_Failure? spec_result
   | Some (h, len, npn, pn_len) ->
-      QUIC.Spec.H_Success? spec_result /\ (
-      let QUIC.Spec.H_Success spec_npn spec_h _ = spec_result in
-      recover_npn_bound spec_npn;
-      U32.v npn == FStar.Endianness.be_to_n spec_npn /\
-      U8.v pn_len + 1 = S.length spec_npn /\ (
-      // This is strictly redundant but useful for callers to save some endianness reasoning.
-      assert (U32.v npn < QUIC.Spec.bound_npn (U8.v pn_len));
-      U32.v npn < QUIC.Spec.bound_npn (U8.v pn_len) /\
-      g_header h h1 == spec_h /\
-      U32.v len == QUIC.Spec.header_len (g_header h h1) (U8.v pn_len) /\
-      U32.v len <= U32.v packet_len /\
-
-      B.(loc_includes (loc_buffer packet) (header_footprint h)) /\
-      header_live h h1))
+      parse_header_post_some packet packet_len cid_len h1 spec_result h len npn pn_len
 
 let parse_header (packet: B.buffer U8.t) (packet_len: U32.t) (cid_len: u4):
   Stack (option (header & U32.t & U32.t & u2))
@@ -1162,7 +1173,7 @@ let parse_header (packet: B.buffer U8.t) (packet_len: U32.t) (cid_len: u4):
     (ensures (fun h0 r h1 ->
       let spec_result = QUIC.Spec.parse_header (B.as_seq h0 packet) (U8.v cid_len) in
       B.(modifies loc_none h0 h1) /\
-      parse_header_post packet packet_len cid_len h0 r h1 spec_result))
+      parse_header_post packet packet_len cid_len r h1 spec_result))
 =
   admit ();
   C.Failure.failwith C.String.(!$"TODO")
@@ -1404,10 +1415,14 @@ let header_decrypt_post (i:index)
   let hpk = g_hp_key h0 s in
 
   let spec_result = QUIC.Spec.header_decrypt a hpk (U8.v cid_len) (B.as_seq h0 packet) in
-  parse_header_post packet packet_len cid_len h0 r h1 spec_result /\
+  parse_header_post packet packet_len cid_len r h1 spec_result /\
 
   invariant h1 s /\
-  footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s)
+  footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s) /\
+
+  g_hp_key h0 s == g_hp_key h1 s /\
+  B.as_seq h0 (State?.iv (B.deref h0 s)) `S.equal` B.as_seq h1 (State?.iv (B.deref h1 s)) /\
+  B.deref h0 (State?.pn (B.deref h0 s)) == B.deref h1 (State?.pn (B.deref h1 s))
 
 val header_decrypt_core: i:G.erased index ->
   (s: state i) ->
@@ -1572,7 +1587,113 @@ let header_decrypt i s packet packet_len cid_len =
       end;
       r
 
-#set-options "--query_stats --admit_smt_queries true"
+
+val decrypt_core: #i:G.erased index -> (
+  let i = G.reveal i in
+  s:state i ->
+  dst: B.pointer result ->
+  packet0: G.erased QUIC.Spec.packet ->
+  packet: B.buffer U8.t ->
+  packet_len: U32.t{
+    21 <= U32.v packet_len /\
+    B.length packet == U32.v packet_len
+  } ->
+  cid_len: u4 ->
+  h: header ->
+  h_len: U32.t ->
+  npn: U32.t ->
+  pn_len: u2 ->
+  stack: G.erased B.loc ->
+  pn: u62 ->
+  pn_buf0: B.buffer U8.t ->
+  npn_buf: B.buffer U8.t ->
+  Stack error_code
+    (requires fun h0 ->
+      B.length packet == S.length (G.reveal packet0) /\
+
+      B.live h0 packet /\ B.live h0 dst /\
+      B.(all_disjoint [ loc_buffer dst; loc_buffer packet; footprint h0 s; G.reveal stack ]) /\
+
+      B.(all_live h0 [ buf pn_buf0; buf npn_buf ]) /\
+      B.disjoint pn_buf0 npn_buf /\
+      B.length pn_buf0 == 16 /\
+      B.length npn_buf == 4 /\
+      B.(loc_includes stack (loc_buffer pn_buf0)) /\
+      B.(loc_includes stack (loc_buffer npn_buf)) /\
+
+      invariant h0 s /\
+
+      incrementable s h0 /\ (
+      let spec_result =
+        QUIC.Spec.header_decrypt i.aead_alg (g_hp_key h0 s) (U8.v cid_len) packet0 in
+      parse_header_post_some packet packet_len cid_len h0 spec_result h h_len npn pn_len /\
+      U32.v npn < QUIC.Spec.bound_npn (U8.v pn_len) /\
+      U64.v pn ==
+        QUIC.Spec.expand_pn (U8.v pn_len) (g_packet_number (B.deref h0 s) h0) (U32.v npn)))
+    (ensures fun h0 r h1 ->
+      begin match r with
+      | Success ->
+          B.(modifies (stack `loc_union` footprint_s h0 (deref h0 s) `loc_union`
+            loc_buffer packet `loc_union` loc_buffer dst) h0 h1)
+      | AuthenticationFailure ->
+          B.(modifies (stack `loc_union` loc_buffer packet `loc_union`
+            footprint_s h0 (B.deref h0 s)) h0 h1)
+      | _ ->
+          False
+      end /\
+      decrypt_post i s dst (G.reveal packet0) packet packet_len cid_len h0 r h1))
+
+let decrypt_core #i s dst packet0 packet packet_len cid_len h h_len npn pn_len
+  stack pn pn_buf0 npn_buf
+=
+  let State _ aead_alg _ _ aead_state iv hp_key last_pn _ = !*s in
+
+  admit ();
+  (**) let h0 = ST.get () in
+  (**) let m_loc = G.hide B.(G.reveal stack `loc_union`
+  (**)   footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst) in
+
+  LowStar.Endianness.store128_be pn_buf0 (FStar.Int.Cast.Full.uint64_to_uint128 pn);
+  (**) let h1 = ST.get () in
+  (**) B.(modifies_loc_includes (G.reveal m_loc) h0 h1 (loc_buffer pn_buf0));
+  (**) frame_invariant B.(loc_buffer pn_buf0) s h0 h1;
+  (**) assert (footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s));
+
+  let pn_buf = B.sub pn_buf0 4ul 12ul in
+  LowStar.Endianness.store32_be npn_buf npn;
+  op_inplace pn_buf 12ul iv 12ul 0ul U8.logxor;
+  let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
+  let tag_len = tag_len aead_alg in
+  let cipher_len =
+    match h with
+    | Short _ _ _ _ -> packet_len `U32.sub` h_len `U32.sub` tag_len
+    | Long _ _ _ _ _ _ ciphertag_len -> ciphertag_len `U32.sub` tag_len
+  in
+  let h_len: U32.t = h_len in
+  let ad = B.sub packet 0ul h_len in
+  let plain = B.sub packet h_len cipher_len in
+  let tag = B.sub packet (h_len `U32.add` cipher_len) tag_len in
+  let r = AEAD.decrypt #(G.hide aead_alg) aead_state iv 12ul ad h_len
+    plain cipher_len
+    tag
+    plain
+  in
+  match r with
+  | AuthenticationFailure -> AuthenticationFailure
+  | Success ->
+      dst *= ({
+        pn_len = pn_len;
+        pn = pn;
+        header = h;
+        header_len = h_len;
+        plain_len = cipher_len;
+        total_len = h_len `U32.add` cipher_len `U32.add` tag_len
+      });
+      if pn `U64.gt` !*last_pn then
+        last_pn *= pn;
+      Success
+
+#push-options "--z3rlimit 200"
 let decrypt #i s dst packet packet_len cid_len =
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg _ initial_pn aead_state iv hp_key last_pn _ = !*s in
@@ -1589,56 +1710,60 @@ let decrypt #i s dst packet packet_len cid_len =
       let pn = expand_pn pn_len the_last_pn (u64_of_u32 npn) in
 
       (**) let h1 = ST.get () in
-      (**) let m_loc = G.hide B.(loc_buffer packet `loc_union`
-      (**)   footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst) in
+      (**) let m_loc = G.hide B.(loc_buffer packet `loc_union` footprint_s h0 (deref h0 s)) in
       (**) B.(modifies_loc_includes (G.reveal m_loc) h0 h1 (loc_buffer packet `loc_union`
       (**)   footprint_s h0 (B.deref h0 s)));
 
       push_frame ();
 
       (**) let h2 = ST.get () in
-      (**) let m_loc' = G.hide B.(G.reveal m_loc `loc_union`
-      (**)   loc_all_regions_from false (HS.get_tip h2)) in
+      (**) let stack = G.hide B.(loc_all_regions_from false (HS.get_tip h2)) in
+      (**) frame_invariant B.loc_none s h1 h2;
+      (**) modifies_g_header B.loc_none h h1 h2;
+      (**) assert (footprint_s h0 (B.deref h0 s) == footprint_s h2 (B.deref h2 s));
 
-      let pn_buf0 = B.alloca 0uy 12ul in
+      let pn_buf0 = B.alloca 0uy 16ul in
       let npn_buf = B.alloca 0uy 4ul in
 
       (**) let h3 = ST.get () in
-      (**) B.(modifies_loc_includes (G.reveal m_loc') h2 h3 loc_none);
-      // admit ()
+      (**) frame_invariant B.loc_none s h2 h3;
+      (**) modifies_g_header B.loc_none h h2 h3;
+      (**) assert (footprint_s h2 (B.deref h2 s) == footprint_s h3 (B.deref h3 s));
 
-      LowStar.Endianness.store128_be pn_buf0 (FStar.Int.Cast.Full.uint64_to_uint128 pn);
-      let pn_buf = B.sub pn_buf0 4ul 12ul in
-      LowStar.Endianness.store32_be npn_buf npn;
-      op_inplace pn_buf 12ul iv 12ul 0ul U8.logxor;
-      let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
-      let tag_len = tag_len aead_alg in
-      let cipher_len =
-        match h with
-        | Short _ _ _ _ -> packet_len `U32.sub` h_len `U32.sub` tag_len
-        | Long _ _ _ _ _ _ ciphertag_len -> ciphertag_len `U32.sub` tag_len
-      in
-      let h_len: U32.t = h_len in
-      let ad = B.sub packet 0ul h_len in
-      let plain = B.sub packet h_len cipher_len in
-      let tag = B.sub packet (h_len `U32.add` cipher_len) tag_len in
-      let r = AEAD.decrypt #(G.hide aead_alg) aead_state iv 12ul ad h_len
-        plain cipher_len
-        tag
-        plain
-      in
+      let r = decrypt_core #i s dst (G.hide (B.as_seq h0 packet)) packet packet_len cid_len
+        h h_len npn pn_len stack pn pn_buf0 npn_buf in
+
+      (**) let h4 = ST.get () in
+      (**) assert (footprint_s h3 (B.deref h3 s) == footprint_s h4 (B.deref h4 s));
+
       pop_frame ();
-      match r with
-      | AuthenticationFailure -> AuthenticationFailure
-      | Success ->
-          dst *= ({
-            pn_len = pn_len;
-            pn = pn;
-            header = h;
-            header_len = h_len;
-            plain_len = cipher_len;
-            total_len = h_len `U32.add` cipher_len `U32.add` tag_len
-          });
-          if pn `U64.gt` the_last_pn then
-            last_pn *= pn;
-          Success
+
+      (**) let h5 = ST.get () in
+  (match r with
+  | AuthenticationFailure ->
+      // This part is insanely brittle! A pattern fires nearly 2.5 million times O_o
+      // [quantifier_instances] typing_LowStar.Monotonic.Buffer.loc_disjoint :  86212 :  10 : 11
+      // [quantifier_instances] lemma_LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2 : 2365678 :  10 : 11
+      // What is going on?!!! The explicit parenthese in m_loc seem to help.
+      let m_loc = B.(G.reveal stack `loc_union` (loc_buffer packet `loc_union`
+        footprint_s h0 (deref h0 s))) in
+      B.(modifies_trans loc_none h2 h3 m_loc h4);
+      B.loc_union_loc_none_l m_loc;
+      modifies_g_header B.loc_none h h2 h3;
+      B.(modifies_fresh_frame_popped h1 h2
+        (loc_buffer packet `loc_union` footprint_s h0 (deref h0 s)) h4 h5);
+      frame_invariant (B.loc_region_only false (HS.get_tip h4)) s h4 h5;
+      modifies_g_header (B.loc_region_only false (HS.get_tip h4)) h h4 h5
+  | Success ->
+      let m_loc = B.(G.reveal stack `loc_union` (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer packet `loc_union` loc_buffer dst)) in
+      B.(modifies_trans loc_none h2 h3 m_loc h4);
+      B.loc_union_loc_none_l m_loc;
+      modifies_g_header B.loc_none h h2 h3;
+      B.(modifies_fresh_frame_popped h1 h2
+        (footprint_s h0 (deref h0 s) `loc_union`
+          loc_buffer packet `loc_union` loc_buffer dst) h4 h5);
+      frame_invariant (B.loc_region_only false (HS.get_tip h4)) s h4 h5;
+      modifies_g_header (B.loc_region_only false (HS.get_tip h4)) h h4 h5
+  );
+  r
