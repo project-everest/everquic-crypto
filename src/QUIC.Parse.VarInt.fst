@@ -3,6 +3,10 @@ module QUIC.Parse.VarInt
 open LowParse.Spec.BoundedInt
 open LowParse.Spec.BitFields
 
+(* From
+https://tools.ietf.org/html/draft-ietf-quic-transport-23#section-16,
+except that we make the format non-ambiguous. *)
+
 inline_for_extraction
 let parse_varint_payload_kind = {
   parser_kind_low = 0;
@@ -26,10 +30,10 @@ inline_for_extraction
 let synth_u14
   (msb: varint_msb_t)
   (lsb: U8.t)
-: Tot varint_t
+: Tot uint62_t
 = [@inline_let] let _ =
     assert_norm (pow2 8 == 256);
-    assert (pow2 62 == U64.v varint_bound)
+    assert (pow2 62 == U64.v uint62_bound)
   in
   (msb `U64.mul` 256uL) `U64.add` Cast.uint8_to_uint64 lsb  
 
@@ -44,10 +48,10 @@ inline_for_extraction
 let synth_u30
   (msb: varint_msb_t)
   (lsb: bounded_integer 3)
-: Tot varint_t
+: Tot uint62_t
 = [@inline_let] let _ =
     assert_norm (pow2 8 == 256);
-    assert (pow2 62 == U64.v varint_bound);
+    assert (pow2 62 == U64.v uint62_bound);
     assert_norm (pow2 24 == 16777216)
    in
    (msb `U64.mul` 16777216uL) `U64.add` Cast.uint32_to_uint64 lsb
@@ -63,10 +67,10 @@ inline_for_extraction
 let synth_u62
   (msb: varint_msb_t)
   (lsb: (U32.t & bounded_integer 3))
-: Tot varint_t
+: Tot uint62_t
 = [@inline_let] let _ =
   assert_norm (pow2 8 == 256);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296)
   in
@@ -90,31 +94,31 @@ let synth_u62_injective
 
 inline_for_extraction
 let filter_u14
-  (y: varint_t)
+  (y: uint62_t)
 : Tot bool
 = 64uL `U64.lte` y
 
 inline_for_extraction
 let filter_u30
-  (y: varint_t)
+  (y: uint62_t)
 : Tot bool
 = 16384uL `U64.lte` y
 
 inline_for_extraction
 let filter_u62
-  (y: varint_t)
+  (y: uint62_t)
 : Tot bool
 = 1073741824uL `U64.lte` y
     
 inline_for_extraction
 let id_u14
   (y: parse_filter_refine filter_u14)
-: Tot varint_t
+: Tot uint62_t
 = y
 
 let parse_varint_payload_u14
   (msb: varint_msb_t)
-: Tot (parser parse_varint_payload_kind varint_t)
+: Tot (parser parse_varint_payload_kind uint62_t)
 = 
   weaken parse_varint_payload_kind
     (((parse_u8 `parse_synth` synth_u14 msb)
@@ -124,12 +128,12 @@ let parse_varint_payload_u14
 inline_for_extraction
 let id_u30
   (y: parse_filter_refine filter_u30)
-: Tot varint_t
+: Tot uint62_t
 = y
 
 let parse_varint_payload_u30
   (msb: varint_msb_t)
-: Tot (parser parse_varint_payload_kind varint_t)
+: Tot (parser parse_varint_payload_kind uint62_t)
 = 
   weaken parse_varint_payload_kind
     (((parse_bounded_integer 3 `parse_synth` synth_u30 msb)
@@ -139,14 +143,14 @@ let parse_varint_payload_u30
 inline_for_extraction
 let id_u62
   (y: parse_filter_refine filter_u62)
-: Tot varint_t
+: Tot uint62_t
 = y
 
 let p7 = parse_u32 `nondep_then` parse_bounded_integer 3
 
 let parse_varint_payload_u62
   (msb: varint_msb_t)
-: Tot (parser parse_varint_payload_kind varint_t)
+: Tot (parser parse_varint_payload_kind uint62_t)
 = 
   weaken parse_varint_payload_kind
     ((((p7) `parse_synth` synth_u62 msb)
@@ -167,7 +171,7 @@ let parse_varint_payload_14_interval
 = 
    assert_norm (pow2 6 == 64);
    assert_norm (pow2 8 == 256);
-   assert (pow2 62 == U64.v varint_bound);
+   assert (pow2 62 == U64.v uint62_bound);
    assert_norm (pow2 32 == 4294967296);
    assert_norm (pow2 24 == 16777216);
    parse_synth_eq parse_u8 (synth_u14 msb) b;
@@ -203,7 +207,7 @@ let parse_varint_payload_62_interval
 = 
    assert_norm (pow2 6 == 64);
    assert_norm (pow2 8 == 256);
-   assert (pow2 62 == U64.v varint_bound);
+   assert (pow2 62 == U64.v uint62_bound);
    assert_norm (pow2 32 == 4294967296);
    assert_norm (pow2 24 == 16777216);
    parse_synth_eq (p7) (synth_u62 msb) b;
@@ -215,10 +219,10 @@ let parse_varint_payload_62_interval
 
 let parse_varint_payload
   (x: U8.t)
-: Tot (parser parse_varint_payload_kind varint_t)
+: Tot (parser parse_varint_payload_kind uint62_t)
 = assert_norm (pow2 6 == 64);
   assert_norm (pow2 8 == 256);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 32 == 4294967296);
   assert_norm (pow2 24 == 16777216);
   let kd = uint8.get_bitfield x 6 8 in
@@ -254,7 +258,7 @@ let parse_varint_payload_interval
 =
   assert_norm (pow2 6 == 64);
   assert_norm (pow2 8 == 256);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 32 == 4294967296);
   assert_norm (pow2 24 == 16777216);
   let Some (v, _) = parse (parse_varint_payload tag) b in
@@ -280,7 +284,7 @@ let parse_varint_payload_interval
 
 let parse_varint_payload_and_then_cases_injective : squash (and_then_cases_injective parse_varint_payload) =
   assert_norm (pow2 8 == 256);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 32 == 4294967296);
   assert_norm (pow2 24 == 16777216);
   and_then_cases_injective_intro parse_varint_payload (fun x1 x2 b1 b2 ->
@@ -299,7 +303,7 @@ let parse_varint =
 let parse_varint_eq_aux
   (b: bytes)
 : Lemma
-  (pow2 8 == 256 /\ pow2 62 == U64.v varint_bound /\ pow2 24 == 16777216 /\ pow2 32 == 4294967296 /\
+  (pow2 8 == 256 /\ pow2 62 == U64.v uint62_bound /\ pow2 24 == 16777216 /\ pow2 32 == 4294967296 /\
   parse parse_varint b == (match parse parse_u8 b with
   | None -> None
   | Some (hd, consumed) ->
@@ -309,7 +313,7 @@ let parse_varint_eq_aux
     | Some (res, consumed') -> Some (res, consumed + consumed')
   ))
 = assert_norm (pow2 8 == 256);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   and_then_eq parse_u8 parse_varint_payload b
@@ -318,10 +322,10 @@ let parse_varint_eq_aux
 
 let parse_varint'
   (b: bytes)
-: GTot (option (varint_t & consumed_length b))
+: GTot (option (uint62_t & consumed_length b))
 = assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   match parse parse_u8 b with
@@ -332,12 +336,12 @@ let parse_varint'
     let b' = Seq.slice b consumed (Seq.length b) in
     if tag = 0uy
     then
-      Some ((msb <: varint_t), consumed)
+      Some ((msb <: uint62_t), consumed)
     else if tag = 1uy
     then begin match parse parse_u8 b' with
     | None -> None
     | Some (lsb, consumed') ->
-      let v : varint_t = (msb `U64.mul` 256uL) `U64.add` Cast.uint8_to_uint64 lsb in
+      let v : uint62_t = (msb `U64.mul` 256uL) `U64.add` Cast.uint8_to_uint64 lsb in
       if 64uL `U64.lte` v
       then Some (v, consumed + consumed')
       else None
@@ -346,7 +350,7 @@ let parse_varint'
     then begin match parse (parse_bounded_integer 3) b' with
     | None -> None
     | Some (lsb, consumed') ->
-      let v : varint_t =
+      let v : uint62_t =
         (msb `U64.mul` 16777216uL) `U64.add` Cast.uint32_to_uint64 lsb
       in
       if 16384uL `U64.lte` v
@@ -355,7 +359,7 @@ let parse_varint'
     end else begin match parse (parse_u32 `nondep_then` parse_bounded_integer 3) b' with
     | None -> None
     | Some ((hi, lo), consumed') ->
-      let v : varint_t =
+      let v : uint62_t =
         Cast.uint32_to_uint64 lo `U64.add` (16777216uL `U64.mul` (Cast.uint32_to_uint64 hi `U64.add` (4294967296uL `U64.mul` msb)))
       in
       if 1073741824uL `U64.lte` v
@@ -366,11 +370,11 @@ let parse_varint'
 let parse_varint_eq
   (b: bytes)
 : Lemma
-  (pow2 8 == 256 /\ pow2 62 == U64.v varint_bound /\ pow2 24 == 16777216 /\ pow2 32 == 4294967296 /\
+  (pow2 8 == 256 /\ pow2 62 == U64.v uint62_bound /\ pow2 24 == 16777216 /\ pow2 32 == 4294967296 /\
   parse parse_varint b == parse_varint' b)
 = assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   parse_varint_eq_aux b;
@@ -404,7 +408,7 @@ let parse_varint_eq
 
 inline_for_extraction
 let get_tag
-  (x: varint_t)
+  (x: uint62_t)
 : Tot (bitfield uint8 2)
 = if x `U64.lt` 64uL
   then 0uy
@@ -416,7 +420,7 @@ let get_tag
 
 inline_for_extraction
 let get_msb
-  (x: varint_t)
+  (x: uint62_t)
 : Tot varint_msb_t
 = if x `U64.lt` 64uL
   then x
@@ -428,19 +432,19 @@ let get_msb
 
 inline_for_extraction
 let get_first_byte
-  (x: varint_t)
+  (x: uint62_t)
 : Tot U8.t
 = uint8.set_bitfield (uint8.set_bitfield 0uy 0 6 (Cast.uint64_to_uint8 (get_msb x))) 6 8 (get_tag x)
 
 #push-options "--z3rlimit 16"
 
 let serialize_varint_payload
-  (x: varint_t)
+  (x: uint62_t)
 : GTot bytes
 =
   assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   if x `U64.lt` 64uL
@@ -452,16 +456,16 @@ let serialize_varint_payload
   else serialize (serialize_u32 `serialize_nondep_then` serialize_bounded_integer 3) (Cast.uint64_to_uint32 (x `U64.div` 16777216uL), Cast.uint64_to_uint32 (x `U64.rem` 16777216uL))
 
 let serialize_varint'
-  (x: varint_t)
+  (x: uint62_t)
 : GTot bytes
 = serialize serialize_u8 (get_first_byte x) `Seq.append` serialize_varint_payload x
 
 #pop-options
 
-#push-options "--z3rlimit 1024"
+#push-options "--z3rlimit 1024 --using_facts_from '*,-FStar.Bytes,-FStar.String,-FStar.Char'"
 
 let serialize_varint_correct
-  (x: varint_t)
+  (x: uint62_t)
 : Lemma
   (let y = serialize_varint' x in
     parse_varint' y == Some (x, Seq.length y)
@@ -469,7 +473,7 @@ let serialize_varint_correct
 =
   assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   let y = serialize_varint' x in
@@ -520,7 +524,7 @@ let serialize_varint =
 let varint_in_bounds
   (min: nat)
   (max: nat { min <= max /\ max < 4294967296 })
-  (x: varint_t)
+  (x: uint62_t)
 : GTot bool
 = min <= U64.v x && U64.v x <= max
 
@@ -566,7 +570,7 @@ let validate_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v varint_bound);
+    assert (pow2 62 == U64.v uint62_bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -637,7 +641,7 @@ let read_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v varint_bound);
+    assert (pow2 62 == U64.v uint62_bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -684,7 +688,7 @@ let jump_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v varint_bound);
+    assert (pow2 62 == U64.v uint62_bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -735,7 +739,7 @@ let serialize_varint_impl
 =
   assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v varint_bound);
+  assert (pow2 62 == U64.v uint62_bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   let fb = get_first_byte x in
