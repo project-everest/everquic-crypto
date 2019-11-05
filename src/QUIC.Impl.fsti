@@ -382,12 +382,17 @@ val decrypt: #i:G.erased index -> (
       // ``packet``; and the plaintext is within ``packet`` in range
       // ``[header_len, header_len + plain_len)``.
       B.live h0 packet /\ B.live h0 dst /\
-      B.disjoint dst packet /\
+      B.(all_disjoint [ loc_buffer dst; loc_buffer packet; footprint h0 s ]) /\
 
       invariant h0 s /\
 
       incrementable s h0)
     (ensures fun h0 r h1 ->
+      let s0 = g_traffic_secret (B.deref h0 s) in
+      let k = QUIC.Spec.(derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)) in
+      let iv = QUIC.Spec.(derive_secret i.hash_alg s0 label_iv 12) in
+      let pne = QUIC.Spec.(derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)) in
+      let prev = g_packet_number (B.deref h0 s) h0 in
       match r with
       | Success ->
           B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
@@ -398,7 +403,6 @@ val decrypt: #i:G.erased index -> (
 
           let r = B.deref h1 dst in
           // prev is known to be >= g_initial_packet_number (see lemma invariant_packet_number)
-          let prev = g_packet_number (B.deref h0 s) h0 in
           let curr = g_packet_number (B.deref h1 s) h1 in
           curr == max prev (U64.v r.pn) /\ (
 
@@ -408,10 +412,6 @@ val decrypt: #i:G.erased index -> (
             Spec.Agile.AEAD.tag_length i.aead_alg /\
           U32.v r.header_len = QUIC.Spec.header_len (g_header r.header h1) (U8.v r.pn_len) /\ (
 
-          let s0 = g_traffic_secret (B.deref h0 s) in
-          let k = QUIC.Spec.(derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)) in
-          let iv = QUIC.Spec.(derive_secret i.hash_alg s0 label_iv 12) in
-          let pne = QUIC.Spec.(derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)) in
           U32.v r.total_len <= B.length packet /\ (
           let plain: QUIC.Spec.pbytes =
             S.slice (B.as_seq h1 packet) (U32.v r.header_len)
@@ -420,5 +420,10 @@ val decrypt: #i:G.erased index -> (
           (Long? r.header ==> cid_len = 0uy) /\
           QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) packet
             == QUIC.Spec.Success (U8.v r.pn_len) (U64.v r.pn) (g_header r.header h1) plain))))
+      | DecodeError ->
+          B.(modifies (loc_buffer packet `loc_union` footprint_s h0 (B.deref h0 s)) h0 h1) /\
+          invariant h1 s /\
+          QUIC.Spec.Failure?
+            (QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) (B.as_seq h0 packet))
       | _ ->
           False))
