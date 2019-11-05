@@ -158,8 +158,80 @@ let header_decrypt a hpk cid_len last packet =
           parse_header cid_len last packet''
         end
 
+#push-options "--z3rlimit 128"
+
 let lemma_header_encryption_correct a k h cid_len last c =
-  admit ()
+  format_header_is_short h;
+  format_header_is_retry h;
+  lemma_header_parsing_correct h c cid_len last;
+  if is_retry h
+  then begin
+    let packet = format_header h in
+    assert (S.length packet > 0)
+  end else begin
+    let format' = format_header h in
+    let format = format' `S.append` c in
+    let packet = header_encrypt a k h c in
+    putative_pn_offset_correct h cid_len;
+    putative_pn_offset_frame cid_len format' format;
+    let pn_offset = pn_offset h in
+    let pn_len = U32.v (pn_length h) - 1 in
+    let sample = S.slice c (3-pn_len) (19-pn_len) in
+    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) k sample in
+    let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask pn_len) 0 in
+    let f = S.index format 0 in
+    let protected_bits = if MShort? h then 5 else 4 in
+    let pb_value = BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
+    pointwise_op_slice_other U8.logxor format pnmask pn_offset 1 pn_offset;
+    let f_ = S.index packet 0 in
+    assert (U8.v f_ == BF.set_bitfield (U8.v f) 0 protected_bits pb_value);
+    let packet1 = xor_inplace format pnmask pn_offset in
+    assert (packet == S.cons f_ (S.slice packet1 1 (S.length packet1)));
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value 7 8;
+    assert (MShort? h == (BF.get_bitfield (U8.v f_) 7 8 = 0));
+    begin if not (MShort? h) then
+      BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value 4 6
+    end;
+    assert (is_retry h == (not (MShort? h) && BF.get_bitfield (U8.v f) 4 6 = 3));
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value protected_bits 8;
+    putative_pn_offset_frame cid_len format packet;
+    assert (0 < pn_offset /\ pn_offset <= S.length packet);
+    let put' = putative_pn_offset cid_len packet in
+    assert (Some? put');
+    assert ((Some?.v put' <: nat) == pn_offset);
+    let sample_offset = pn_offset + 4 in
+    assert (sample_offset + 16 <= S.length packet);
+    pointwise_op_slice_other U8.logxor format pnmask pn_offset sample_offset (sample_offset + 16);
+    assert (sample `S.equal` S.slice format sample_offset (sample_offset + 16));
+    assert (sample `S.equal` S.slice packet sample_offset (sample_offset + 16));
+    let pb_value_ = BF.get_bitfield (U8.v f_ `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
+    let f'_ = BF.set_bitfield (U8.v f_) 0 protected_bits pb_value_ in
+    let packet' = S.cons (U8.uint_to_t f'_) (S.slice packet 1 (S.length packet)) in
+    BF.get_bitfield_logxor (U8.v f) (U8.v (S.index mask 0)) 0 protected_bits;
+    BF.get_bitfield_logxor (U8.v f_) (U8.v (S.index mask 0)) 0 protected_bits;
+    BF.get_bitfield_set_bitfield_same (U8.v f) 0 protected_bits pb_value;
+    assert (BF.get_bitfield (U8.v f_) 0 protected_bits == pb_value);
+    BF.get_bitfield_set_bitfield_same (U8.v f_) 0 protected_bits pb_value_;
+    BF.get_bitfield_set_bitfield_other (U8.v f_) 0 protected_bits pb_value_ protected_bits 8;
+    let bfmask = BF.get_bitfield (U8.v (S.index mask 0)) 0 protected_bits in
+    FStar.UInt.logxor_inv (BF.get_bitfield (U8.v f) 0 protected_bits) bfmask;
+    assert (pb_value_ == BF.get_bitfield (U8.v f) 0 protected_bits);
+    BF.get_bitfield_partition_2 protected_bits (U8.v f) f'_;
+    assert (f'_ == U8.v f);
+    (* now the packet number length is available, so mask the packet number *)
+    format_header_pn_length h;
+    assert (pn_len == BF.get_bitfield f'_ 0 2);
+    let packet'' = xor_inplace packet' pnmask pn_offset in
+    pointwise_op_slice_other U8.logxor format pnmask pn_offset 0 1;
+    assert (S.index packet1 0 == S.index (S.slice packet1 0 1) 0);
+    assert (packet' `S.equal` packet1);
+    xor_inplace_involutive format pnmask pn_offset;
+    pointwise_op_slice_other U8.logxor packet1 pnmask pn_offset 0 1;
+    assert (S.index packet'' 0 == S.index (S.slice packet'' 0 1) 0);
+    assert (format `S.equal` packet'')
+  end
+
+#pop-options
 
 (* not useful anymore by using declassify below
 

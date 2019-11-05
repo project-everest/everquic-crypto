@@ -328,6 +328,28 @@ let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
 
   FStar.Classical.forall_intro step
 
+let pointwise_op_slice_other
+  (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
+  (from to: nat)
+: Lemma
+  (requires (
+    S.length b2 + pos <= S.length b1 /\
+    from <= to /\
+    to <= S.length b1 /\
+    (to <= pos \/ pos + S.length b2 <= from)
+  ))
+  (ensures (
+    S.slice (pointwise_op f b1 b2 pos) from to `S.equal` S.slice b1 from to
+  ))
+= let phi
+    (i: nat { from <= i /\ i < to })
+  : Lemma
+    (S.index (pointwise_op f b1 b2 pos) i == S.index b1 i)
+  = if to <= pos
+    then pointwise_index1 f b1 b2 i pos
+    else pointwise_index3 f b1 b2 i pos
+  in
+  Classical.forall_intro phi
 
 
 // application: byte-wise xor
