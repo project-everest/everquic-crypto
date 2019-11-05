@@ -1,0 +1,46 @@
+[
+  "ÓîW\u001cªaT¸ê~–Â ¡6%",
+  [
+    [
+      "QUIC.Parse.PacketNumber.parse_packet_number_kind",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
+      ],
+      0,
+      "51bc0ddb7f885527cadc7e7f8a799c7e"
+    ],
+    [
+      "QUIC.Parse.PacketNumber.packet_number_t",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "assumption_FStar.UInt64.t__uu___haseq", "b2t_def",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_QUIC.Spec.Base.last_packet_number_t",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "equation_QUIC.Spec.Base.uint62_t",
+        "haseqTm_refine_ebd33c4f8daed8b12d67bfecc5777ea9", "int_inversion",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Subtraction",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88",
+        "refinement_interpretation_Tm_refine_bf7e95c656eec610252d6e11aa35dd2d",
+        "refinement_interpretation_Tm_refine_ebd33c4f8daed8b12d67bfecc5777ea9",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_FStar.UInt64.v"
+      ],
+      0,
+      "0fb04fd8a9d908a8406d4b7392b3e1a2"
+    ]
+  ]
+]
