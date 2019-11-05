@@ -262,8 +262,7 @@ let declassify : squash (Lib.IntTypes.uint8 == UInt8.t)= ()
 
 let encrypt a k siv hpk h plain =
   let open FStar.Endianness in
-  assert_norm(pow2 32 < pow2 (8 `op_Multiply` 12));
-  let header = format_header h in
+  let aad = format_header h in
   let iv =
     if is_retry h
     then siv
@@ -277,7 +276,7 @@ let encrypt a k siv hpk h plain =
       let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
       xor_inplace pnb siv 0
   in
-  let cipher = AEAD.encrypt #a k iv header plain in
+  let cipher = AEAD.encrypt #a k iv aad plain in
   header_encrypt a hpk h cipher
 
 #pop-options
@@ -318,41 +317,29 @@ let decrypt a k siv hpk last cid_len packet =
 /// proving correctness of decryption (link between modulo, and be_to_n
 /// + slice last bytes
 
-
-/// gathering all ingredients into a complete proof
-
-#set-options "--z3rlimit 100"
-let lemma_encrypt_correct a k siv hpk h cid_len last p =
-  admit ()
-
-(*
-
-  // computation of encryption
-  assert_norm (pow2 62 < pow2 (8 `op_Multiply` 12));
-  assert (bound_npn pn_len = pow2 (8 `op_Multiply` (pn_len+1))); // strangely, althought this is a strict copy of the definition, F* is not able to prove this assertion anymore after defining pnb and npn (the overall proof fails). Hence the early assert to add it into the context.
-  let open FStar.Endianness in
-  let pnb : lbytes 12 = n_to_be 12 pn in
-  let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
-  let header = format_header h npn in
-  lemma_format_len a h npn;
-  let iv = xor_inplace pnb siv 0 in
-  let c = AEAD.encrypt #a k iv header p in
-  let packet = header_encrypt a hpk h npn c in
-  //assert (encrypt a k siv hpk pn_len pn h p = packet);
-
-  // computation of decryption
-  lemma_header_encryption_correct a hpk h npn c;
-
-  match header_decrypt a hpk (cid_len h) packet with
-  | H_Failure -> ()
-  | H_Success _ _ _ ->
-    lemma_be_to_n_is_bounded npn;
-    //assert (S.length pnb - (1+pn_len) = 11 - pn_len);
-    lemma_correctness_slice_be_to_n pnb (1+pn_len);
-    FStar.Math.Lemmas.small_mod (reduce_pn pn_len (be_to_n pnb)) (bound_npn pn_len);
-    //assert (be_to_n npn = reduce_pn pn_len (be_to_n pnb));
-    lemma_parse_pn_correct pn_len last pn;
-    //assert (expand_pn pn_len last (be_to_n npn) = pn);
-    AEAD.correctness #a k iv header p;
-    match AEAD.decrypt #a k iv header c with
-    | Some _ -> ()
+let lemma_encrypt_correct a k siv hpk h cid_len last plain =
+  let packet = encrypt a k siv hpk h plain in
+  let aad = format_header h in
+  let iv =
+    if is_retry h
+    then siv
+    else
+      // packet number bytes
+      let pn_len = U32.v (pn_length h) - 1 in
+      let seqn = packet_number h in
+      let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
+      let pnb = FStar.Endianness.n_to_be 12 (U64.v seqn) in
+      // network packet number: truncated lower bytes
+      let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
+      xor_inplace pnb siv 0
+  in
+  let cipher = AEAD.encrypt #a k iv aad plain in
+  assert (packet == header_encrypt a hpk h cipher);
+  lemma_header_encryption_correct a hpk h cid_len last cipher;
+  let dc = header_decrypt a hpk cid_len last packet in
+  assert (H_Success? dc);
+  let H_Success h' c' = dc in
+  assert (h == h' /\ cipher == c');
+  let clen = S.length cipher in
+  assert (19 <= clen && clen < max_cipher_length);
+  AEAD.correctness #a k iv aad plain
