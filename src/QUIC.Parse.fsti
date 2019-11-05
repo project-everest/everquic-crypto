@@ -6,6 +6,25 @@ module U8 = FStar.UInt8
 module U32 = FStar.UInt32
 module HST = FStar.HyperStack.ST
 module S = FStar.Seq
+module U64 = FStar.UInt64
+
+let bound_npn' (pn_len:nat { pn_len < 4 }) : Tot (y: nat {y == pow2 (8 `op_Multiply` (pn_len + 1)) }) =
+  assert_norm (pow2 8 == 256);
+  assert_norm (pow2 16 == 65536);
+  assert_norm (pow2 24 == 16777216);
+  assert_norm (pow2 32 == 4294967296);
+  match pn_len with
+  | 0 -> 256
+  | 1 -> 65536
+  | 2 -> 16777216
+  | 3 -> 4294967296
+
+let in_window (pn_len: nat { pn_len < 4 }) (last pn:nat) =
+  let h = bound_npn' pn_len in
+  (last+1 < h/2 /\ pn < h) \/
+  (last+1 >= U64.v uint62_bound - h/2 /\ pn >= U64.v uint62_bound - h) \/
+  (last+1 - h/2 < pn /\ pn <= last+1 + h/2)
+
 
 let header_len_bound = 16500 // FIXME: this should be in line with the parser kind
 
@@ -45,12 +64,6 @@ val format_header_pn_length: h: header -> Lemma
 
 val pn_offset: (h: header { ~ (is_retry h) }) -> GTot (n: nat { 0 < n /\ n + U32.v (pn_length h) <= header_len h })
 
-val pn_offset_correct
-  (h: header {~ (is_retry h)})
-: Lemma
-  (let off = pn_offset h in
-    FStar.Endianness.be_to_n (Seq.slice (format_header h) off (off + U32.v (pn_length h))) == U32.v (packet_number h))
-
 val putative_pn_offset: (cid_len: nat) -> (x: bytes) -> GTot (option (y: nat {0 < y /\ y <= Seq.length x}))
 
 val putative_pn_offset_frame
@@ -88,7 +101,7 @@ type h_result =
   h_result
 | H_Failure
 
-val parse_header: cid_len: nat -> b:bytes -> GTot (r: h_result {
+val parse_header: cid_len: nat { cid_len < 20 } -> last: nat { last + 1 < pow2 62 } -> b:bytes -> GTot (r: h_result {
   match r with
   | H_Failure -> True
   | H_Success h c ->
@@ -100,16 +113,25 @@ val parse_header: cid_len: nat -> b:bytes -> GTot (r: h_result {
 val lemma_header_parsing_correct:
   h: header ->
   c: bytes ->
-  cid_len: nat ->
+  cid_len: nat { cid_len < 20 } ->
+  last: nat { last + 1 < pow2 62 } ->
   Lemma
-  (requires (MShort? h ==> cid_len == dcid_len h))
+  (requires (
+    (MShort? h ==> cid_len == dcid_len h) /\
+    ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h)))
+  ))
   (ensures (
-    parse_header cid_len S.(format_header h @| c)
+    parse_header cid_len last S.(format_header h @| c)
     == H_Success h c))
 
 // N.B. this is only true for a given DCID len
-val lemma_header_parsing_safe: cid_len: nat -> b1:packet -> b2:packet -> Lemma
-  (requires parse_header cid_len b1 == parse_header cid_len b2)
-  (ensures parse_header cid_len b1 == H_Failure \/ b1 = b2)
+val lemma_header_parsing_safe: cid_len: nat -> last: nat -> b1:packet -> b2:packet -> Lemma
+  (requires (
+    cid_len < 20 /\
+    last + 1 < pow2 62 /\
+    parse_header cid_len last b1 == parse_header cid_len last b2
+  ))
+  (ensures parse_header cid_len last b1 == H_Failure \/ b1 = b2)
 
+(*
 val test : B.buffer U8.t -> HST.Stack U32.t (requires (fun _ -> False)) (ensures (fun _ _ _ -> True))

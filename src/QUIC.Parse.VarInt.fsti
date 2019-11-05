@@ -13,7 +13,7 @@ let parse_varint_kind = {
   LP.parser_kind_metadata = None;
 }
 
-val parse_varint : LP.parser parse_varint_kind varint_t
+val parse_varint : LP.parser parse_varint_kind uint62_t
 
 val serialize_varint : LP.serializer parse_varint
 
