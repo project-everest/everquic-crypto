@@ -1,5 +1,4 @@
 module QUIC.Parse.Lemmas
-open QUIC.Spec.Base
 
 let replace_modulo' (a b new_mod:nat) : Pure nat
   (requires b > 0 /\ new_mod < b)
@@ -44,7 +43,7 @@ module U64 = FStar.UInt64
 #restart-solver
 
 inline_for_extraction
-let replace_modulo (a: uint62_t) (b new_mod: U64.t) : Pure U64.t
+let replace_modulo (a: U64.t { U64.v a < pow2 62 }) (b new_mod: U64.t) : Pure U64.t
   (requires U64.v b > 0 /\ U64.v new_mod < U64.v b)
   (ensures fun res -> U64.v res == replace_modulo' (U64.v a) (U64.v b) (U64.v new_mod))
 =
