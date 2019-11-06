@@ -538,8 +538,21 @@ let header_len h =
 
 let format_header h = format_header' h
 
+#push-options "--z3rlimit 32"
+
 let format_header_is_short h =
-  assume (MShort? h <==> uint8.get_bitfield (Seq.index (format_header h) 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Short <: U8.t))
+  parse_header_prop_intro h;
+  let dl = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_bitsum_eq (header_sum dl last) LI.serialize_u8 (serialize_header_body dl last) h;
+  let b = header_sum dl last in
+  let tg = b.tag_of_data (bitsum'_type b.b) id h in
+  let x = synth_bitsum'_recip b.b tg in
+  LI.serialize_u8_spec x;
+  assert (Seq.index (format_header h) 0 == x);
+  assert (MShort? h <==> uint8.get_bitfield (Seq.index (format_header h) 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Short <: U8.t))
+
+#pop-options
 
 let format_header_is_retry h = admit ()
 
