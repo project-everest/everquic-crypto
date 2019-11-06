@@ -64,7 +64,7 @@ type long_header_specifics =
 noeq
 type header =
 | MLong:
-  (version: FB.lbytes 4) ->
+  (version: U32.t) ->
   (dcid: vlbytes 0 20) ->
   (scid: vlbytes 0 20) ->
   (spec: long_header_specifics) ->

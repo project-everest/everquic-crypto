@@ -190,7 +190,7 @@ inline_for_extraction
 noextract
 let common_long_t
 : Type0
-= (FB.lbytes 4 & (parse_bounded_vlbytes_t 0 20 & parse_bounded_vlbytes_t 0 20))
+= (U32.t & (parse_bounded_vlbytes_t 0 20 & parse_bounded_vlbytes_t 0 20))
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
@@ -321,7 +321,7 @@ let header_synth
 #pop-options
 
 let parse_common_long : parser _ common_long_t =
-  parse_flbytes 4 `nondep_then` (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20)
+  parse_u32 `nondep_then` (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20)
 
 open QUIC.Parse.VarInt
 
@@ -375,7 +375,7 @@ let lp_parse_header
     (parse_header_body short_dcid_len last)
 
 let serialize_common_long : serializer parse_common_long =
-  serialize_flbytes 4 `serialize_nondep_then` (serialize_bounded_vlbytes 0 20 `serialize_nondep_then` serialize_bounded_vlbytes 0 20)
+  serialize_u32 `serialize_nondep_then` (serialize_bounded_vlbytes 0 20 `serialize_nondep_then` serialize_bounded_vlbytes 0 20)
 
 let serialize_payload_length_pn
   (last: last_packet_number_t)
@@ -467,7 +467,7 @@ module LL = LowParse.Low.BitSum
 
 inline_for_extraction
 let validate_common_long : LC.validator parse_common_long =
-  LB.validate_flbytes 4 4ul `LC.validate_nondep_then` (LB.validate_bounded_vlbytes 0 20 `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20)
+  LB.validate_u32 () `LC.validate_nondep_then` (LB.validate_bounded_vlbytes 0 20 `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20)
 
 inline_for_extraction
 noextract
