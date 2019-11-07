@@ -1,4 +1,4 @@
-all: verify
+all: test
 
 test: dist/test.exe
 	$<
@@ -8,7 +8,7 @@ test: dist/test.exe
 
 include Makefile.include
 
-FST_FILES=$(wildcard src/QUIC.Spec*.fst) $(wildcard src/QUIC.Spec*.fsti) $(wildcard src/QUIC.Parse*.fst) $(wildcard src/QUIC.Parse*.fsti)
+FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti)
 
 ifndef NODEPEND
 ifndef MAKE_RESTARTS
@@ -67,7 +67,7 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 dist/libeverquic.a: dist/Makefile.basic
 	$(MAKE) -C dist -f Makefile.basic
 
-.PHONY: clean clean-dist verify temp-verify
+.PHONY: clean clean-dist verify
 
 # Tests
 # -----
