@@ -194,5 +194,25 @@ val write_header
     B.as_seq h' dst == format_header (Impl.g_header x h)
   ))
 
+val impl_putative_pn_offset
+  (cid_len: U32.t)
+  (b: B.buffer U8.t)
+  (len: U32.t { U32.v len == B.length b /\ U32.v len < 4294967280 })
+: HST.Stack U32.t
+  (requires (fun h ->
+    B.live h b
+  ))
+  (ensures (fun h res h' ->
+    B.modifies B.loc_none h h' /\ (
+    let x = putative_pn_offset (U32.v cid_len) (B.as_seq h b) in
+    if res = 0ul
+    then
+      None? x
+    else
+      Some? x /\ (
+      let Some v = x in
+      U32.v res == v
+  ))))
+
 (*
 val test : B.buffer U8.t -> HST.Stack U32.t (requires (fun _ -> False)) (ensures (fun _ _ _ -> True))
