@@ -140,5 +140,59 @@ let lemma_header_parsing_post
     assert (Seq.slice b 0 (header_len h) `Seq.equal` format_header h);
     assert (c `Seq.equal` Seq.slice b (header_len h) (Seq.length b))
 
+module Impl = QUIC.Impl.Base
+
+val read_header
+  (packet: B.buffer U8.t)
+  (packet_len: U32.t { B.length packet == U32.v packet_len })
+  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (last: uint62_t { U64.v last + 1 < pow2 62 })
+: HST.Stack (option (Impl.header & U32.t))
+  (requires (fun h ->
+    B.live h packet
+  ))
+  (ensures (fun h res h' ->
+    B.modifies B.loc_none h h' /\
+    begin
+      let spec = parse_header (U32.v cid_len) (U64.v last) (B.as_seq h packet) in
+      match res with
+      | None -> H_Failure? spec
+      | Some (x, len) ->
+        H_Success? spec /\
+        begin
+          let H_Success hd _ = spec in
+          Impl.header_live x h' /\
+          U32.v len <= B.length packet /\
+          B.loc_buffer (B.gsub packet 0ul len) `B.loc_includes` Impl.header_footprint x /\
+          Impl.g_header x h' == hd /\
+          U32.v len = header_len hd
+        end
+    end
+  ))
+
+val impl_header_length
+  (x: Impl.header)
+: HST.Stack U32.t
+  (requires (fun h -> Impl.header_live x h))
+  (ensures (fun h res h' ->
+    B.modifies B.loc_none h h' /\
+    U32.v res == header_len (Impl.g_header x h)
+  ))
+
+val write_header
+  (dst: B.buffer U8.t)
+  (x: Impl.header)
+: HST.Stack unit
+  (requires (fun h ->
+    B.live h dst /\
+    Impl.header_live x h /\
+    B.length dst == header_len (Impl.g_header x h) /\
+    Impl.header_footprint x `B.loc_disjoint` B.loc_buffer dst
+  ))
+  (ensures (fun h _ h' ->
+    B.modifies (B.loc_buffer dst) h h' /\
+    B.as_seq h' dst == format_header (Impl.g_header x h)
+  ))
+
 (*
 val test : B.buffer U8.t -> HST.Stack U32.t (requires (fun _ -> False)) (ensures (fun _ _ _ -> True))

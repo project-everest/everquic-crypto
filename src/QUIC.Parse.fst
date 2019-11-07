@@ -662,16 +662,17 @@ let lemma_header_parsing_safe
 
 #pop-options
 
-(*
-  match parse_header cid_len last b1, parse_header cid_len last b2 with
-  | H_Failure, _ -> ()
-  | H_Success h1 c1, H_Success h2 c2 -> assert (h1 == h2 /\ c1 `Seq.equal` c2); assume (b1 == b2)
-  | _ -> assert False
-*)
+let read_header
+  packet packet_len cid_len last
+=
+  admit ()
 
-(*
-let parse_header  cid_len b =
+let impl_header_length
+  x
+=
+  admit ()
 
-let test b =
-  let sl = LowParse.Slice.make_slice b 42ul in
-  validate_header 18ul sl 0ul
+let write_header
+  dst x
+=
+  admit ()
