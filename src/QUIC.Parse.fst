@@ -700,8 +700,6 @@ let read_header_body_t
 
 #push-options "--z3rlimit 64 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
-inline_for_extraction
-noextract
 let read_header_body_short
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
   (cid_len: U32.t { U32.v cid_len < 20 } )
@@ -727,8 +725,6 @@ let read_header_body_short
 
 #restart-solver
 
-inline_for_extraction
-noextract
 let read_header_body_long_retry
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
   (cid_len: U32.t { U32.v cid_len < 20 } )
@@ -751,7 +747,8 @@ let read_header_body_long_retry
     let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
     let odcid = LB.get_vlbytes_contents 0 20 sl pos3 in
     let odcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos3 in
-    Impl.BLong version dcid dcid_len scid scid_len (Impl.BRetry unused odcid odcid_len)
+    let spec = Impl.BRetry unused odcid odcid_len in
+    Impl.BLong version dcid dcid_len scid scid_len spec
 
 #pop-options
 
@@ -759,8 +756,6 @@ let read_header_body_long_retry
 
 #restart-solver
 
-inline_for_extraction
-noextract
 let read_header_body_long_initial
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
   (cid_len: U32.t { U32.v cid_len < 20 } )
@@ -790,7 +785,8 @@ let read_header_body_long_initial
     let pos5 = jump_varint sl pos4 in
     let pn = read_packet_number last pn_length sl pos5 in
 //    assert (LL.loc_slice_from_to sl 0ul len `B.loc_includes` B.loc_buffer token);
-    Impl.BLong version dcid dcid_len scid scid_len (Impl.BInitial payload_length pn pn_length token token_len)
+    let spec = Impl.BInitial payload_length pn pn_length token token_len in
+    Impl.BLong version dcid dcid_len scid scid_len spec
 
 #pop-options
 
@@ -798,8 +794,6 @@ let read_header_body_long_initial
 
 #restart-solver
 
-inline_for_extraction
-noextract
 let read_header_body_long_handshake
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
   (cid_len: U32.t { U32.v cid_len < 20 } )
@@ -824,12 +818,11 @@ let read_header_body_long_handshake
     let payload_length = read_varint sl pos3 in
     let pos4 = jump_varint sl pos3 in
     let pn = read_packet_number last pn_length sl pos4 in
-    Impl.BLong version dcid dcid_len scid scid_len (Impl.BHandshake payload_length pn pn_length)
+    let spec = Impl.BHandshake payload_length pn pn_length in
+    Impl.BLong version dcid dcid_len scid scid_len spec
 
 #restart-solver
 
-inline_for_extraction
-noextract
 let read_header_body_long_ZeroRTT
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
   (cid_len: U32.t { U32.v cid_len < 20 } )
@@ -854,7 +847,8 @@ let read_header_body_long_ZeroRTT
     let payload_length = read_varint sl pos3 in
     let pos4 = jump_varint sl pos3 in
     let pn = read_packet_number last pn_length sl pos4 in
-    Impl.BLong version dcid dcid_len scid scid_len (Impl.BZeroRTT payload_length pn pn_length)
+    let spec = Impl.BZeroRTT payload_length pn pn_length in
+    Impl.BLong version dcid dcid_len scid scid_len spec
 
 inline_for_extraction
 noextract

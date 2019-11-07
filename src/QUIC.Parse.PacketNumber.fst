@@ -204,14 +204,14 @@ let validate_packet_number
   (pn_len: packet_number_length_t)
 : Tot (validator (parse_packet_number last pn_len))
 = validate_synth
-    (validate_bounded_integer (U32.v pn_len))
+    (validate_bounded_integer' pn_len)
     (synth_packet_number last pn_len)
     ()
 
 let jump_packet_number
   last pn_len
 = jump_synth
-    (jump_bounded_integer (U32.v pn_len))
+    (jump_bounded_integer' pn_len)
     (synth_packet_number last pn_len)
     ()
 
@@ -221,5 +221,5 @@ let read_packet_number
     _
     (synth_packet_number last pn_len)
     (fun x -> synth_packet_number last pn_len x)
-    (read_bounded_integer (U32.v pn_len))
+    (read_bounded_integer' pn_len)
     ()
