@@ -207,3 +207,19 @@ let validate_packet_number
     (validate_bounded_integer (U32.v pn_len))
     (synth_packet_number last pn_len)
     ()
+
+let jump_packet_number
+  last pn_len
+= jump_synth
+    (jump_bounded_integer (U32.v pn_len))
+    (synth_packet_number last pn_len)
+    ()
+
+let read_packet_number
+  last pn_len
+= read_synth
+    _
+    (synth_packet_number last pn_len)
+    (fun x -> synth_packet_number last pn_len x)
+    (read_bounded_integer (U32.v pn_len))
+    ()

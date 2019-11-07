@@ -41,19 +41,19 @@ noeq type header =
   | BLong:
     version: U32.t ->
     dcid: B.buffer U8.t ->
-    dcil: U8.t { let v = U8.v dcil in v == B.length dcid /\ 0 <= v /\ v <= 20 } ->
+    dcil: U32.t { let v = U32.v dcil in v == B.length dcid /\ 0 <= v /\ v <= 20 } ->
     scid: B.buffer U8.t ->
-    scil: U8.t { let v = U8.v scil in v == B.length scid /\ 0 <= v /\ v <= 20 } ->
+    scil: U32.t { let v = U32.v scil in v == B.length scid /\ 0 <= v /\ v <= 20 } ->
     spec: long_header_specifics ->
     header
   | BShort:
     spin: bool ->
     phase: bool ->
     cid: B.buffer U8.t ->
-    cid_len: U8.t{
-      let l = U8.v cid_len in
-      U8.v cid_len == B.length cid /\
-      0 <= U8.v cid_len /\ U8.v cid_len <= 20
+    cid_len: U32.t{
+      let l = U32.v cid_len in
+      l == B.length cid /\
+      0 <= l /\ l <= 20
     } ->
     packet_number: uint62_t ->
     packet_number_length: packet_number_length_t ->
