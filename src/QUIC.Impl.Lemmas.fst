@@ -1,5 +1,6 @@
 module QUIC.Impl.Lemmas
 
+(*
 module G = FStar.Ghost
 module S = FStar.Seq
 

@@ -1,5 +1,6 @@
 module QUIC.Impl
 
+(*
 // This MUST be kept in sync with QUIC.Impl.fsti...
 module G = FStar.Ghost
 module B = LowStar.Buffer

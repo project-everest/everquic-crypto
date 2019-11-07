@@ -2,6 +2,10 @@
 /// correctness (no notion of model for now).
 module QUIC.Impl
 
+let test = QUIC.Parse.read_header 
+
+(*
+
 // This MUST be kept in sync with QUIC.Impl.fst...
 module G = FStar.Ghost
 module B = LowStar.Buffer

@@ -1,4 +1,4 @@
-all: test
+all: dist/libeverquic.a
 
 test: dist/test.exe
 	$<
