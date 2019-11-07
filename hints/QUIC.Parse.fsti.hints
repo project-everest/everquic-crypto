@@ -1,5 +1,5 @@
 [
-  "o\u0016Áï»bR»wïÅ\u001bp\u001aï£",
+  "\u001bŸ\u0003ÔªçÂXúV1Ò²=¯€",
   [
     [
       "QUIC.Parse.format_header",
@@ -8,7 +8,7 @@
       1,
       [ "@query" ],
       0,
-      "f83cd788a4a1cd4d254b91c5620ba749"
+      "83eb669307169d04997cb6ee163f16fc"
     ],
     [
       "QUIC.Parse.format_header_is_short",
@@ -24,7 +24,7 @@
         "typing_QUIC.Parse.format_header", "typing_QUIC.Parse.header_len"
       ],
       0,
-      "7982ed471102e91e59f8960136e53304"
+      "b04007f4bb587b47782c5ad8667f19d6"
     ],
     [
       "QUIC.Parse.format_header_is_retry",
@@ -40,7 +40,7 @@
         "typing_QUIC.Parse.format_header", "typing_QUIC.Parse.header_len"
       ],
       0,
-      "017f623a2742d06bb4a56e37ce892f8c"
+      "cc2342e6da7cd1d9adce52cfc79775de"
     ],
     [
       "QUIC.Parse.format_header_pn_length",
@@ -58,7 +58,7 @@
         "typing_QUIC.Parse.format_header", "typing_QUIC.Parse.header_len"
       ],
       0,
-      "a022e5ba2a64e7fb6c5b239ce5ddabdb"
+      "2ed649cf66cd4b4912b95866b1fd4316"
     ],
     [
       "QUIC.Parse.putative_pn_offset_frame",
@@ -83,7 +83,7 @@
         "typing_FStar.Pervasives.Native.uu___is_Some"
       ],
       0,
-      "907de6265dfcc300b72aac2192c22786"
+      "c0d2a835109f0f25ee7484acf1c9d573"
     ],
     [
       "QUIC.Parse.putative_pn_offset_correct",
@@ -102,7 +102,7 @@
         "typing_QUIC.Parse.format_header", "typing_QUIC.Spec.Base.pn_length"
       ],
       0,
-      "32c171272f0b7c852c8777577dd7a0a6"
+      "3ad049bf1f25eaf3aeb737f05a89a4ba"
     ],
     [
       "QUIC.Parse.__proj__H_Success__item__h",
@@ -116,7 +116,7 @@
         "refinement_interpretation_Tm_refine_dc23e0705fb1e6eaf85e094d2fdc00c1"
       ],
       0,
-      "af5db7256e57269e377282f42a799e83"
+      "bb44dc4ac3bb9e7204bad05ac9b24690"
     ],
     [
       "QUIC.Parse.__proj__H_Success__item__c",
@@ -130,7 +130,7 @@
         "refinement_interpretation_Tm_refine_dc23e0705fb1e6eaf85e094d2fdc00c1"
       ],
       0,
-      "cb087c9344502b009bb1cd7a65306475"
+      "2cb4da752e209cafb91a775756185324"
     ],
     [
       "QUIC.Parse.parse_header",
@@ -156,7 +156,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "70c8ff42857b0f87616d921160c5e0f6"
+      "1320ef7c060d63b05d4d5a65f4b3fbcd"
     ],
     [
       "QUIC.Parse.lemma_header_parsing_correct",
@@ -175,7 +175,7 @@
         "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
       ],
       0,
-      "054bf823d7bf931078de1cac76b822ed"
+      "1cd9cae18de18c4fac07159d0e8c4954"
     ],
     [
       "QUIC.Parse.lemma_header_parsing_safe",
@@ -207,7 +207,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "f05fc1979cbc201fbd8ec5c8d2643566"
+      "9715604e54d1cfddc72108d747e7d09f"
     ],
     [
       "QUIC.Parse.lemma_header_parsing_post",
@@ -255,7 +255,79 @@
         "typing_QUIC.Parse.header_len", "typing_QUIC.Parse.parse_header"
       ],
       0,
-      "2804c644743752febef48a3ae971ddcc"
+      "f45aab0d9a3ca8505a88e8cd571cc15c"
+    ],
+    [
+      "QUIC.Parse.read_header",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "b2t_def", "bool_inversion",
+        "disc_equation_FStar.Pervasives.Native.None",
+        "disc_equation_FStar.Pervasives.Native.Some",
+        "disc_equation_QUIC.Parse.H_Failure",
+        "disc_equation_QUIC.Parse.H_Success",
+        "equation_FStar.Monotonic.HyperHeap.hmap",
+        "equation_FStar.Monotonic.HyperStack.is_tip",
+        "equation_FStar.Monotonic.HyperStack.is_wf_with_ctr_and_tip",
+        "equation_FStar.Monotonic.HyperStack.mem",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_LowStar.Buffer.buffer",
+        "equation_LowStar.Buffer.trivial_preorder", "equation_Prims.nat",
+        "equation_QUIC.Spec.Base.byte", "equation_QUIC.Spec.Base.bytes",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "equation_QUIC.Spec.Base.uint62_t",
+        "fuel_guarded_inversion_QUIC.Parse.h_result",
+        "function_token_typing_FStar.Monotonic.Heap.heap",
+        "function_token_typing_FStar.UInt32.t",
+        "function_token_typing_FStar.UInt8.t", "int_inversion",
+        "kinding_FStar.Pervasives.Native.tuple2@tok",
+        "kinding_QUIC.Impl.Base.header@tok",
+        "lemma_FStar.Map.lemma_ContainsDom",
+        "lemma_FStar.Pervasives.invertOption",
+        "lemma_LowStar.Monotonic.Buffer.length_as_seq",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_AmpAmp",
+        "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Subtraction",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_05e15190c946858f68c69156f585f95a",
+        "refinement_interpretation_Tm_refine_162ce8ddabc300a0df176406811e3719",
+        "refinement_interpretation_Tm_refine_39373c6efdc4ec21ca70e255f7208534",
+        "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_6ef4215141861f82b9cfe553cb9066e3",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88",
+        "refinement_interpretation_Tm_refine_ebd33c4f8daed8b12d67bfecc5777ea9",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.Map.contains", "typing_FStar.Monotonic.HyperHeap.rid",
+        "typing_FStar.Monotonic.HyperStack.get_hmap",
+        "typing_FStar.Monotonic.HyperStack.get_tip",
+        "typing_FStar.Pervasives.Native.uu___is_Some",
+        "typing_FStar.Seq.Base.length", "typing_FStar.UInt32.v",
+        "typing_FStar.UInt64.v", "typing_LowStar.Buffer.trivial_preorder"
+      ],
+      0,
+      "b98196441adfefeeac5f2ccaaf3a1d40"
+    ],
+    [
+      "QUIC.Parse.impl_header_length",
+      1,
+      2,
+      1,
+      [ "@query" ],
+      0,
+      "ad7852f91338a4124c2431b6e959bb93"
+    ],
+    [
+      "QUIC.Parse.write_header",
+      1,
+      2,
+      1,
+      [ "@query" ],
+      0,
+      "e7c4a500f83b34637a5d5f1218d46f42"
     ]
   ]
 ]
