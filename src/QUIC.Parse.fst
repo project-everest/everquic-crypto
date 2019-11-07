@@ -612,7 +612,49 @@ let format_header_pn_length h = admit ()
 
 let pn_offset h = admit ()
 
-let putative_pn_offset cid_len x = admit ()
+(* From https://tools.ietf.org/html/draft-ietf-quic-tls-23#section-5.4.2 *)
+
+let putative_pn_offset cid_len x =
+  if not (1 <= cid_len && cid_len <= 4)
+  then None
+  else
+  match parse parse_u8 x with
+  | None -> None
+  | Some (hd, consumed1) ->
+    let _ =
+      parser_kind_prop_equiv parse_u8_kind parse_u8;
+      assert (consumed1 == 1) 
+    in
+    let x1 = Seq.slice x consumed1 (Seq.length x) in
+    if uint8.get_bitfield hd 7 8 = 0uy // test packet kind
+    then // short
+      match parse (parse_bounded_integer cid_len) x1 with
+      | None -> None
+      | Some (_, consumed2) ->
+        Some (consumed1 + consumed2)
+    else // long
+      let packet_type = uint8.get_bitfield hd 4 6 in
+      if packet_type = 3uy // is retry?
+      then None
+      else
+        match parse parse_common_long x1 with
+        | None -> None
+        | Some (_, consumed2) ->
+          let x2 = Seq.slice x1 consumed2 (Seq.length x1) in
+          let mconsumed3 : option (consumed_length x2) =
+            if packet_type = 0uy // is initial?
+            then
+              match parse (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) x2 with
+              | None -> None
+              | Some (_, x3) -> Some x3
+            else Some 0
+          in
+          match mconsumed3 with
+          | None -> None
+          | Some consumed3 ->
+            match parse parse_varint (Seq.slice x2 consumed3 (Seq.length x2)) with
+            | None -> None
+            | Some (_, consumed4) -> Some (consumed1 + consumed2 + consumed3 + consumed4)
 
 let putative_pn_offset_frame cid_len x1 x2 = admit ()
 
