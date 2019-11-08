@@ -1,6 +1,7 @@
 /// An implementation of QUIC.Spec.fst that is concerned only with functional
 /// correctness (no notion of model for now).
 module QUIC.Impl
+include QUIC.Impl.Base
 
 // This MUST be kept in sync with QUIC.Impl.fst...
 module G = FStar.Ghost
@@ -155,65 +156,6 @@ val frame_invariant: #i:index -> l:B.loc -> s:state i -> h0:HS.mem -> h1:HS.mem 
   ]]*)
 
 
-let add3 (k:u4):
-  n:U8.t { U8.v n <= 18 /\ U8.v n = QUIC.Spec.add3 (U8.v k) }
-=
-  if k = 0uy then 0uy else U8.(k +^ 3uy)
-
-/// Information stored in a QUIC header. This is a Low* type passed by value --
-/// it's a little expensive. Consider passing it by reference in ``encrypt``?
-///
-/// Note that we try to follow the convention of buffer arguments followed by
-/// their lengths.
-noeq type header =
-  | Short:
-    spin: bool ->
-    phase: bool ->
-    cid: B.buffer U8.t ->
-    cid_len: U8.t{
-      let l = U8.v cid_len in
-      (l == 0 \/ (4 <= l /\ l <= 18)) /\
-      U8.v cid_len == B.length cid
-    } ->
-    header
-
-  | Long:
-    typ: u2 ->
-    version: U32.t ->
-    dcid: B.buffer U8.t ->
-    dcil: u4 { B.length dcid == U8.v (add3 dcil) } ->
-    scid: B.buffer U8.t ->
-    scil: u4 { B.length scid == U8.v (add3 scil) } ->
-    plain_len: U32.t{U32.v plain_len < QUIC.Spec.max_cipher_length} ->
-    header
-
-let _: squash (inversion header) = allow_inversion header
-
-let header_live (h: header) (m: HS.mem) =
-  match h with
-  | Short _ _ cid _ -> m `B.live` cid
-  | Long _ _ dcid _ scid _ _ -> m `B.live` dcid /\ m `B.live` scid
-
-let header_footprint (h: header) =
-  let open B in
-  match h with
-  | Short _ _ cid _ -> loc_buffer cid
-  | Long _ _ dcid _ scid _ _ -> loc_buffer dcid `loc_union` loc_buffer scid
-
-let header_disjoint (h: header) =
-  let open B in
-  match h with
-  | Short _ _ cid _ -> True
-  | Long _ _ dcid _ scid _ _ -> B.disjoint dcid scid
-
-let g_header (h: header) (m: HS.mem): GTot QUIC.Spec.header =
-  match h with
-  | Short spin phase cid cid_len ->
-      QUIC.Spec.Short spin phase (B.as_seq m cid)
-  | Long typ version dcid dcil scid scil plain_len ->
-      QUIC.Spec.Long (U8.v typ) (U32.v version) (U8.v dcil) (U8.v scil)
-      (B.as_seq m dcid) (B.as_seq m scid) (U32.v plain_len)
-
 
 /// Actual stateful API
 /// -------------------
@@ -296,15 +238,14 @@ val encrypt: #i:G.erased index -> (
       // Memory & preservation
       B.live h0 plain /\ B.live h0 dst /\
       header_live h h0 /\
-      header_disjoint h /\
       B.(all_disjoint [ footprint h0 s; loc_buffer dst; header_footprint h; loc_buffer plain ]) /\
 
       invariant h0 s /\
 
       incrementable s h0 /\ (
       let clen = U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
-      let len = clen + QUIC.Spec.header_len (g_header h h0) (U8.v pn_len) in
-      (Long? h ==> U32.v (Long?.plain_len h) = clen) /\
+      let len = clen + QUIC.Spec.header_len (g_header h h0) in
+//      (Long? h ==> U32.v (Long?.plain_len h) = clen) /\
       B.length dst == len
     ))
     (ensures fun h0 r h1 ->
@@ -325,7 +266,7 @@ val encrypt: #i:G.erased index -> (
           let packet: packet = B.as_seq h1 dst in
           let ctr = g_packet_number (B.deref h0 s) h0 in
           packet ==
-            QUIC.Spec.encrypt i.aead_alg k iv pne (U8.v pn_len) ctr (g_header h h0) plain /\
+            QUIC.Spec.encrypt i.aead_alg k iv pne (g_header h h0) plain /\
           g_packet_number (B.deref h1 s) h1 = ctr + 1)
       | _ ->
           False))
@@ -399,7 +340,7 @@ let decrypt_post (i: index)
       let r = B.deref h1 dst in
       U32.v r.total_len = U32.v r.header_len + U32.v r.plain_len +
         Spec.Agile.AEAD.tag_length i.aead_alg /\
-      U32.v r.header_len = QUIC.Spec.header_len (g_header r.header h1) (U8.v r.pn_len) /\
+      U32.v r.header_len = QUIC.Spec.header_len (g_header r.header h1) /\
       B.(loc_includes (loc_buffer packet) (header_footprint r.header)) /\
       header_live r.header h1 /\ (
 
@@ -408,9 +349,9 @@ let decrypt_post (i: index)
         S.slice (B.as_seq h1 packet) (U32.v r.header_len)
           (U32.v r.header_len + U32.v r.plain_len) in
       let packet0: QUIC.Spec.packet = S.slice (G.reveal packet0) 0 (U32.v r.total_len) in
-      (Long? r.header ==> cid_len = 0uy) /\
+      (BLong? r.header ==> cid_len = 0uy) /\
       QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) packet0
-        == QUIC.Spec.Success (U8.v r.pn_len) (U64.v r.pn) (g_header r.header h1) plain))))
+        == QUIC.Spec.Success (g_header r.header h1) plain))))
   | DecodeError | AuthenticationFailure ->
       invariant h1 s /\
       footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\

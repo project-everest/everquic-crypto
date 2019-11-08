@@ -7,7 +7,10 @@ module U64 = FStar.UInt64
 module U32 = FStar.UInt32
 module U8 = FStar.UInt8
 
-friend QUIC.Spec
+module QS = QUIC.Spec
+module QSL = QUIC.Spec.Lemmas
+
+friend Lib.IntTypes // declassify secret integers
 
 #set-options "--max_fuel 0 --max_ifuel 0"
 
@@ -37,8 +40,8 @@ let lemma_five_cuts (s: S.seq U8.t) (i1 i2 i3 i4 i5: nat) (s0 s1 s2 s3 s4 s5: S.
 =
   ()
 
-let hash_is_keysized_ (a: QUIC.Spec.ha): Lemma
-  (ensures (QUIC.Spec.keysized a (Spec.Hash.Definitions.hash_length a)))
+let hash_is_keysized_ (a: QS.ha): Lemma
+  (ensures (QS.keysized a (Spec.Hash.Definitions.hash_length a)))
 =
   assert_norm (512 < pow2 61);
   assert_norm (512 < pow2 125)
@@ -74,52 +77,52 @@ open FStar.Mul
 #push-options "--max_fuel 1 --z3rlimit 100"
 let rec pointwise_upd (#a: eqtype) f b1 b2 i pos (x: a): Lemma
   (requires (S.length b2 + pos <= S.length b1 /\ i < pos))
-  (ensures (S.upd (QUIC.Spec.pointwise_op f b1 b2 pos) i x `S.equal`
-    QUIC.Spec.pointwise_op f (S.upd b1 i x) b2 pos))
+  (ensures (S.upd (QSL.pointwise_op f b1 b2 pos) i x `S.equal`
+    QSL.pointwise_op f (S.upd b1 i x) b2 pos))
   (decreases (S.length b2))
 =
   calc (S.equal) {
-    QUIC.Spec.pointwise_op f (S.upd b1 i x) b2 pos;
+    QSL.pointwise_op f (S.upd b1 i x) b2 pos;
   (S.equal) { lemma_slice (S.upd b1 i x) (i + 1) }
-    QUIC.Spec.pointwise_op f
+    QSL.pointwise_op f
       S.(slice (S.upd b1 i x) 0 (i + 1) @| S.slice (S.upd b1 i x) (i + 1) (S.length b1))
       b2 pos;
   (S.equal) { }
-    QUIC.Spec.pointwise_op f
+    QSL.pointwise_op f
       S.(slice (S.upd b1 i x) 0 (i + 1) @| S.slice b1 (i + 1) (S.length b1))
       b2 pos;
   (S.equal) {
-    QUIC.Spec.pointwise_op_suff f
+    QSL.pointwise_op_suff f
       (S.slice (S.upd b1 i x) 0 (i + 1))
       (S.slice b1 (i + 1) (S.length b1)) b2 pos
   }
     S.slice (S.upd b1 i x) 0 (i + 1) `S.append`
-    QUIC.Spec.pointwise_op f
+    QSL.pointwise_op f
       (S.slice b1 (i + 1) (S.length b1))
       b2 (pos - (i + 1));
   (S.equal) { }
     S.upd (S.slice b1 0 (i + 1)) i x `S.append`
-    QUIC.Spec.pointwise_op f
+    QSL.pointwise_op f
       (S.slice b1 (i + 1) (S.length b1))
       b2 (pos - (i + 1));
   (S.equal) { }
     S.upd (S.slice b1 0 (i + 1) `S.append`
-    QUIC.Spec.pointwise_op f
+    QSL.pointwise_op f
       (S.slice b1 (i + 1) (S.length b1))
       b2 (pos - (i + 1))
     ) i x;
   (S.equal) {
-    QUIC.Spec.pointwise_op_suff f
+    QSL.pointwise_op_suff f
       (S.slice b1 0 (i + 1))
       (S.slice b1 (i + 1) (S.length b1)) b2 pos
   }
     S.upd (
-      QUIC.Spec.pointwise_op f
+      QSL.pointwise_op f
       (S.slice b1 0 (i + 1) `S.append` S.slice b1 (i + 1) (S.length b1))
       b2 pos
     ) i x;
   (S.equal) { lemma_slice b1 (i + 1) }
-    S.upd (QUIC.Spec.pointwise_op f b1 b2 pos) i x;
+    S.upd (QSL.pointwise_op f b1 b2 pos) i x;
   }
 
 let rec pointwise_seq_map2 (#a: eqtype) (f: a -> a -> a) (s1 s2: S.seq a) (i: nat): Lemma
@@ -129,7 +132,7 @@ let rec pointwise_seq_map2 (#a: eqtype) (f: a -> a -> a) (s1 s2: S.seq a) (i: na
   (ensures (
     let l = S.length s1 in
     Spec.Loops.seq_map2 f (S.slice s1 i l) s2 `S.equal`
-    S.slice (QUIC.Spec.pointwise_op f s1 s2 i) i l))
+    S.slice (QSL.pointwise_op f s1 s2 i) i l))
   (decreases (S.length s2))
 =
   if S.length s2 = 0 then
@@ -146,17 +149,17 @@ let rec pointwise_seq_map2 (#a: eqtype) (f: a -> a -> a) (s1 s2: S.seq a) (i: na
         (Spec.Loops.seq_map2 f (S.slice s1 (i + 1) l) (S.tail s2));
     (S.equal) { pointwise_seq_map2 f s1 (S.slice s2 1 (S.length s2)) (i + 1) }
       S.cons (f (S.head (S.slice s1 i l)) (S.head s2))
-        (S.slice (QUIC.Spec.pointwise_op f s1 (S.tail s2) (i + 1)) (i + 1) l);
+        (S.slice (QSL.pointwise_op f s1 (S.tail s2) (i + 1)) (i + 1) l);
     (S.equal) { }
       S.slice (
-        S.upd (QUIC.Spec.pointwise_op f s1 (S.tail s2) (i + 1))
+        S.upd (QSL.pointwise_op f s1 (S.tail s2) (i + 1))
           i
           (f (S.head (S.slice s1 i l)) (S.head s2)))
         i
         l;
     (S.equal) { }
       S.slice (
-        S.upd (QUIC.Spec.pointwise_op f s1 (S.slice s2 1 (S.length s2)) (i + 1))
+        S.upd (QSL.pointwise_op f s1 (S.slice s2 1 (S.length s2)) (i + 1))
           i
           (f (S.head (S.slice s1 i l)) (S.head s2)))
         i
@@ -166,7 +169,7 @@ let rec pointwise_seq_map2 (#a: eqtype) (f: a -> a -> a) (s1 s2: S.seq a) (i: na
         (f (S.head (S.slice s1 i l)) (S.head s2))
     }
       S.slice
-        (QUIC.Spec.pointwise_op f
+        (QSL.pointwise_op f
           (S.upd s1 i (f (S.head (S.slice s1 i l)) (S.head s2)))
           (S.slice s2 1 (S.length s2))
           (i + 1))
@@ -217,7 +220,7 @@ let rec seq_map2_xor0 (s1 s2: S.seq U8.t): Lemma
 let upd_op_inplace (#a:eqtype) op (s: S.seq a) (x: a): Lemma
   (requires S.length s > 0)
   (ensures (S.upd s 0 (S.index s 0 `op` x) `S.equal`
-    QUIC.Spec.pointwise_op op s (S.create 1 x) 0))
+    QSL.pointwise_op op s (S.create 1 x) 0))
 =
   ()
 #pop-options

@@ -1024,4 +1024,12 @@ let impl_putative_pn_offset
               then 0ul
               else pos4
 
+let impl_pn_offset
+  h
+= admit ()
+
+let impl_header_len
+  h
+= admit ()
+
 #pop-options

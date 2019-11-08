@@ -214,5 +214,28 @@ val impl_putative_pn_offset
       U32.v res == v
   ))))
 
+val impl_pn_offset
+  (h: Impl.header)
+: HST.Stack U32.t
+  (requires (fun m ->
+    Impl.header_live h m /\
+    (~ (is_retry (Impl.g_header h m)))
+  ))
+  (ensures (fun m res m' ->
+    B.modifies B.loc_none m m' /\
+    U32.v res == pn_offset (Impl.g_header h m)
+  ))
+
+val impl_header_len
+  (h: Impl.header)
+: HST.Stack U32.t
+  (requires (fun m ->
+    Impl.header_live h m
+  ))
+  (ensures (fun m res m' ->
+    B.modifies B.loc_none m m' /\
+    U32.v res == header_len (Impl.g_header h m)
+  ))
+
 (*
 val test : B.buffer U8.t -> HST.Stack U32.t (requires (fun _ -> False)) (ensures (fun _ _ _ -> True))
