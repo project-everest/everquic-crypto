@@ -1,5 +1,6 @@
 module QUIC.Spec
 open QUIC.Spec.Lemmas
+open QUIC.Parse
 
 module S = FStar.Seq
 module U32 = FStar.UInt32
@@ -82,10 +83,14 @@ packet[pn_offset..pn_offset+4] ^= pn_mask &
   | 3 -> mask & 0xFFFFFFFF
 *)
 inline_for_extraction
-let pn_sizemask (pn_len:nat2) : lbytes 4 =
+let pn_sizemask' (pn_len:nat2) : lbytes 4 =
   let open FStar.Endianness in
   FStar.Math.Lemmas.pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
   n_to_be 4 (pow2 32 - pow2 (24 - (8 `op_Multiply` pn_len)))
+
+inline_for_extraction
+let pn_sizemask (pn_len:nat2) : lbytes (pn_len + 1) =
+  S.slice (pn_sizemask' pn_len) 0 (pn_len + 1)
 
 let block_of_sample a (k: Cipher.key a) (sample: lbytes 16): lbytes 16 =
   let open FStar.Mul in
@@ -118,13 +123,20 @@ let header_encrypt a hpk h c =
     let pn_len = U32.v (pn_length h) - 1 in
     let sample = S.slice c (3-pn_len) (19-pn_len) in
     let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
-    let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask pn_len) 0 in
+    let pnmask = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
     let f = S.index r 0 in
     let protected_bits = if MShort? h then 5 else 4 in
     let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits) in
     let r = xor_inplace r pnmask pn_offset in
     let r = S.cons (U8.uint_to_t f') (S.slice r 1 (S.length r)) in
     r
+
+module U64 = FStar.UInt64
+
+#push-options "--max_ifuel 1 --z3rlimit 32"
+
+let header_decrypt_aux
+  
 
 let header_decrypt a hpk cid_len last packet =
   let open FStar.Math.Lemmas in
@@ -136,7 +148,14 @@ let header_decrypt a hpk cid_len last packet =
     let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
     if is_retry
     then
-      parse_header cid_len last packet
+      (* retry: no header protection needed, and no payload *)
+      match parse_header cid_len last packet with
+      | QUIC.Parse.H_Failure -> H_Failure
+      | QUIC.Parse.H_Success h rem ->
+        format_header_is_short h;
+        format_header_is_retry h;
+        lemma_header_parsing_post cid_len last packet;
+        H_Success h S.empty rem
     else
       match putative_pn_offset cid_len packet with
       | None -> H_Failure
@@ -153,10 +172,35 @@ let header_decrypt a hpk cid_len last packet =
           let packet' = S.cons (U8.uint_to_t f') (S.slice packet 1 (S.length packet)) in
           (* now the packet number length is available, so mask the packet number *)
           let pn_len = BF.get_bitfield f' 0 2 in
-          let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask pn_len) 0 in
+          let pnmask = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
           let packet'' = xor_inplace packet' pnmask pn_offset in
-          parse_header cid_len last packet''
+          match parse_header cid_len last packet'' with
+          | QUIC.Parse.H_Failure -> H_Failure
+          | QUIC.Parse.H_Success h rem' ->
+            lemma_header_parsing_post cid_len last packet'';
+            QUIC.Spec.Lemmas.pointwise_op_slice_other U8.logxor packet' pnmask pn_offset (pn_offset + pn_len + 1) (S.length packet'');
+            QUIC.Spec.Lemmas.pointwise_op_slice_other U8.logxor packet' pnmask pn_offset 0 1;
+            BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits 7 8;
+            if is_short
+            if QUIC.Spec.Base.is_retry h
+            then H_Failure // should not happen, we can prove it just as above, but it is not worth it
+            else if has_payload_length h && S.length rem' < U64.v (payload_length h)
+            then H_Failure
+            else
+              let clen = if has_payload_length h then U64.v (payload_length h) else S.length rem' in
+              if 19 <= clen && clen < max_cipher_length
+              then
+                let c : cbytes = S.slice rem' 0 clen in
+                let rem = S.slice rem' clen (S.length rem') in
+                if pn_offset = QUIC.Parse.pn_offset h && pn_len = U32.v (QUIC.Parse.pn_length h) && pn_offset + pn_len + 1 = header_len h
+                then
+                  H_Success h c rem
+                else H_Failure // this should not happen, as above
+              else
+                H_Failure
         end
+
+#pop-options
 
 #push-options "--z3rlimit 128"
 
@@ -281,36 +325,28 @@ let encrypt a k siv hpk h plain =
 
 #pop-options
 
-#push-options "--max_ifuel 1 --initial_ifuel 1"
+#push-options "--max_ifuel 1 --initial_ifuel 1 --z3rlimit 16"
 
 let decrypt a k siv hpk last cid_len packet =
   let open FStar.Math.Lemmas in
   let open FStar.Endianness in
   match header_decrypt a hpk cid_len last packet with
   | H_Failure -> Failure
-  | H_Success h c ->
-    let clen = Seq.length c in
-    if 19 <= clen && clen < max_cipher_length
-    then
-      let c : cbytes = c in
+  | H_Success h c rem ->
+    if is_retry h
+    then Success h c rem
+    else
       let aad = format_header h in
-      let iv =
-        if is_retry h
-        then siv
-        else
-          let pn = packet_number h in
-          let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
-          let pnb =
-            pow2_lt_compat (8 `op_Multiply` 12) 62;
-            n_to_be 12 (U64.v pn)
-          in
-          xor_inplace pnb siv 0
+      let pn = packet_number h in
+      let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
+      let pnb =
+        pow2_lt_compat (8 `op_Multiply` 12) 62;
+        n_to_be 12 (U64.v pn)
       in
+      let iv = xor_inplace pnb siv 0 in
       match AEAD.decrypt #a k iv aad c with
       | None -> Failure
-      | Some plain -> Success h plain
-    else
-      Failure
+      | Some plain -> Success h plain rem
 
 #pop-options
 

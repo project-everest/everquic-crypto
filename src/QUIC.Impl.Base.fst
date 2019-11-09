@@ -116,3 +116,42 @@ let frame_header
   (requires (header_live h m1 /\ B.modifies l m1 m2 /\ B.loc_disjoint l (header_footprint h)))
   (ensures (header_live h m2 /\ g_header h m2 == g_header h m1))
 = ()
+
+(* Length computations need to be transparent because the precondition
+to QUIC.Impl.encrypt requires the user to provide a destination buffer
+large enough to contain the byte representation of the header *)
+
+let varint_len
+  (x: U64.t)
+: Tot (y: U32.t {U32.v y <= 8})
+= if x `U64.lt` 64uL
+  then 1ul
+  else if x `U64.lt` 16384uL
+  then 2ul
+  else if x `U64.lt` 1073741824uL
+  then 4ul
+  else 8ul
+
+// TODO: replace (varint_len payload_length) with (varint_len (payload_length + pn_length) in the code below
+
+module Cast = FStar.Int.Cast
+
+let header_len
+  (h: header)
+: Tot U32.t
+= match h with
+  | BShort spin phase cid cid_len packet_number packet_number_length ->
+    1ul `U32.add` cid_len `U32.add` packet_number_length
+  | BLong version dcid dcil scid scil spec ->
+    7ul `U32.add` dcil `U32.add` scil `U32.add`
+    begin match spec with
+    | BInitial payload_length packet_number packet_number_length token token_length ->
+      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len payload_length `U32.add` packet_number_length
+    | BZeroRTT payload_length packet_number packet_number_length ->
+      varint_len payload_length `U32.add` packet_number_length
+    | BHandshake payload_length packet_number packet_number_length ->
+      varint_len payload_length `U32.add` packet_number_length
+    | BRetry unused odcid odcil ->
+      1ul `U32.add` odcil
+    end
+

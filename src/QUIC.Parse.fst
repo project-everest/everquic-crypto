@@ -192,6 +192,8 @@ let common_long_t
 : Type0
 = (U32.t & (parse_bounded_vlbytes_t 0 20 & parse_bounded_vlbytes_t 0 20))
 
+// TODO: replace the payload_length type with a refinement (payload_and_pn_length: uint62_t { U64.v payload_and_pn_length >= U32.v pn_length }), and replace the parser with the corresponding (parse_filter parse_varint); then add the conversions from payload_and_pn_length to payload_length and back in mk_header and mk_body
+
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
@@ -918,7 +920,7 @@ let read_header_body
 
 #restart-solver
 
-#push-options "--z3rlimit 64 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats"
+#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats"
 
 let read_header
   packet packet_len cid_len last
