@@ -13,7 +13,7 @@
         "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
       ],
       0,
-      "138ea2f02f750c9d59e98016b43bc5c0"
+      "6eb2f857a3fd9cd69bd2bd49b412968a"
     ],
     [
       "QUIC.Spec.PacketNumber.packet_number_t",
@@ -40,7 +40,7 @@
         "typing_FStar.UInt32.v", "typing_FStar.UInt64.v"
       ],
       0,
-      "a1bb7bc17e37ea47453f3239027e3609"
+      "aff53f45f4fa777cf96903b93c05f859"
     ],
     [
       "QUIC.Spec.PacketNumber.bound_npn",
@@ -76,7 +76,7 @@
         "typing_QUIC.Spec.Base.bound_npn_"
       ],
       0,
-      "5c38acb47e92d20165c77914eb5dea10"
+      "da66e3c792cdb7582b095cdf29be546f"
     ],
     [
       "QUIC.Spec.PacketNumber.reduce_pn'",
@@ -93,7 +93,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "525ba45dd54ff1fbbb99a84ddb5a0263"
+      "3a9042d93dc457afa7b4626c31b670ae"
     ],
     [
       "QUIC.Spec.PacketNumber.reduce_pn",
@@ -138,7 +138,7 @@
         "typing_QUIC.Spec.PacketNumber.bound_npn"
       ],
       0,
-      "d729725b056ef5a04270c1f46995e466"
+      "50705c53c9c8f0cf9e5b52b45cc38885"
     ],
     [
       "QUIC.Spec.PacketNumber.in_window_self",
@@ -163,7 +163,7 @@
         "typing_QUIC.Spec.Base.bound_npn_"
       ],
       0,
-      "48e8b3541bff6ead7a5e19d6c2faa060"
+      "1ccfc66199d7ad8fb23ac7d71365b231"
     ],
     [
       "QUIC.Spec.PacketNumber.expand_pn'",
@@ -207,7 +207,7 @@
         "typing_QUIC.Spec.Base.uint62_bound"
       ],
       0,
-      "d97261873188758d3866cce2b075130d"
+      "251fae003e071add2dc92e91447d64c2"
     ],
     [
       "QUIC.Spec.PacketNumber.max",
@@ -219,7 +219,7 @@
         "primitive_Prims.op_GreaterThan", "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "cdaf58a98fd36abc6745598074aabf0d"
+      "b7b12f321ca618b275ee9f08d6830274"
     ],
     [
       "QUIC.Spec.PacketNumber.lemma_uniqueness_in_window",
@@ -261,7 +261,7 @@
         "typing_QUIC.Spec.PacketNumber.max", "unit_inversion", "unit_typing"
       ],
       0,
-      "5c5ba8c39be09059f11723249e91584d"
+      "6d830457789cbcb2cf04816d4e649f7a"
     ],
     [
       "QUIC.Spec.PacketNumber.lemma_parse_pn_correct",
@@ -292,7 +292,7 @@
         "typing_QUIC.Spec.Base.uint62_bound"
       ],
       0,
-      "92c6cc3c03bbccbea56df8d10ffbd4ba"
+      "263d208047cdae9fd83b4336e8c7771b"
     ],
     [
       "QUIC.Spec.PacketNumber.lemma_parse_pn_correct",
@@ -318,7 +318,7 @@
         "typing_QUIC.Spec.Base.uint62_bound"
       ],
       0,
-      "e5f59736378dd6b0431d52bd8f3fd4df"
+      "4085ac1049c0ba613c678d40031ab97c"
     ],
     [
       "QUIC.Spec.PacketNumber.expand_pn",
@@ -332,7 +332,7 @@
         "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
       ],
       0,
-      "14f2ec7e2561551df3f7daaab0bc695a"
+      "f63ff46461d955adbd79020248bd4e88"
     ],
     [
       "QUIC.Spec.PacketNumber.expand_pn",
@@ -398,7 +398,7 @@
         "typing_QUIC.Spec.PacketNumber.expand_pn_"
       ],
       0,
-      "8b3add2eab8b07901075dd9f0be8bb38"
+      "c3abc85521b0ae9c2c8796cd330471f4"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number",
@@ -412,7 +412,7 @@
         "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
       ],
       0,
-      "26c7304db9dc118ffd7bb61912eeabd2"
+      "5b6f0e0ac57a8390ea647d722d5126e4"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number",
@@ -458,7 +458,7 @@
         "typing_QUIC.Spec.PacketNumber.expand_pn_"
       ],
       0,
-      "578c692a4ba4d32b940f90830c182c44"
+      "7f9b0289e380eda55c56d13f968327a3"
     ],
     [
       "QUIC.Spec.PacketNumber.parse_packet_number",
@@ -511,7 +511,7 @@
         "typing_QUIC.Spec.PacketNumber.expand_pn_"
       ],
       0,
-      "fee4245b1f7559b545a1962d16ec8d45"
+      "647b0d17660ad64b57f3c5e1c74c1e56"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number_recip",
@@ -525,7 +525,7 @@
         "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
       ],
       0,
-      "ba37fa098884d1945511f7b1fd041d15"
+      "e451bdfebd63c154e15477a368b32edd"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number_recip_inverse",
@@ -565,7 +565,7 @@
         "typing_QUIC.Spec.PacketNumber.synth_packet_number_recip"
       ],
       0,
-      "93bb431574544ed0415e34fb26c7a762"
+      "d883016aec3469312a45b101e9a8d0da"
     ],
     [
       "QUIC.Spec.PacketNumber.serialize_packet_number",
@@ -647,7 +647,7 @@
         "typing_QUIC.Spec.PacketNumber.expand_pn_"
       ],
       0,
-      "d55f3999868ca578a2cc077ee138da35"
+      "600fa18a6afb14a90003908cf1e17ade"
     ],
     [
       "QUIC.Spec.PacketNumber.serialize_packet_number_ext",
@@ -718,7 +718,7 @@
         "typing_QUIC.Spec.PacketNumber.expand_pn_"
       ],
       0,
-      "090a7eac5d253bc072e7f4224c2814ad"
+      "8f9d704387740a2506be7249f287106a"
     ]
   ]
 ]
