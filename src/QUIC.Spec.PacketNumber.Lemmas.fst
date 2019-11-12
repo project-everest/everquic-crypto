@@ -1,4 +1,4 @@
-module QUIC.Parse.Lemmas
+module QUIC.Spec.PacketNumber.Lemmas
 
 let replace_modulo' (a b new_mod:nat) : Pure nat
   (requires b > 0 /\ new_mod < b)
@@ -24,7 +24,11 @@ let lemma_replace_modulo_bound_aux (k:nat) (a:nat) (b:nat) (u:nat)
   assert(((a + b) / pow2 u) / pow2 (k-u) < 1);
   division_multiplication_lemma (a+b) (pow2 u) (pow2 (k-u));
   pow2_plus u (k-u)
+#pop-options
 
+#push-options "--z3rlimit 512"
+
+#restart-solver
 let lemma_replace_modulo_bound (a mod_pow new_mod up_pow:nat) : Lemma
   (requires
     mod_pow < up_pow /\

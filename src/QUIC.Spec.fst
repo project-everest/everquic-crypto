@@ -1,6 +1,6 @@
 module QUIC.Spec
 open QUIC.Spec.Lemmas
-open QUIC.Parse
+open QUIC.Spec.Header
 
 module S = FStar.Seq
 module U32 = FStar.UInt32
@@ -320,6 +320,8 @@ let header_decrypt_aux_post
 
 #push-options "--z3rlimit 64"
 
+module Header = QUIC.Spec.Header
+
 let header_decrypt_aux_post_parse
   (a:ea)
   (hpk: lbytes (ae_keysize a))
@@ -329,12 +331,12 @@ let header_decrypt_aux_post_parse
 : Lemma
   (requires (match header_decrypt_aux a hpk cid_len packet with
     | Some r ->
-      QUIC.Parse.H_Success? (parse_header cid_len last r.packet)
+      Header.H_Success? (parse_header cid_len last r.packet)
     | _ -> False
   ))
   (ensures (
     let Some r = header_decrypt_aux a hpk cid_len packet in
-    let QUIC.Parse.H_Success h rem' = parse_header cid_len last r.packet in
+    let Header.H_Success h rem' = parse_header cid_len last r.packet in
     header_len h <= S.length packet /\
     S.length r.packet == S.length packet /\
     S.length packet > 0 /\ (
@@ -346,14 +348,14 @@ let header_decrypt_aux_post_parse
     else
       Some? (putative_pn_offset cid_len packet) /\ (
       let Some pn_offset = putative_pn_offset cid_len packet in
-      pn_offset == QUIC.Parse.pn_offset h /\
+      pn_offset == Header.pn_offset h /\
       r.pn_len == U32.v (pn_length h) - 1 /\
       r.pn_offset + r.pn_len + 1 == header_len h /\
       True
   )))))
 = header_decrypt_aux_post a hpk cid_len packet;
   let Some r = header_decrypt_aux a hpk cid_len packet in
-  let QUIC.Parse.H_Success h rem' = parse_header cid_len last r.packet in
+  let Header.H_Success h rem' = parse_header cid_len last r.packet in
   lemma_header_parsing_post cid_len last r.packet;
   format_header_is_short h;
   format_header_is_retry h;
@@ -383,8 +385,8 @@ let header_decrypt a hpk cid_len last packet =
     | Some r ->
       let packet'' = r.packet in
       begin match parse_header cid_len last packet'' with
-      | QUIC.Parse.H_Failure -> H_Failure
-      | QUIC.Parse.H_Success h rem' ->
+      | Header.H_Failure -> H_Failure
+      | Header.H_Success h rem' ->
         header_decrypt_aux_post_parse a hpk cid_len last packet;
         if is_retry h
         then

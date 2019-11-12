@@ -1,8 +1,8 @@
-module QUIC.Parse.PacketNumber
+module QUIC.Spec.PacketNumber
 open QUIC.Spec.Base
-open QUIC.Parse.Lemmas
-open LowParse.Low.Combinators
-open LowParse.Low.BoundedInt
+open QUIC.Spec.PacketNumber.Lemmas
+open LowParse.Spec.Combinators
+open LowParse.Spec.BoundedInt
 
 (* From https://tools.ietf.org/html/draft-ietf-quic-transport-22#appendix-A *)
 
@@ -196,30 +196,3 @@ let serialize_packet_number_ext
     (synth_packet_number_recip last2 pn_len)
     ()
     pn
-
-#pop-options
-
-let validate_packet_number
-  (last: last_packet_number_t)
-  (pn_len: packet_number_length_t)
-: Tot (validator (parse_packet_number last pn_len))
-= validate_synth
-    (validate_bounded_integer' pn_len)
-    (synth_packet_number last pn_len)
-    ()
-
-let jump_packet_number
-  last pn_len
-= jump_synth
-    (jump_bounded_integer' pn_len)
-    (synth_packet_number last pn_len)
-    ()
-
-let read_packet_number
-  last pn_len
-= read_synth
-    _
-    (synth_packet_number last pn_len)
-    (fun x -> synth_packet_number last pn_len x)
-    (read_bounded_integer' pn_len)
-    ()

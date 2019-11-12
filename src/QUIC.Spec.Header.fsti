@@ -1,32 +1,14 @@
-module QUIC.Parse
+module QUIC.Spec.Header
 include QUIC.Spec.Base
 
-module B = LowStar.Buffer
 module U8 = FStar.UInt8
 module U32 = FStar.UInt32
-module HST = FStar.HyperStack.ST
 module S = FStar.Seq
 module U64 = FStar.UInt64
-
 
 let header_len_bound = 16500 // FIXME: this should be in line with the parser kind
 
 val header_len (h:header) : GTot (n: pos { n <= header_len_bound })
-
-(*
-=
-  match h with
-  | MShort spin phase cid ->
-    1 + S.length cid + 1 + pn_len
-  | MLong is_hs version dcil scil dcid scid plen ->
-    let _ = assert_norm(max_cipher_length < pow2 62) in
-    6 + add3 dcil + add3 scil + vlen plen + 1 + pn_len
-*)
-
-(*
-  | Short _ _ cid -> sub3 (S.length cid)
-  | Long _ _ dcil _ _ _ _ -> dcil
-*)
 
 val format_header: h:header -> GTot (lbytes (header_len h))
 
@@ -137,103 +119,3 @@ let lemma_header_parsing_post
     assert (b `Seq.equal` (format_header h `Seq.append` c));
     assert (Seq.slice b 0 (header_len h) `Seq.equal` format_header h);
     assert (c `Seq.equal` Seq.slice b (header_len h) (Seq.length b))
-
-module Impl = QUIC.Impl.Base
-
-val read_header
-  (packet: B.buffer U8.t)
-  (packet_len: U32.t { let v = U32.v packet_len in v == B.length packet /\ v < 4294967280 })
-  (cid_len: U32.t { U32.v cid_len < 20 } )
-  (last: uint62_t { U64.v last + 1 < pow2 62 })
-: HST.Stack (option (Impl.header & U32.t))
-  (requires (fun h ->
-    B.live h packet
-  ))
-  (ensures (fun h res h' ->
-    B.modifies B.loc_none h h' /\
-    begin
-      let spec = parse_header (U32.v cid_len) (U64.v last) (B.as_seq h packet) in
-      match res with
-      | None -> H_Failure? spec
-      | Some (x, len) ->
-        H_Success? spec /\
-        begin
-          let H_Success hd _ = spec in
-          Impl.header_live x h' /\
-          U32.v len <= B.length packet /\
-          B.loc_buffer (B.gsub packet 0ul len) `B.loc_includes` Impl.header_footprint x /\
-          Impl.g_header x h' == hd /\
-          U32.v len = header_len hd
-        end
-    end
-  ))
-
-val impl_header_length
-  (x: Impl.header)
-: HST.Stack U32.t
-  (requires (fun h -> Impl.header_live x h))
-  (ensures (fun h res h' ->
-    B.modifies B.loc_none h h' /\
-    U32.v res == header_len (Impl.g_header x h)
-  ))
-
-val write_header
-  (dst: B.buffer U8.t)
-  (x: Impl.header)
-: HST.Stack unit
-  (requires (fun h ->
-    B.live h dst /\
-    Impl.header_live x h /\
-    B.length dst == header_len (Impl.g_header x h) /\
-    Impl.header_footprint x `B.loc_disjoint` B.loc_buffer dst
-  ))
-  (ensures (fun h _ h' ->
-    B.modifies (B.loc_buffer dst) h h' /\
-    B.as_seq h' dst == format_header (Impl.g_header x h)
-  ))
-
-val impl_putative_pn_offset
-  (cid_len: U32.t)
-  (b: B.buffer U8.t)
-  (len: U32.t { U32.v len == B.length b /\ U32.v len < 4294967280 })
-: HST.Stack U32.t
-  (requires (fun h ->
-    B.live h b
-  ))
-  (ensures (fun h res h' ->
-    B.modifies B.loc_none h h' /\ (
-    let x = putative_pn_offset (U32.v cid_len) (B.as_seq h b) in
-    if res = 0ul
-    then
-      None? x
-    else
-      Some? x /\ (
-      let Some v = x in
-      U32.v res == v
-  ))))
-
-val impl_pn_offset
-  (h: Impl.header)
-: HST.Stack U32.t
-  (requires (fun m ->
-    Impl.header_live h m /\
-    (~ (is_retry (Impl.g_header h m)))
-  ))
-  (ensures (fun m res m' ->
-    B.modifies B.loc_none m m' /\
-    U32.v res == pn_offset (Impl.g_header h m)
-  ))
-
-val impl_header_len
-  (h: Impl.header)
-: HST.Stack U32.t
-  (requires (fun m ->
-    Impl.header_live h m
-  ))
-  (ensures (fun m res m' ->
-    B.modifies B.loc_none m m' /\
-    U32.v res == header_len (Impl.g_header h m)
-  ))
-
-(*
-val test : B.buffer U8.t -> HST.Stack U32.t (requires (fun _ -> False)) (ensures (fun _ _ _ -> True))
