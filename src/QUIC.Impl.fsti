@@ -232,6 +232,7 @@ val encrypt: #i:G.erased index -> (
     U32.v plain_len < QUIC.Spec.max_plain_length /\
     B.length plain = U32.v plain_len
   } ->
+  pn: QUIC.Spec.uint62_t ->
   pn_len: u2 ->
   Stack error_code
     (requires fun h0 ->
@@ -243,7 +244,7 @@ val encrypt: #i:G.erased index -> (
       invariant h0 s /\
 
       incrementable s h0 /\ (
-      let gh = g_header h h0 in
+      let gh = g_header h h0 pn in
       let clen = U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
       let len = clen + U32.v (header_len h) in
       (QUIC.Spec.has_payload_length gh ==> U64.v (QUIC.Spec.payload_length gh) == clen) /\
