@@ -1,5 +1,5 @@
 [
-  "—#\bô§a!iÏÀ8ôœÃ\u0006'",
+  "tÓöñÎø}-\u0004uÙ¿«Vÿµ",
   [
     [
       "QUIC.Spec.Base.uint62_bound",
@@ -491,6 +491,46 @@
       ],
       0,
       "7c178c992a34cce4f754ebac2f91c35b"
+    ],
+    [
+      "QUIC.Spec.Base.payload_length",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "disc_equation_QUIC.Spec.Base.MHandshake",
+        "disc_equation_QUIC.Spec.Base.MInitial",
+        "disc_equation_QUIC.Spec.Base.MRetry",
+        "disc_equation_QUIC.Spec.Base.MZeroRTT",
+        "equation_QUIC.Spec.Base.has_payload_length",
+        "fuel_guarded_inversion_QUIC.Spec.Base.long_header_specifics",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_Negation",
+        "proj_equation_QUIC.Spec.Base.MLong_spec",
+        "projection_inverse_BoxBool_proj_0",
+        "refinement_interpretation_Tm_refine_e9dd1e5b4924001842ae17da83ad733a"
+      ],
+      0,
+      "007c26f9067b7a57138eb6f52b41d500"
+    ],
+    [
+      "QUIC.Spec.Base.is_valid_header",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Subtraction",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88"
+      ],
+      0,
+      "2d56f1026098c038e8d066f69ced1a02"
     ]
   ]
 ]

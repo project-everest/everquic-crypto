@@ -1,0 +1,81 @@
+[
+  "tôyä0¦õLÕ W÷*\u0011Ø@",
+  [
+    [
+      "QUIC.Spec.VarInt.parse_varint",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Prims.nat",
+        "equation_QUIC.Spec.VarInt.parse_varint_kind",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
+      ],
+      0,
+      "8d03818b59e64e5298326a1492264898"
+    ],
+    [
+      "QUIC.Spec.VarInt.serialize_varint",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Prims.nat",
+        "equation_QUIC.Spec.VarInt.parse_varint_kind",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
+      ],
+      0,
+      "081f348493feacdf1f7520fb3969c838"
+    ],
+    [
+      "QUIC.Spec.VarInt.parse_bounded_varint",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Prims.nat",
+        "equation_QUIC.Spec.VarInt.parse_varint_kind",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
+      ],
+      0,
+      "d439895743d34fe22b3700d4069d941c"
+    ],
+    [
+      "QUIC.Spec.VarInt.serialize_bounded_varint",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Prims.nat",
+        "equation_QUIC.Spec.VarInt.parse_varint_kind",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
+      ],
+      0,
+      "619ab3fcae70ca22bc56cb2e95a498b4"
+    ]
+  ]
+]
