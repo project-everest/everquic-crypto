@@ -1,5 +1,6 @@
 module QUIC.Spec
 open QUIC.Spec.Lemmas
+open QUIC.Parse
 
 module S = FStar.Seq
 module U32 = FStar.UInt32
@@ -11,6 +12,12 @@ module AEAD = Spec.Agile.AEAD
 module HKDF = Spec.Agile.HKDF
 
 #set-options "--max_fuel 0 --max_ifuel 0"
+
+// two lines to break the abstraction of UInt8 used for
+// side-channel protection (useless here). Copied from mitls-fstar
+// src/tls/declassify.fst (branch dev)
+friend Lib.IntTypes
+let declassify : squash (Lib.IntTypes.uint8 == UInt8.t)= ()
 
 inline_for_extraction
 let prefix_l: List.Tot.llist U8.t 11 =
@@ -82,10 +89,14 @@ packet[pn_offset..pn_offset+4] ^= pn_mask &
   | 3 -> mask & 0xFFFFFFFF
 *)
 inline_for_extraction
-let pn_sizemask (pn_len:nat2) : lbytes 4 =
+let pn_sizemask' (pn_len:nat2) : lbytes 4 =
   let open FStar.Endianness in
   FStar.Math.Lemmas.pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
   n_to_be 4 (pow2 32 - pow2 (24 - (8 `op_Multiply` pn_len)))
+
+inline_for_extraction
+let pn_sizemask (pn_len:nat2) : lbytes (pn_len + 1) =
+  S.slice (pn_sizemask' pn_len) 0 (pn_len + 1)
 
 let block_of_sample a (k: Cipher.key a) (sample: lbytes 16): lbytes 16 =
   let open FStar.Mul in
@@ -118,7 +129,7 @@ let header_encrypt a hpk h c =
     let pn_len = U32.v (pn_length h) - 1 in
     let sample = S.slice c (3-pn_len) (19-pn_len) in
     let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
-    let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask pn_len) 0 in
+    let pnmask = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
     let f = S.index r 0 in
     let protected_bits = if MShort? h then 5 else 4 in
     let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits) in
@@ -126,24 +137,104 @@ let header_encrypt a hpk h c =
     let r = S.cons (U8.uint_to_t f') (S.slice r 1 (S.length r)) in
     r
 
-let header_decrypt a hpk cid_len last packet =
-  let open FStar.Math.Lemmas in
+module U64 = FStar.UInt64
+
+#push-options "--z3rlimit 32"
+
+let header_encrypt_post
+  (a:ea)
+  (hpk: lbytes (ae_keysize a))
+  (h: header)
+  (c: cbytes' (is_retry h))
+  (cid_len: nat { MShort? h ==> cid_len == dcid_len h })
+: Lemma (
+    let x = format_header h in
+    let y = x `S.append` c in
+    let z = header_encrypt a hpk h c in
+    header_len h + S.length c == S.length z /\
+    S.slice z (header_len h) (S.length z) `S.equal` c /\
+    MShort? h == (BF.get_bitfield (U8.v (S.index z 0)) 7 8 = 0) /\
+    is_retry h == (not (MShort? h) && BF.get_bitfield (U8.v (S.index z 0)) 4 6 = 3) /\ (
+    if is_retry h
+    then z == y
+    else putative_pn_offset cid_len z == Some (pn_offset h)
+  ))
+= format_header_is_short h;
+  format_header_is_retry h;
+  if is_retry h
+  then ()
+  else begin
+    format_header_pn_length h;
+    let x = format_header h in
+    let y = x `S.append` c in
+    let pn_offset = pn_offset h in
+    let pn_len = U32.v (pn_length h) - 1 in
+    let sample = S.slice c (3-pn_len) (19-pn_len) in
+    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+    let pnmask = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
+    let f = S.index y 0 in
+    let protected_bits = if MShort? h then 5 else 4 in
+    let bf = BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
+    let f' = BF.set_bitfield (U8.v f) 0 protected_bits bf in
+    let r = xor_inplace y pnmask pn_offset in
+    let z = header_encrypt a hpk h c in
+    assert (z == S.cons (U8.uint_to_t f') (S.slice r 1 (S.length r)));
+    pointwise_op_slice_other U8.logxor y pnmask pn_offset 0 1;
+    pointwise_op_slice_other U8.logxor y pnmask pn_offset 1 pn_offset;
+    assert (pn_offset > 0);
+    pointwise_op_slice_other U8.logxor y pnmask pn_offset (header_len h) (S.length y);
+    assert (S.slice z (header_len h) (S.length z) `S.equal` S.slice y (header_len h) (S.length y));
+    assert (U8.uint_to_t f' == S.index (S.slice z 0 1) 0);
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits bf 7 8;
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits bf protected_bits 8;
+    if MLong? h
+    then BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits bf 4 6;
+    putative_pn_offset_correct h cid_len;
+    putative_pn_offset_frame cid_len x y;
+    putative_pn_offset_frame cid_len y z;
+    ()
+  end
+
+#pop-options
+
+noextract
+type header_decrypt_aux_t = {
+  is_short: bool;
+  is_retry: (is_retry: bool { is_retry ==> ~ (is_short) });
+  packet: packet;
+  pn_offset: (if is_retry then unit else nat);
+  pn_len: (if is_retry then unit else (pn_len: nat2 {pn_offset + pn_len + 1 <= S.length packet}));
+}
+
+let header_decrypt_aux
+  (a:ea)
+  (hpk: lbytes (ae_keysize a))
+  (cid_len: nat { cid_len < 20 })
+  (packet: packet)
+: GTot (option header_decrypt_aux_t)
+= let open FStar.Math.Lemmas in
   if S.length packet = 0
-  then H_Failure
+  then None
   else
     let f = S.index packet 0 in
     let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
     let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
     if is_retry
     then
-      parse_header cid_len last packet
+      Some ({
+        is_short = is_short;
+        is_retry = is_retry;
+        packet = packet;
+        pn_offset = ();
+        pn_len = ();
+      })
     else
       match putative_pn_offset cid_len packet with
-      | None -> H_Failure
+      | None -> None
       | Some pn_offset ->
         let sample_offset = pn_offset + 4 in
         if sample_offset + 16 > S.length packet
-        then H_Failure
+        then None
         else begin
           let sample = S.slice packet sample_offset (sample_offset+16) in
           let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
@@ -153,87 +244,244 @@ let header_decrypt a hpk cid_len last packet =
           let packet' = S.cons (U8.uint_to_t f') (S.slice packet 1 (S.length packet)) in
           (* now the packet number length is available, so mask the packet number *)
           let pn_len = BF.get_bitfield f' 0 2 in
-          let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask pn_len) 0 in
+          let pnmask = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
           let packet'' = xor_inplace packet' pnmask pn_offset in
-          parse_header cid_len last packet''
+          Some ({
+            is_short = is_short;
+            is_retry = is_retry;
+            packet = packet'';
+            pn_offset = pn_offset;
+            pn_len = pn_len;
+          })
         end
 
-#push-options "--z3rlimit 128"
+#push-options "--max_ifuel 1"
 
-let lemma_header_encryption_correct a k h cid_len last c =
-  format_header_is_short h;
-  format_header_is_retry h;
-  lemma_header_parsing_correct h c cid_len last;
-  if is_retry h
-  then begin
-    let packet = format_header h in
-    assert (S.length packet > 0)
-  end else begin
-    let format' = format_header h in
-    let format = format' `S.append` c in
-    let packet = header_encrypt a k h c in
-    putative_pn_offset_correct h cid_len;
-    putative_pn_offset_frame cid_len format' format;
-    let pn_offset = pn_offset h in
-    let pn_len = U32.v (pn_length h) - 1 in
-    let sample = S.slice c (3-pn_len) (19-pn_len) in
-    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) k sample in
-    let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask pn_len) 0 in
-    let f = S.index format 0 in
-    let protected_bits = if MShort? h then 5 else 4 in
-    let pb_value = BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
-    pointwise_op_slice_other U8.logxor format pnmask pn_offset 1 pn_offset;
-    let f_ = S.index packet 0 in
-    assert (U8.v f_ == BF.set_bitfield (U8.v f) 0 protected_bits pb_value);
-    let packet1 = xor_inplace format pnmask pn_offset in
-    assert (packet == S.cons f_ (S.slice packet1 1 (S.length packet1)));
-    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value 7 8;
-    assert (MShort? h == (BF.get_bitfield (U8.v f_) 7 8 = 0));
-    begin if not (MShort? h) then
-      BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value 4 6
-    end;
-    assert (is_retry h == (not (MShort? h) && BF.get_bitfield (U8.v f) 4 6 = 3));
-    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value protected_bits 8;
-    putative_pn_offset_frame cid_len format packet;
-    assert (0 < pn_offset /\ pn_offset <= S.length packet);
-    let put' = putative_pn_offset cid_len packet in
-    assert (Some? put');
-    assert ((Some?.v put' <: nat) == pn_offset);
+#push-options "--z3rlimit 32"
+
+let header_decrypt_aux_post
+  (a:ea)
+  (hpk: lbytes (ae_keysize a))
+  (cid_len: nat { cid_len < 20 })
+  (packet: packet)
+: Lemma
+  (requires (Some? (header_decrypt_aux a hpk cid_len packet)))
+  (ensures (
+    let Some r = header_decrypt_aux a hpk cid_len packet in
+    S.length r.packet == S.length packet /\
+    S.length packet > 0 /\ (
+    let f' = S.index r.packet 0 in
+    r.is_short == (BF.get_bitfield (U8.v f') 7 8 = 0) /\
+    r.is_retry == (not r.is_short && (BF.get_bitfield (U8.v f') 4 6 = 3)) /\ (
+    if r.is_retry
+    then r.packet == packet
+    else
+      Some? (putative_pn_offset cid_len packet) /\
+      putative_pn_offset cid_len r.packet == putative_pn_offset cid_len packet /\ (
+      let Some pn_offset = putative_pn_offset cid_len packet in
+      r.pn_len == BF.get_bitfield (U8.v f') 0 2 /\
+      S.slice r.packet (r.pn_offset + r.pn_len + 1) (S.length r.packet) `S.equal` S.slice packet (r.pn_offset + r.pn_len + 1) (S.length packet) /\
+      True
+  )))))
+= let Some r = header_decrypt_aux a hpk cid_len packet in
+  let f = S.index packet 0 in
+  let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
+  let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
+  if is_retry
+  then ()
+  else begin
+    let Some pn_offset = putative_pn_offset cid_len packet in
     let sample_offset = pn_offset + 4 in
-    assert (sample_offset + 16 <= S.length packet);
-    pointwise_op_slice_other U8.logxor format pnmask pn_offset sample_offset (sample_offset + 16);
-    assert (sample `S.equal` S.slice format sample_offset (sample_offset + 16));
-    assert (sample `S.equal` S.slice packet sample_offset (sample_offset + 16));
-    let pb_value_ = BF.get_bitfield (U8.v f_ `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
-    let f'_ = BF.set_bitfield (U8.v f_) 0 protected_bits pb_value_ in
-    let packet' = S.cons (U8.uint_to_t f'_) (S.slice packet 1 (S.length packet)) in
-    BF.get_bitfield_logxor (U8.v f) (U8.v (S.index mask 0)) 0 protected_bits;
-    BF.get_bitfield_logxor (U8.v f_) (U8.v (S.index mask 0)) 0 protected_bits;
-    BF.get_bitfield_set_bitfield_same (U8.v f) 0 protected_bits pb_value;
-    assert (BF.get_bitfield (U8.v f_) 0 protected_bits == pb_value);
-    BF.get_bitfield_set_bitfield_same (U8.v f_) 0 protected_bits pb_value_;
-    BF.get_bitfield_set_bitfield_other (U8.v f_) 0 protected_bits pb_value_ protected_bits 8;
-    let bfmask = BF.get_bitfield (U8.v (S.index mask 0)) 0 protected_bits in
-    FStar.UInt.logxor_inv (BF.get_bitfield (U8.v f) 0 protected_bits) bfmask;
-    assert (pb_value_ == BF.get_bitfield (U8.v f) 0 protected_bits);
-    BF.get_bitfield_partition_2 protected_bits (U8.v f) f'_;
-    assert (f'_ == U8.v f);
+    let sample = S.slice packet sample_offset (sample_offset+16) in
+    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+    (* mask the least significant bits of the first byte *)
+    let protected_bits = if is_short then 5 else 4 in
+    let bf = BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
+    let f' = BF.set_bitfield (U8.v f) 0 protected_bits bf in
+    let packet' = S.cons (U8.uint_to_t f') (S.slice packet 1 (S.length packet)) in
     (* now the packet number length is available, so mask the packet number *)
-    format_header_pn_length h;
-    assert (pn_len == BF.get_bitfield f'_ 0 2);
-    let packet'' = xor_inplace packet' pnmask pn_offset in
-    pointwise_op_slice_other U8.logxor format pnmask pn_offset 0 1;
-    assert (S.index packet1 0 == S.index (S.slice packet1 0 1) 0);
-    assert (packet' `S.equal` packet1);
-    xor_inplace_involutive format pnmask pn_offset;
-    pointwise_op_slice_other U8.logxor packet1 pnmask pn_offset 0 1;
-    assert (S.index packet'' 0 == S.index (S.slice packet'' 0 1) 0);
-    assert (format `S.equal` packet'')
+    let pn_len = BF.get_bitfield f' 0 2 in
+    let pnmask = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
+    assert (r.packet == xor_inplace packet' pnmask pn_offset);
+    pointwise_op_slice_other U8.logxor packet' pnmask pn_offset 0 1;
+    pointwise_op_slice_other U8.logxor packet' pnmask pn_offset 1 pn_offset;
+    pointwise_op_slice_other U8.logxor packet' pnmask pn_offset (pn_offset + pn_len + 1) (S.length packet);
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits bf protected_bits 8;
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits bf 7 8;
+    assert (S.index r.packet 0 == S.index (S.slice packet' 0 1) 0);
+    putative_pn_offset_frame cid_len packet r.packet;
+    if not is_short
+    then BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits bf 4 6;
+    assert (putative_pn_offset cid_len r.packet == putative_pn_offset cid_len packet);
+    ()
   end
 
 #pop-options
 
-(* not useful anymore by using declassify below
+#push-options "--z3rlimit 64"
+
+let header_decrypt_aux_post_parse
+  (a:ea)
+  (hpk: lbytes (ae_keysize a))
+  (cid_len: nat { cid_len < 20 })
+  (last: nat { last + 1 < pow2 62 })
+  (packet: packet)
+: Lemma
+  (requires (match header_decrypt_aux a hpk cid_len packet with
+    | Some r ->
+      QUIC.Parse.H_Success? (parse_header cid_len last r.packet)
+    | _ -> False
+  ))
+  (ensures (
+    let Some r = header_decrypt_aux a hpk cid_len packet in
+    let QUIC.Parse.H_Success h rem' = parse_header cid_len last r.packet in
+    header_len h <= S.length packet /\
+    S.length r.packet == S.length packet /\
+    S.length packet > 0 /\ (
+    r.is_short == MShort? h /\
+    r.is_retry == is_retry h /\
+    rem' `S.equal` S.slice packet (header_len h) (S.length packet) /\ (
+    if r.is_retry
+    then r.packet == packet
+    else
+      Some? (putative_pn_offset cid_len packet) /\ (
+      let Some pn_offset = putative_pn_offset cid_len packet in
+      pn_offset == QUIC.Parse.pn_offset h /\
+      r.pn_len == U32.v (pn_length h) - 1 /\
+      r.pn_offset + r.pn_len + 1 == header_len h /\
+      True
+  )))))
+= header_decrypt_aux_post a hpk cid_len packet;
+  let Some r = header_decrypt_aux a hpk cid_len packet in
+  let QUIC.Parse.H_Success h rem' = parse_header cid_len last r.packet in
+  lemma_header_parsing_post cid_len last r.packet;
+  format_header_is_short h;
+  format_header_is_retry h;
+  assert (r.is_short == MShort? h);
+  assert (r.is_retry == is_retry h);
+  if r.is_retry
+  then
+    ()
+  else begin
+    format_header_pn_length h;
+    let Some pn_offset = putative_pn_offset cid_len packet in
+    putative_pn_offset_correct h cid_len;
+    putative_pn_offset_frame cid_len (format_header h) r.packet
+  end
+
+#pop-options
+
+#push-options "--z3rlimit 16"
+
+let header_decrypt a hpk cid_len last packet =
+  let open FStar.Math.Lemmas in
+  if S.length packet = 0
+  then H_Failure
+  else
+    match header_decrypt_aux a hpk cid_len packet with
+    | None -> H_Failure
+    | Some r ->
+      let packet'' = r.packet in
+      begin match parse_header cid_len last packet'' with
+      | QUIC.Parse.H_Failure -> H_Failure
+      | QUIC.Parse.H_Success h rem' ->
+        header_decrypt_aux_post_parse a hpk cid_len last packet;
+        if is_retry h
+        then
+          H_Success h S.empty rem'
+        else if has_payload_length h && S.length rem' < U64.v (payload_length h)
+        then H_Failure
+        else
+          let clen = if has_payload_length h then U64.v (payload_length h) else S.length rem' in
+          if 19 <= clen && clen < max_cipher_length
+          then
+            let c : cbytes = S.slice rem' 0 clen in
+            let rem = S.slice rem' clen (S.length rem') in
+            H_Success h c rem
+          else
+            H_Failure
+      end
+
+#pop-options
+
+#push-options "--z3rlimit 128"
+
+let lemma_header_encryption_correct_aux
+  (a:ea)
+  (k:lbytes (ae_keysize a))
+  (h:header)
+  (cid_len: nat { cid_len < 20 /\ (MShort? h ==> cid_len == dcid_len h) })
+  (c: cbytes' (is_retry h)) // { has_payload_length h ==> U64.v (payload_length h) == S.length c } ->
+: Lemma
+  (let r' = header_decrypt_aux a k cid_len (header_encrypt a k h c) in
+   Some? r' /\ (
+   let Some r = r' in
+   r.packet `S.equal` (format_header h `S.append` c) /\
+   r.is_short == MShort? h /\
+   r.is_retry == is_retry h /\
+   ((~ (is_retry h)) ==> ((r.pn_offset <: nat) == pn_offset h /\ r.pn_len == U32.v (pn_length h) - 1))
+  ))
+= header_encrypt_post a k h c cid_len;
+  header_decrypt_aux_post a k cid_len (header_encrypt a k h c);
+  if is_retry h
+  then
+    ()
+  else begin
+    let format = format_header h `S.append` c in
+    let packet = header_encrypt a k h c in
+    let Some r = header_decrypt_aux a k cid_len packet in
+    putative_pn_offset_correct h cid_len;
+    let pn_offset = pn_offset h in
+    let pn_len = U32.v (pn_length h) - 1 in
+    let sample = S.slice c (3-pn_len) (19-pn_len) in
+    assert (sample `S.equal` S.slice packet (pn_offset + 4) (pn_offset + 20));
+    assert ((r.pn_offset <: nat) == pn_offset);
+    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) k sample in
+    let protected_bits = if MShort? h then 5 else 4 in
+    assert (protected_bits == (if r.is_short then 5 else 4));
+    let f = S.index format 0 in
+    let pb_value = BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
+    let f0 = BF.set_bitfield (U8.v f) 0 protected_bits pb_value in
+    assert (U8.uint_to_t f0 == S.index packet 0);
+    let pb_value' = BF.get_bitfield (f0 `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits in
+    let f1 = BF.set_bitfield f0 0 protected_bits pb_value' in
+    let packet1 = S.cons (U8.uint_to_t f1) (S.slice packet 1 (S.length packet)) in
+    let pnmask' = and_inplace (S.slice mask 1 (r.pn_len + 2)) (pn_sizemask r.pn_len) 0 in
+    assert (r.packet == xor_inplace packet1 pnmask' pn_offset);
+    pointwise_op_slice_other U8.logxor packet1 pnmask' pn_offset 0 1;
+    assert (S.index r.packet 0 == S.index (S.slice r.packet 0 1) 0);
+    assert (S.index r.packet 0 == U8.uint_to_t f1);
+    BF.get_bitfield_logxor (U8.v f) (U8.v (S.index mask 0)) 0 protected_bits;
+    BF.get_bitfield_set_bitfield_same (U8.v f) 0 protected_bits pb_value;
+    BF.get_bitfield_logxor (f0) (U8.v (S.index mask 0)) 0 protected_bits;
+    BF.get_bitfield_set_bitfield_same (f0) 0 protected_bits pb_value';
+    FStar.UInt.logxor_inv (BF.get_bitfield (U8.v f) 0 protected_bits) (BF.get_bitfield (U8.v (S.index mask 0)) 0 protected_bits);
+    assert (BF.get_bitfield (U8.v f) 0 protected_bits == BF.get_bitfield f1 0 protected_bits);
+    BF.get_bitfield_set_bitfield_other (U8.v f) 0 protected_bits pb_value protected_bits 8;
+    BF.get_bitfield_set_bitfield_other (f0) 0 protected_bits pb_value' protected_bits 8;
+    BF.get_bitfield_partition_2 protected_bits (U8.v f) f1;
+    assert (f == U8.uint_to_t f1);
+    format_header_pn_length h;
+    assert ((r.pn_len <: nat) == pn_len);
+    assert (pnmask' == and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0);
+    xor_inplace_involutive format pnmask' pn_offset;
+    let packet0 = xor_inplace format pnmask' pn_offset in
+    pointwise_op_slice_other U8.logxor format pnmask' pn_offset 0 1;
+    assert (S.index packet0 0 == S.index (S.slice format 0 1) 0);
+    assert (packet == S.cons (U8.uint_to_t f0) (S.slice packet0 1 (S.length packet0)));
+    assert (packet1 `S.equal` S.cons (U8.uint_to_t f1) (S.slice packet0 1 (S.length packet0)));
+    assert (packet1 `S.equal` packet0);
+    assert (r.packet `S.equal` format);
+    ()
+  end
+
+#pop-options
+
+let lemma_header_encryption_correct a k h cid_len last c =
+  lemma_header_encryption_correct_aux a k h cid_len c;
+  lemma_header_parsing_correct h c cid_len last
+
+(* not useful anymore by using declassify above
 
 let coerce (#a:Type) (x:a) (b:Type) : Pure b
   (requires a == b) (ensures fun y -> y == x) = x
@@ -249,16 +497,9 @@ let reveal (x:S.seq Lib.IntTypes.uint8) : Pure bytes
   = S.init (S.length x) (fun i -> U8.uint_to_t (Lib.IntTypes.uint_v (S.index x i)))
 *)
 
-// two lines to break the abstraction of UInt8 used for
-// side-channel protection (useless here). Copied from mitls-fstar
-// src/tls/declassify.fst (branch dev)
-friend Lib.IntTypes
-let declassify : squash (Lib.IntTypes.uint8 == UInt8.t)= ()
-
+#pop-options
 
 /// encryption of a packet
-
-#push-options "--z3rlimit 20"
 
 let encrypt a k siv hpk h plain =
   let open FStar.Endianness in
@@ -276,46 +517,36 @@ let encrypt a k siv hpk h plain =
       let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
       xor_inplace pnb siv 0
   in
-  let cipher = AEAD.encrypt #a k iv aad plain in
+  let cipher = if is_retry h then plain else AEAD.encrypt #a k iv aad plain in
   header_encrypt a hpk h cipher
 
-#pop-options
-
-#push-options "--max_ifuel 1 --initial_ifuel 1"
+#push-options "--max_ifuel 1"
 
 let decrypt a k siv hpk last cid_len packet =
   let open FStar.Math.Lemmas in
   let open FStar.Endianness in
   match header_decrypt a hpk cid_len last packet with
   | H_Failure -> Failure
-  | H_Success h c ->
-    let clen = Seq.length c in
-    if 19 <= clen && clen < max_cipher_length
-    then
-      let c : cbytes = c in
+  | H_Success h c rem ->
+    if is_retry h
+    then Success h c rem
+    else
       let aad = format_header h in
-      let iv =
-        if is_retry h
-        then siv
-        else
-          let pn = packet_number h in
-          let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
-          let pnb =
-            pow2_lt_compat (8 `op_Multiply` 12) 62;
-            n_to_be 12 (U64.v pn)
-          in
-          xor_inplace pnb siv 0
+      let pn = packet_number h in
+      let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
+      let pnb =
+        pow2_lt_compat (8 `op_Multiply` 12) 62;
+        n_to_be 12 (U64.v pn)
       in
+      let iv = xor_inplace pnb siv 0 in
       match AEAD.decrypt #a k iv aad c with
       | None -> Failure
-      | Some plain -> Success h plain
-    else
-      Failure
-
-#pop-options
+      | Some plain -> Success h plain rem
 
 /// proving correctness of decryption (link between modulo, and be_to_n
 /// + slice last bytes
+
+#push-options "--z3rlimit 16"
 
 let lemma_encrypt_correct a k siv hpk h cid_len last plain =
   let packet = encrypt a k siv hpk h plain in
@@ -333,13 +564,21 @@ let lemma_encrypt_correct a k siv hpk h cid_len last plain =
       let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
       xor_inplace pnb siv 0
   in
-  let cipher = AEAD.encrypt #a k iv aad plain in
+  let cipher = if is_retry h then plain else AEAD.encrypt #a k iv aad plain in
   assert (packet == header_encrypt a hpk h cipher);
   lemma_header_encryption_correct a hpk h cid_len last cipher;
-  let dc = header_decrypt a hpk cid_len last packet in
-  assert (H_Success? dc);
-  let H_Success h' c' = dc in
-  assert (h == h' /\ cipher == c');
-  let clen = S.length cipher in
-  assert (19 <= clen && clen < max_cipher_length);
-  AEAD.correctness #a k iv aad plain
+  if is_retry h
+  then ()
+  else begin
+    let dc = header_decrypt a hpk cid_len last packet in
+    assert (H_Success? dc);
+    let H_Success h' c' rem' = dc in
+    assert (h == h' /\ cipher == c');
+    let clen = S.length cipher in
+    assert (19 <= clen && clen < max_cipher_length);
+    AEAD.correctness #a k iv aad plain
+  end
+
+#pop-options
+
+#pop-options

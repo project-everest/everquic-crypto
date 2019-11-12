@@ -1,5 +1,5 @@
 module QUIC.Spec
-include QUIC.Parse
+include QUIC.Spec.Base
 
 module S = FStar.Seq
 module HD = Spec.Hash.Definitions
@@ -24,6 +24,8 @@ let keysized (a:ha) (l:nat) =
   l <= HD.max_input_length a /\ l + HD.block_length a < pow2 32
 let hashable (a:ha) (l:nat) = l <= HD.max_input_length a
 
+let header_len_bound = 16500 // FIXME: this should be in line with the parser kind
+
 // AEAD plain and ciphertext. We want to guarantee that regardless
 // of the header size (max is 54), the neader + ciphertext + tag fits in a buffer
 // JP: perhaps cleaner with a separate lemma; any reason for putting this in a refinement?
@@ -39,7 +41,9 @@ let max_cipher_length : n:nat {
   pow2 32 - header_len_bound
 
 type pbytes = b:bytes{let l = S.length b in 3 <= l /\ l < max_plain_length}
+type pbytes' (is_retry: bool) = b:bytes{let l = S.length b in if is_retry then l == 0 else (3 <= l /\ l < max_plain_length)}
 type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}
+type cbytes' (is_retry: bool) = b: bytes { let l = S.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
 
 // JP: this is Spec.Agile.Cipher.key_length
 let ae_keysize (a:ea) =
@@ -84,8 +88,20 @@ let _: squash (inversion header) = allow_inversion header
 val header_encrypt: a:ea ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->
-  c: cbytes ->
+  c: cbytes' (is_retry h) ->
   GTot packet
+
+noeq
+type h_result =
+| H_Success:
+  h: header ->
+  cipher: cbytes' (is_retry h) ->
+  rem: bytes ->
+  h_result
+| H_Failure
+
+// JP: should we allow inversion on either hash algorithm or AEAD algorithm?
+#push-options "--max_ifuel 1"
 
 // Note that cid_len cannot be parsed from short headers
 val header_decrypt: a:ea ->
@@ -93,7 +109,17 @@ val header_decrypt: a:ea ->
   cid_len: nat { cid_len < 20 } ->
   last: nat { last + 1 < pow2 62 } ->
   p: packet ->
-  GTot h_result
+  GTot (r: h_result { match r with
+  | H_Failure -> True
+  | H_Success h c rem ->
+    is_valid_header h cid_len last /\
+    S.length rem <= S.length p /\
+    rem `S.equal` S.slice p (S.length p - S.length rem) (S.length p)
+  })
+
+#pop-options
+
+// TODO: add a prefix lemma on header_decrypt, if ever useful
 
 module U32 = FStar.UInt32
 module U64 = FStar.UInt64
@@ -107,17 +133,18 @@ val lemma_header_encryption_correct:
   h:header ->
   cid_len: nat { cid_len < 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))) } ->
-  c: cbytes (* {MLong? h ==> S.length c = MLong?.len h} *) ->
+  c: cbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length c } ->
   Lemma (
     header_decrypt a k cid_len last (header_encrypt a k h c)
-    == H_Success h c)
+    == H_Success h c S.empty)
 
 
 noeq
 type result =
 | Success: 
   h: header ->
-  plain: pbytes ->
+  plain: pbytes' (is_retry h) ->
+  remainder: bytes ->
   result
 | Failure
 
@@ -127,12 +154,12 @@ val encrypt:
   static_iv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->
-  plain: pbytes (* {Long? h ==> Long?.len h == S.length plain + AEAD.tag_length a} *) ->
+  plain: pbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length plain + AEAD.tag_length a } ->
   GTot packet
 
-
-
 /// decryption and correctness
+
+#set-options "--max_fuel 0 --max_ifuel 1"
 
 val decrypt:
   a: ea ->
@@ -142,9 +169,14 @@ val decrypt:
   last: nat{last+1 < pow2 62} ->
   cid_len: nat { cid_len < 20 } ->
   packet: packet ->
-  GTot result
-
-#set-options "--max_fuel 0 --max_ifuel 1"
+  GTot (r: result {
+    match r with
+    | Failure -> True
+    | Success h _ rem ->
+      is_valid_header h cid_len last /\
+      S.length rem <= Seq.length packet /\
+      rem `S.equal` S.slice packet (S.length packet - S.length rem) (S.length packet)
+  })
 
 val lemma_encrypt_correct:
   a: ea ->
@@ -154,7 +186,7 @@ val lemma_encrypt_correct:
   h: header ->
   cid_len: nat { cid_len < 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat{last+1 < pow2 62 } ->
-  p: pbytes (* {Long? h ==> Long?.len h == S.length p + AEAD.tag_length a} *) -> Lemma
+  p: pbytes' (is_retry h)  { has_payload_length h ==> U64.v (payload_length h) == S.length p + AEAD.tag_length a } -> Lemma
   (requires (
     (~ (is_retry h)) ==> (
       in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))
@@ -162,5 +194,5 @@ val lemma_encrypt_correct:
   (ensures (
     decrypt a k siv hpk last cid_len
       (encrypt a k siv hpk h p)
-    == Success h p
+    == Success h p Seq.empty
   ))

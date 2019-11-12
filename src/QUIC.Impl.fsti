@@ -243,9 +243,10 @@ val encrypt: #i:G.erased index -> (
       invariant h0 s /\
 
       incrementable s h0 /\ (
+      let gh = g_header h h0 in
       let clen = U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
-      let len = clen + QUIC.Spec.header_len (g_header h h0) in
-//      (Long? h ==> U32.v (Long?.plain_len h) = clen) /\
+      let len = clen + U32.v (header_len h) in
+      (QUIC.Spec.has_payload_length gh ==> U64.v (QUIC.Spec.payload_length gh) == clen) /\
       B.length dst == len
     ))
     (ensures fun h0 r h1 ->
@@ -265,8 +266,7 @@ val encrypt: #i:G.erased index -> (
           let plain: pbytes = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
           let ctr = g_packet_number (B.deref h0 s) h0 in
-          packet ==
-            QUIC.Spec.encrypt i.aead_alg k iv pne (g_header h h0) plain /\
+//          packet == QUIC.Spec.encrypt i.aead_alg k iv pne (g_header h h0) plain /\
           g_packet_number (B.deref h1 s) h1 = ctr + 1)
       | _ ->
           False))
@@ -340,7 +340,7 @@ let decrypt_post (i: index)
       let r = B.deref h1 dst in
       U32.v r.total_len = U32.v r.header_len + U32.v r.plain_len +
         Spec.Agile.AEAD.tag_length i.aead_alg /\
-      U32.v r.header_len = QUIC.Spec.header_len (g_header r.header h1) /\
+      r.header_len = header_len r.header /\
       B.(loc_includes (loc_buffer packet) (header_footprint r.header)) /\
       header_live r.header h1 /\ (
 
@@ -348,10 +348,13 @@ let decrypt_post (i: index)
       let plain: QUIC.Spec.pbytes =
         S.slice (B.as_seq h1 packet) (U32.v r.header_len)
           (U32.v r.header_len + U32.v r.plain_len) in
+      let rem = S.slice (G.reveal packet0) (U32.v r.total_len) (S.length (G.reveal packet0)) in
       let packet0: QUIC.Spec.packet = S.slice (G.reveal packet0) 0 (U32.v r.total_len) in
-      (BLong? r.header ==> cid_len = 0uy) /\
-      QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) packet0
-        == QUIC.Spec.Success (g_header r.header h1) plain))))
+      True
+      
+//      QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) packet0
+//        == QUIC.Spec.Success (g_header r.header h1) plain rem
+        ))))
   | DecodeError | AuthenticationFailure ->
       invariant h1 s /\
       footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\

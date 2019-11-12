@@ -38,6 +38,8 @@ let bitfield
 : Tot eqtype
 = (x: U8.t { U8.v x < pow2 sz })
 
+// TODO: here add the constraint { payload_length + packet_number_length < pow2 62 } and change the parser accordingly (see comment on QUIC.Parse.fst:payload_length_pn)
+
 noeq
 type long_header_specifics =
 | MInitial:
@@ -137,3 +139,24 @@ let in_window (pn_len: nat { pn_len < 4 }) (last pn:nat) =
   (last+1 < h/2 /\ pn < h) \/
   (last+1 >= U64.v uint62_bound - h/2 /\ pn >= U64.v uint62_bound - h) \/
   (last+1 - h/2 < pn /\ pn <= last+1 + h/2)
+
+(* Payload length *)
+
+let has_payload_length
+  (h: header)
+: Tot bool
+= MLong? h && (not (MRetry? (MLong?.spec h)))
+
+let payload_length 
+  (h: header { has_payload_length h })
+: Tot uint62_t
+= match MLong?.spec h with
+  | MInitial _ pl _ _ -> pl
+  | MZeroRTT pl _ _ -> pl
+  | MHandshake pl _ _ -> pl
+
+(* Correctness of a packet wrt. parsing parameters (cid_len, window) *)
+
+let is_valid_header (h: header) (cid_len: nat) (last: nat) : Tot Type0 =
+  (MShort? h ==> dcid_len h == cid_len) /\
+  ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h)))

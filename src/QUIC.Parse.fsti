@@ -88,10 +88,9 @@ val parse_header: cid_len: nat { cid_len < 20 } -> last: nat { last + 1 < pow2 6
   match r with
   | H_Failure -> True
   | H_Success h c ->
-    (MShort? h ==> dcid_len h == cid_len) /\
-    ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))) /\
+    is_valid_header h cid_len last /\
     Seq.length c <= Seq.length b /\
-    c == Seq.slice b (Seq.length b - Seq.length c) (Seq.length b)
+    c `Seq.equal` Seq.slice b (Seq.length b - Seq.length c) (Seq.length b)
 })
 
 val lemma_header_parsing_correct:
@@ -101,8 +100,7 @@ val lemma_header_parsing_correct:
   last: nat { last + 1 < pow2 62 } ->
   Lemma
   (requires (
-    (MShort? h ==> cid_len == dcid_len h) /\
-    ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h)))
+    is_valid_header h cid_len last
   ))
   (ensures (
     parse_header cid_len last S.(format_header h @| c)
@@ -125,7 +123,7 @@ let lemma_header_parsing_post
   (match parse_header cid_len last b with
   | H_Failure -> True
   | H_Success h c ->
-    (MShort? h ==> dcid_len h == cid_len) /\
+    is_valid_header h cid_len last /\
     header_len h + Seq.length c == Seq.length b /\
     b == format_header h `Seq.append` c /\
     Seq.slice b 0 (header_len h) == format_header h /\
