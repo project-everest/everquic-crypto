@@ -13,23 +13,27 @@ module Spec = QUIC.Spec.Base
 /// Note that we try to follow the convention of buffer arguments followed by
 /// their lengths.
 
+(* NOTE: in the following header type, payload_length contains the
+length of the actual payload, NOT including the length of the packet
+number. *)
+
 noeq type long_header_specifics =
   | BInitial:
     payload_length: uint62_t ->
     packet_number: uint62_t ->
-    packet_number_length: packet_number_length_t ->
+    (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 }) ->
     token: B.buffer U8.t -> (* I reordered those so that the extracted code for this type is a tagged union with common prefixes *)
     token_length: U32.t { let v = U32.v token_length in v == B.length token /\ 0 <= v /\ v <= token_max_len  } ->
     long_header_specifics
   | BZeroRTT:
     payload_length: uint62_t ->
     packet_number: uint62_t ->
-    packet_number_length: packet_number_length_t ->
+    (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 }) ->
     long_header_specifics
   | BHandshake:
     payload_length: uint62_t ->
     packet_number: uint62_t ->
-    packet_number_length: packet_number_length_t ->
+    (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 }) ->
     long_header_specifics
   | BRetry:
     unused: bitfield 4 ->

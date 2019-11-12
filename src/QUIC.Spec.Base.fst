@@ -38,24 +38,26 @@ let bitfield
 : Tot eqtype
 = (x: U8.t { U8.v x < pow2 sz })
 
-// TODO: here add the constraint { payload_length + packet_number_length < pow2 62 } and change the parser accordingly (see comment on QUIC.Parse.fst:payload_length_pn)
+(* NOTE: in the following header type, payload_length contains the
+length of the actual payload, NOT including the length of the packet
+number. *)
 
 noeq
 type long_header_specifics =
 | MInitial:
   (token: vlbytes 0 token_max_len) -> // arbitrary bound
   (payload_length: uint62_t) ->
-  (packet_number_length: packet_number_length_t) ->
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 }) ->
   (packet_number: uint62_t) ->
   long_header_specifics
 | MZeroRTT:
   (payload_length: uint62_t) ->
-  (packet_number_length: packet_number_length_t) ->
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 }) ->
   (packet_number: uint62_t) ->
   long_header_specifics
 | MHandshake:
   (payload_length: uint62_t) ->
-  (packet_number_length: packet_number_length_t) ->
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 }) ->
   (packet_number: uint62_t) ->
   long_header_specifics
 | MRetry:

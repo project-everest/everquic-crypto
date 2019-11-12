@@ -191,7 +191,14 @@ let common_long_t
 : Type0
 = (U32.t & (parse_bounded_vlbytes_t 0 20 & parse_bounded_vlbytes_t 0 20))
 
-// TODO: replace the payload_length type with a refinement (payload_and_pn_length: uint62_t { U64.v payload_and_pn_length >= U32.v pn_length }), and replace the parser with the corresponding (parse_filter parse_varint); then add the conversions from payload_and_pn_length to payload_length and back in mk_header and mk_body
+module Cast = FStar.Int.Cast
+
+inline_for_extraction
+let payload_and_pn_length_prop
+  (pn_length: packet_number_length_t)
+  (payload_and_pn_len: uint62_t)
+: Tot bool
+= payload_and_pn_len `U64.gte` Cast.uint32_to_uint64 pn_length
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
@@ -200,7 +207,7 @@ let payload_length_pn
   (last: last_packet_number_t)
   (pn_length: packet_number_length_t)
 : Tot Type0
-= (uint62_t & packet_number_t last pn_length)
+= (parse_filter_refine (payload_and_pn_length_prop pn_length) & packet_number_t last pn_length)
 
 #push-options "--z3rlimit 16 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
@@ -249,18 +256,18 @@ let mk_header
     end
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match coerce (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn last pn_length)) pl with
-    | ((version, (dcid, scid)), (token, (payload_length, packet_number))) ->
-      MLong version dcid scid (MInitial token payload_length pn_length packet_number)
+    | ((version, (dcid, scid)), (token, (payload_and_pn_length, packet_number))) ->
+      MLong version dcid scid (MInitial token (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length packet_number)
     end
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match coerce (common_long_t & payload_length_pn last pn_length) pl with
-    | ((version, (dcid, scid)), (payload_length, packet_number)) ->
-      MLong version dcid scid (MZeroRTT payload_length pn_length packet_number)
+    | ((version, (dcid, scid)), (payload_and_pn_length, packet_number)) ->
+      MLong version dcid scid (MZeroRTT (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length packet_number)
     end
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match coerce (common_long_t & payload_length_pn last pn_length) pl with
-    | ((version, (dcid, scid)), (payload_length, packet_number)) ->
-      MLong version dcid scid (MHandshake payload_length pn_length packet_number)
+    | ((version, (dcid, scid)), (payload_and_pn_length, packet_number)) ->
+      MLong version dcid scid (MHandshake (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length packet_number)
     end
   | (| Long, (| (), (| Retry, (unused, ()) |) |) |) ->
     begin match coerce (common_long_t & parse_bounded_vlbytes_t 0 20) pl with
@@ -285,23 +292,27 @@ let mk_header_body
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
     | MLong version dcid scid (MInitial token payload_length _ packet_number) ->
-      coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (token, (payload_length, packet_number))) <: (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn last pn_length)))
+      coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (token, (payload_length `U64.add` Cast.uint32_to_uint64 pn_length, packet_number))) <: (common_long_t & (parse_bounded_vlbytes_t 0 token_max_len & payload_length_pn last pn_length)))
     end
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
     | MLong version dcid scid (MZeroRTT payload_length _ packet_number) ->
-      coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length, packet_number)) <: (common_long_t & payload_length_pn last pn_length))
+      coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length `U64.add` Cast.uint32_to_uint64 pn_length, packet_number)) <: (common_long_t & payload_length_pn last pn_length))
     end
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
     begin match pl with
     | MLong version dcid scid (MHandshake payload_length _ packet_number) ->
-      coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length, packet_number)) <: (common_long_t & payload_length_pn last pn_length))
+      coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_length `U64.add` Cast.uint32_to_uint64 pn_length, packet_number)) <: (common_long_t & payload_length_pn last pn_length))
     end
   | (| Long, (| (), (| Retry, (unused, ()) |) |) |) ->
     begin match pl with
     | MLong version dcid scid (MRetry unused odcid) ->
       coerce (header_body_type short_dcid_len last (bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), odcid) <: (common_long_t & parse_bounded_vlbytes_t 0 20))
     end
+
+#pop-options
+
+#push-options "--z3rlimit 128 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
 [@filter_bitsum'_t_attr]
 inline_for_extraction
@@ -330,7 +341,7 @@ let parse_payload_length_pn
   (last: last_packet_number_t)
   (pn_length: packet_number_length_t)
 : Tot (parser _ (payload_length_pn last pn_length))
-= parse_varint `nondep_then` parse_packet_number last pn_length
+= (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) `nondep_then` parse_packet_number last pn_length
 
 #push-options "--z3rlimit 64 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
@@ -382,7 +393,7 @@ let serialize_payload_length_pn
   (last: last_packet_number_t)
   (pn_length: packet_number_length_t)
 : Tot (serializer (parse_payload_length_pn last pn_length))
-= serialize_varint `serialize_nondep_then` serialize_packet_number last pn_length
+= (serialize_varint `serialize_filter` payload_and_pn_length_prop pn_length) `serialize_nondep_then` serialize_packet_number last pn_length
 
 let serialize_header_body
   (short_dcid_len: short_dcid_len_t)

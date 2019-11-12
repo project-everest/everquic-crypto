@@ -17,6 +17,7 @@ module U64 = FStar.UInt64
 module U32 = FStar.UInt32
 module U16 = FStar.UInt16
 module U8 = FStar.UInt8
+module Cast = FStar.Int.Cast
 
 module FB = FStar.Bytes
 open LowParse.Spec.Bytes
@@ -39,7 +40,7 @@ let validate_payload_length_pn
   (last: last_packet_number_t)
   (pn_length: packet_number_length_t)
 : Tot (LC.validator (parse_payload_length_pn last pn_length))
-= validate_varint `LC.validate_nondep_then` validate_packet_number last pn_length
+= LC.validate_filter validate_varint read_varint (payload_and_pn_length_prop pn_length) (fun x -> payload_and_pn_length_prop pn_length x) `LC.validate_nondep_then` validate_packet_number last pn_length
 
 #push-options "--z3rlimit 64 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
@@ -170,7 +171,7 @@ let read_header_body_short
 
 #pop-options
 
-#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
 #restart-solver
 
@@ -201,7 +202,7 @@ let read_header_body_long_retry
 
 #pop-options
 
-#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
 #restart-solver
 
@@ -229,17 +230,17 @@ let read_header_body_long_initial
     let token = LB.get_bounded_vlgenbytes_contents 0 token_max_len (read_bounded_varint 0 token_max_len) (jump_bounded_varint 0 token_max_len) sl pos3 in
     let token_len = LB.bounded_vlgenbytes_payload_length 0 token_max_len (read_bounded_varint 0 token_max_len) sl pos3 in
     let pos4 = LB.jump_bounded_vlgenbytes 0 token_max_len (jump_bounded_varint 0 token_max_len) (read_bounded_varint 0 token_max_len) sl pos3 in
-    LL.valid_nondep_then h0 parse_varint (parse_packet_number last pn_length) sl pos4;
-    let payload_length = read_varint sl pos4 in
-    let pos5 = jump_varint sl pos4 in
+    LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos4;
+    let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos4 in
+    let pos5 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos4 in
     let pn = read_packet_number last pn_length sl pos5 in
 //    assert (LL.loc_slice_from_to sl 0ul len `B.loc_includes` B.loc_buffer token);
-    let spec = Impl.BInitial payload_length pn pn_length token token_len in
+    let spec = Impl.BInitial (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn pn_length token token_len in
     Impl.BLong version dcid dcid_len scid scid_len spec
 
 #pop-options
 
-#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
 #restart-solver
 
@@ -263,11 +264,11 @@ let read_header_body_long_handshake
     let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
     let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
     let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
-    LL.valid_nondep_then h0 parse_varint (parse_packet_number last pn_length) sl pos3;
-    let payload_length = read_varint sl pos3 in
-    let pos4 = jump_varint sl pos3 in
+    LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos3;
+    let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos3 in
+    let pos4 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos3 in
     let pn = read_packet_number last pn_length sl pos4 in
-    let spec = Impl.BHandshake payload_length pn pn_length in
+    let spec = Impl.BHandshake (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn pn_length in
     Impl.BLong version dcid dcid_len scid scid_len spec
 
 #restart-solver
@@ -292,11 +293,11 @@ let read_header_body_long_ZeroRTT
     let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
     let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
     let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
-    LL.valid_nondep_then h0 parse_varint (parse_packet_number last pn_length) sl pos3;
-    let payload_length = read_varint sl pos3 in
-    let pos4 = jump_varint sl pos3 in
+    LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos3;
+    let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos3 in
+    let pos4 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos3 in
     let pn = read_packet_number last pn_length sl pos4 in
-    let spec = Impl.BZeroRTT payload_length pn pn_length in
+    let spec = Impl.BZeroRTT (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn pn_length in
     Impl.BLong version dcid dcid_len scid scid_len spec
 
 inline_for_extraction
@@ -325,7 +326,7 @@ let read_header_body
 
 #restart-solver
 
-#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats"
+#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --query_stats"
 
 let read_header
   packet packet_len cid_len last
