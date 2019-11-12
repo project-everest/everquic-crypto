@@ -1,5 +1,6 @@
 module QUIC.Impl.Header
 include QUIC.Spec.Header
+include QUIC.Impl.Base
 
 module B = LowStar.Buffer
 module U8 = FStar.UInt8
@@ -8,6 +9,7 @@ module HST = FStar.HyperStack.ST
 module S = FStar.Seq
 module U64 = FStar.UInt64
 
+module Spec = QUIC.Spec.Header
 module Impl = QUIC.Impl.Base
 
 val read_header
@@ -33,18 +35,9 @@ val read_header
           U32.v len <= B.length packet /\
           B.loc_buffer (B.gsub packet 0ul len) `B.loc_includes` Impl.header_footprint x /\
           Impl.g_header x h' == hd /\
-          U32.v len = header_len hd
+          U32.v len = Spec.header_len hd
         end
     end
-  ))
-
-val header_length
-  (x: Impl.header)
-: HST.Stack U32.t
-  (requires (fun h -> Impl.header_live x h))
-  (ensures (fun h res h' ->
-    B.modifies B.loc_none h h' /\
-    U32.v res == header_len (Impl.g_header x h)
   ))
 
 val write_header
@@ -54,7 +47,7 @@ val write_header
   (requires (fun h ->
     B.live h dst /\
     Impl.header_live x h /\
-    B.length dst == header_len (Impl.g_header x h) /\
+    B.length dst == Spec.header_len (Impl.g_header x h) /\
     Impl.header_footprint x `B.loc_disjoint` B.loc_buffer dst
   ))
   (ensures (fun h _ h' ->
@@ -94,13 +87,10 @@ val pn_offset
     U32.v res == pn_offset (Impl.g_header h m)
   ))
 
-val header_len
+module HS = FStar.HyperStack
+
+val header_len_correct
   (h: Impl.header)
-: HST.Stack U32.t
-  (requires (fun m ->
-    Impl.header_live h m
-  ))
-  (ensures (fun m res m' ->
-    B.modifies B.loc_none m m' /\
-    U32.v res == header_len (Impl.g_header h m)
-  ))
+  (m: HS.mem)
+: Lemma
+  (U32.v (Impl.header_len h) == Spec.header_len (Impl.g_header h m))

@@ -262,3 +262,18 @@ let serialize_bounded_varint
     (synth_bounded_varint_recip min max)
     (fun x -> synth_bounded_varint_recip min max x)
     ()
+
+let varint_len_correct
+  x
+= ()
+
+let bounded_varint_len_correct
+  min max x
+= serialize_synth_eq
+    _
+    (synth_bounded_varint min max)
+    (QUIC.Spec.VarInt.serialize_varint `serialize_filter` varint_in_bounds min max)
+    (synth_bounded_varint_recip min max)
+    ()
+    x;
+  varint_len_correct (Cast.uint32_to_uint64 x)

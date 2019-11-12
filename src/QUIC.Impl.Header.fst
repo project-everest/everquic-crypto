@@ -1,7 +1,9 @@
 module QUIC.Impl.Header
 friend QUIC.Spec.Header
 
-open QUIC.Spec.Base
+open QUIC.Impl.Base
+open QUIC.Spec.Header
+
 open QUIC.Impl.PacketNumber
 
 open FStar.HyperStack.ST
@@ -237,7 +239,7 @@ let read_header_body_long_initial
 
 #pop-options
 
-#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
 #restart-solver
 
@@ -268,8 +270,6 @@ let read_header_body_long_handshake
     let spec = Impl.BHandshake payload_length pn pn_length in
     Impl.BLong version dcid dcid_len scid scid_len spec
 
-#push-options "--z3rlimit 256"
-
 #restart-solver
 
 let read_header_body_long_ZeroRTT
@@ -298,8 +298,6 @@ let read_header_body_long_ZeroRTT
     let pn = read_packet_number last pn_length sl pos4 in
     let spec = Impl.BZeroRTT payload_length pn pn_length in
     Impl.BLong version dcid dcid_len scid scid_len spec
-
-#pop-options
 
 inline_for_extraction
 noextract
@@ -368,11 +366,6 @@ let read_header
     Some (res, len)
   end
 
-let header_length
-  x
-=
-  admit ()
-
 let write_header
   dst x
 =
@@ -437,6 +430,6 @@ let pn_offset
   h
 = admit ()
 
-let header_len
-  h
+let header_len_correct
+  h m
 = admit ()
