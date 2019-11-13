@@ -199,6 +199,12 @@ let rec pointwise_op (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat) : Pure (S
     let x = f (S.index b1 pos) (S.index b2 0) in
     pointwise_op f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) (pos + 1)
 
+let pointwise_op_empty
+  (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
+: Lemma
+  (requires (S.length b2 == 0 /\ pos <= S.length b1))
+  (ensures (pointwise_op f b1 b2 pos == b1))
+= assert (b2 `S.equal` S.empty)
 
 // three lemmas to recover indexes after application of bitwise_op
 let rec pointwise_index1 (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
@@ -298,7 +304,7 @@ let pointwise_op_pref (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemm
 
 let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
   (requires
-    pos < S.length a1 /\
+    pos <= S.length a1 /\
     S.length a1 <= S.length b + pos /\
     S.length b + pos <= S.length a1 + S.length a2)
   (ensures (
@@ -327,6 +333,45 @@ let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
     end in
 
   FStar.Classical.forall_intro step
+
+let pointwise_op_append_r
+  (#t: eqtype)
+  (f: t -> t -> t)
+  (a b1 b2: S.seq t)
+  (pos: nat)
+: Lemma
+  (requires (
+    pos + S.length b1 + S.length b2 <= S.length a
+  ))
+  (ensures (
+    pointwise_op f a (S.append b1 b2) pos == (
+      pointwise_op f (S.slice a 0 (pos + S.length b1)) b1 pos `S.append`
+      pointwise_op f (S.slice a (pos + S.length b1) (S.length a)) b2 0
+  )))
+= S.lemma_split a (pos + S.length b1);
+  pointwise_op_dec f (S.slice a 0 (pos + S.length b1)) (S.slice a (pos + S.length b1) (S.length a)) (S.append b1 b2) pos;
+  let (b1', b2') = S.split (b1 `S.append` b2) (S.length b1) in
+  assert (b1 `S.equal` b1' /\ b2 `S.equal` b2')
+
+let pointwise_op_split
+  (#t: eqtype)
+  (f: t -> t -> t)
+  (a b: S.seq t)
+  (pos: nat)
+  (pos_split: nat)
+: Lemma
+  (requires (
+    pos <= pos_split /\
+    pos_split <= pos + S.length b /\
+    pos + S.length b <= S.length a
+  ))
+  (ensures (
+    let (a1, a2) = S.split a pos_split in
+    let (b1, b2) = S.split b (pos_split - pos) in
+    pointwise_op f a b pos == pointwise_op f a1 b1 pos `S.append` pointwise_op f a2 b2 0
+  ))
+= S.lemma_split a pos_split;
+  pointwise_op_dec f (S.slice a 0 pos_split) (S.slice a pos_split (S.length a)) b pos
 
 let pointwise_op_slice_other
   (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
@@ -452,6 +497,28 @@ let rec xor_inplace_commutative (b b1 b2:bytes) (pos1 pos2:nat) : Lemma
 
   FStar.Classical.forall_intro step
 
+let xor_inplace_zero
+  (a b: bytes)
+  (phi: (i: nat {i < S.length b}) -> Lemma (S.index b i == 0uy))
+  (pos: nat)
+: Lemma
+  (requires (pos + S.length b <= S.length a))
+  (ensures (xor_inplace a b pos `S.equal` a))
+= let psi
+    (i: nat {i < S.length a})
+  : Lemma
+    (S.index (xor_inplace a b pos) i == S.index a i)
+  = if i < pos
+    then pointwise_index1 U8.logxor a b i pos
+    else if i >= pos + S.length b
+    then pointwise_index3 U8.logxor a b i pos
+    else begin
+      pointwise_index2 U8.logxor a b i pos;
+      phi (i - pos);
+      FStar.UInt.logxor_lemma_1 (U8.v (S.index a i))
+    end
+  in
+  Classical.forall_intro psi
 
 let and_inplace (b1 b2:bytes) (pos:nat)
   : Pure bytes
@@ -459,6 +526,17 @@ let and_inplace (b1 b2:bytes) (pos:nat)
   (ensures fun b -> S.length b == S.length b1)
   (decreases (S.length b2)) =
   pointwise_op U8.logand b1 b2 pos
+
+let and_inplace_zero
+  (a b: bytes)
+  (phi: (i: nat {i < S.length b}) -> Lemma (S.index b i == 0uy))
+  (i: nat {i < S.length a})
+: Lemma
+  (requires (S.length b == S.length a))
+  (ensures (S.index (and_inplace a b 0) i == 0uy))
+= pointwise_index2 U8.logand a b i 0;
+  phi i;
+  FStar.UInt.logand_lemma_1 (U8.v (S.index a i))
 
 let rec bitwise_op (f:bool->bool->bool) (l1 l2:list bool) : Pure (list bool)
   (requires List.Tot.length l1 = List.Tot.length l2)
@@ -605,3 +683,92 @@ let rec lemma_correctness_slice_be_to_n (b:bytes) (i:nat) : Lemma
     lemma_be_to_n_is_bounded (S.slice b (S.length b - i) (S.length b));
     FStar.Math.Lemmas.small_mod (be_to_n (S.slice b (S.length b - i) (S.length b))) pow
   end
+
+open FStar.Mul
+
+let rec index_be_to_n
+  (b: bytes)
+  (i: nat)
+: Lemma
+  (requires (
+    i < S.length b
+  ))
+  (ensures (
+    U8.v (FStar.Seq.index b i) == (FStar.Endianness.be_to_n b / pow2 (8 * (S.length b - 1 - i))) % pow2 8
+  ))
+  (decreases (S.length b))
+= let open FStar.Endianness in
+  reveal_be_to_n b;
+  if i = S.length b - 1
+  then ()
+  else begin
+    let l = S.length b in
+    let l' = l - 1 in
+    let b' = S.slice b 0 l' in
+    index_be_to_n b' i;
+    assert (FStar.Seq.index b i == FStar.Seq.index b' i);
+    let open FStar.Math.Lemmas in
+    let x = be_to_n b in
+    let x' = be_to_n b' in
+    assert (U8.v (FStar.Seq.index b i) == x' / pow2 (8 * (l' - 1 - i)) % pow2 8);
+    let y = (U8.v (S.last b) + pow2 8 * x') / pow2 (8 * (l - 1 - i)) % pow2 8 in
+    pow2_plus 8 (8 * (l' - 1 - i));
+    division_multiplication_lemma (U8.v (S.last b) + pow2 8 * x') (pow2 8) (pow2 (8 * (l' - 1 - i)));
+    assert (pow2 8 * x' == x' * pow2 8);
+    division_addition_lemma (U8.v (S.last b)) (pow2 8) x';
+    small_division_lemma_1 (U8.v (S.last b)) (pow2 8);
+    assert (y == x' / pow2 (8 * (l' - 1 - i)) % pow2 8)
+  end
+
+let index_n_to_be
+  (len: nat)
+  (n: nat)
+  (i: nat)
+: Lemma
+  (requires (
+    i < len /\
+    n < pow2 (8 * len)
+  ))
+  (ensures (
+    U8.v (FStar.Seq.index (FStar.Endianness.n_to_be len n) i)) == (n / pow2 (8 * (len - 1 - i)) % pow2 8
+  ))
+= index_be_to_n (FStar.Endianness.n_to_be len n) i
+
+let index_n_to_be_zero_left
+  (len: nat)
+  (n: nat)
+  (j: nat)
+  (i: nat)
+: Lemma
+  (requires (
+    i < j /\
+    j <= len /\
+    n < pow2 (8 * (len - j))
+  ))
+  (ensures (
+    pow2 (8 * (len - j)) <= pow2 (8 * len) /\
+    U8.v (FStar.Seq.index (FStar.Endianness.n_to_be len n) i) == 0
+  ))
+= let open FStar.Math.Lemmas in
+  pow2_le_compat (8 * len) (8 * (len - j));
+  pow2_le_compat (8 * (len - 1 - i)) (8 * (len - j));
+  small_division_lemma_1 n (pow2 (8 * (len - 1 - i)));
+  index_n_to_be len n i
+
+let index_n_to_be_zero_right
+  (len: nat)
+  (n: nat)
+  (i: nat)
+: Lemma
+  (requires (
+    i < len /\
+    n < pow2 (8 * len) /\
+    n % pow2 (8 * (len - i)) == 0
+  ))
+  (ensures (
+    U8.v (FStar.Seq.index (FStar.Endianness.n_to_be len n) i) == 0
+  ))
+= index_n_to_be len n i;
+  let open FStar.Math.Lemmas in
+  modulo_division_lemma n (pow2 (8 * (len - 1 - i))) (pow2 8);
+  pow2_plus (8 * (len - 1 - i)) 8
