@@ -3,6 +3,9 @@
 module QUIC.Impl
 include QUIC.Impl.Base
 
+module QSpec = QUIC.Spec
+module QImpl = QUIC.Impl.Base
+
 // This MUST be kept in sync with QUIC.Impl.fst...
 module G = FStar.Ghost
 module B = LowStar.Buffer
@@ -31,7 +34,7 @@ unfold noextract
 let aead_alg = Spec.Agile.AEAD.alg
 
 unfold noextract
-let lbytes = QUIC.Spec.lbytes
+let lbytes = QSpec.lbytes
 
 /// This is not a cryptographic index; rather, this is just a regular type
 /// index, where instead of indexing on a single algorithm (like, say, AEAD), we
@@ -40,8 +43,8 @@ let lbytes = QUIC.Spec.lbytes
 /// The record is here to limit the profileration of hide/reveal in the stateful
 /// functions, and to give easier projectors (ADL, JP).
 type index = {
-  hash_alg: QUIC.Spec.ha;
-  aead_alg: QUIC.Spec.ea
+  hash_alg: QSpec.ha;
+  aead_alg: QSpec.ea
 }
 
 /// Low-level types used in this API
@@ -87,7 +90,7 @@ val g_traffic_secret: #i:index -> (s: state_s i) ->
 
 #push-options "--max_ifuel 1" // inversion on hash_alg
 let hash_is_keysized #i (s: state_s i): Lemma
-  (ensures (QUIC.Spec.keysized i.hash_alg (S.length (g_traffic_secret s))))
+  (ensures (QSpec.keysized i.hash_alg (S.length (g_traffic_secret s))))
   [ SMTPat (g_traffic_secret s) ]
 =
   assert_norm (512 < pow2 61);
@@ -98,7 +101,7 @@ let hash_is_keysized #i (s: state_s i): Lemma
 /// because the initial packet number is erased in the concrete state.) Callers
 /// should be able to derive, from this, that the initial packet number remains
 /// the same, thanks to the precise use of footprint_s in encrypt/decrypt.
-val g_initial_packet_number: #i:index -> (s: state_s i) -> GTot QUIC.Spec.nat62
+val g_initial_packet_number: #i:index -> (s: state_s i) -> GTot QSpec.nat62
 
 /// Invariant
 /// ---------
@@ -125,13 +128,13 @@ val invariant_loc_in_footprint
 /// Ghost accessors needing the invariant
 /// -------------------------------------
 
-val g_packet_number: #i:index -> (s: state_s i) -> (h: HS.mem { invariant_s h s }) ->
-  GTot (pn:QUIC.Spec.nat62{
-    pn >= g_initial_packet_number s
+val g_last_packet_number: #i:index -> (s: state_s i) -> (h: HS.mem { invariant_s h s }) ->
+  GTot (pn: QSpec.uint62_t{
+    U64.v pn >= g_initial_packet_number s
   })
 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
-  g_packet_number (B.deref h s) h + 1 < pow2 62
+  U64.v (g_last_packet_number (B.deref h s) h) + 1 < pow2 62
 
 /// Preserving all the ghost accessors via a single framing lemma only works
 /// because we don't do stack allocation. See comments in
@@ -144,7 +147,7 @@ val frame_invariant: #i:index -> l:B.loc -> s:state i -> h0:HS.mem -> h1:HS.mem 
   (ensures (
     invariant h1 s /\
     footprint h0 s == footprint h1 s /\
-    g_packet_number (B.deref h0 s) h0 == g_packet_number (B.deref h1 s) h0 /\
+    g_last_packet_number (B.deref h0 s) h0 == g_last_packet_number (B.deref h1 s) h0 /\
     g_traffic_secret (B.deref h0 s) == g_traffic_secret (B.deref h1 s)
     ))
   // Assertion failure: unexpected pattern term
@@ -172,10 +175,10 @@ val hash_alg_of_state (#i: G.erased index) (s: state (G.reveal i)): Stack hash_a
     a == (G.reveal i).hash_alg /\
     h0 == h1))
 
-val packet_number_of_state (#i: G.erased index) (s: state (G.reveal i)): Stack U64.t
+val last_packet_number_of_state (#i: G.erased index) (s: state (G.reveal i)): Stack U64.t
   (requires fun h0 -> invariant h0 s)
   (ensures fun h0 ctr h1 ->
-    U64.v ctr == g_packet_number (B.deref h0 s) h0 /\
+    ctr == g_last_packet_number (B.deref h0 s) h0 /\
     h0 == h1)
 
 // JP: we could be defensive and allow callers to pass potentially unsupported
@@ -227,28 +230,20 @@ val encrypt: #i:G.erased index -> (
   dst: B.buffer U8.t ->
   h: header ->
   plain: B.buffer U8.t ->
-  plain_len: U32.t {
-    3 <= U32.v plain_len /\
-    U32.v plain_len < QUIC.Spec.max_plain_length /\
-    B.length plain = U32.v plain_len
-  } ->
-  pn: QUIC.Spec.uint62_t ->
-  pn_len: u2 ->
+  plain_len: U32.t ->
   Stack error_code
     (requires fun h0 ->
       // Memory & preservation
       B.live h0 plain /\ B.live h0 dst /\
       header_live h h0 /\
       B.(all_disjoint [ footprint h0 s; loc_buffer dst; header_footprint h; loc_buffer plain ]) /\
-
       invariant h0 s /\
-
-      incrementable s h0 /\ (
-      let gh = g_header h h0 pn in
-      let clen = U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
-      let len = clen + U32.v (header_len h) in
-      (QUIC.Spec.has_payload_length gh ==> U64.v (QUIC.Spec.payload_length gh) == clen) /\
-      B.length dst == len
+      incrementable s h0 /\
+      B.length plain == U32.v plain_len /\ (
+      let clen = if is_retry h then 0 else U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
+      (if is_retry h then U32.v plain_len == 0 else 3 <= U32.v plain_len /\ U32.v plain_len < QSpec.max_plain_length) /\
+      (has_payload_length h ==> U64.v (payload_length h) == clen) /\
+      B.length dst == U32.v (header_len h) + clen
     ))
     (ensures fun h0 r h1 ->
       match r with
@@ -257,18 +252,17 @@ val encrypt: #i:G.erased index -> (
           B.(modifies (footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst)) h0 h1 /\
           invariant h1 s /\
           footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\ (
-
           // Functional correctness
           let s0 = g_traffic_secret (B.deref h0 s) in
           let open QUIC.Spec in
           let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
           let iv = derive_secret i.hash_alg s0 label_iv 12 in
           let pne = derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg) in
-          let plain: pbytes = B.as_seq h0 plain in
+          let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
-          let ctr = g_packet_number (B.deref h0 s) h0 in
-//          packet == QUIC.Spec.encrypt i.aead_alg k iv pne (g_header h h0) plain /\
-          g_packet_number (B.deref h1 s) h1 = ctr + 1)
+          let pn = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
+          packet == encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
+          g_last_packet_number (B.deref h1 s) h1 == pn)
       | _ ->
           False))
 
@@ -291,11 +285,10 @@ val initial_secrets (dst_client: B.buffer U8.t)
 // meaningful, and plain is only non-null, if the decryption was a success.
 noeq
 type result = {
-  pn_len: u2;
   pn: u62;
   header: header;
   header_len: U32.t;
-  plain_len: n:U32.t{let l = U32.v n in 3 <= l /\ l < QUIC.Spec.max_plain_length};
+  plain_len: n:U32.t{let l = U32.v n in 3 <= l /\ l < QSpec.max_plain_length};
   total_len: n:U32.t
 }
 
@@ -305,64 +298,65 @@ let max (x y: nat) = if x >= y then x else y
 let decrypt_post (i: index)
   (s:state i)
   (dst: B.pointer result)
-  (packet0: G.erased QUIC.Spec.packet)
   (packet: B.buffer U8.t)
-  (len: U32.t{
-    21 <= U32.v len /\
-    B.length packet == U32.v len
-  })
+  (len: U32.t)
   (cid_len: u4)
   (h0: HS.mem)
-  (r: error_code)
+  (res: error_code)
   (h1: HS.mem): Pure Type0
   (requires
-    B.length packet == S.length (G.reveal packet0) /\
+    U32.v len == B.length packet /\
     invariant h0 s /\
     incrementable s h0)
   (ensures fun _ -> True)
 =
   let s0 = g_traffic_secret (B.deref h0 s) in
-  let k = QUIC.Spec.(derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)) in
-  let iv = QUIC.Spec.(derive_secret i.hash_alg s0 label_iv 12) in
-  let pne = QUIC.Spec.(derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)) in
-  let prev = g_packet_number (B.deref h0 s) h0 in
-  match r with
-  | Success ->
-
-      invariant h1 s /\
-      footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\ (
-
-      let r = B.deref h1 dst in
+  let k = QSpec.(derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)) in
+  let iv = QSpec.(derive_secret i.hash_alg s0 label_iv 12) in
+  let pne = QSpec.(derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)) in
+  let prev = g_last_packet_number (B.deref h0 s) h0 in
+  invariant h1 s /\
+  footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\
+  begin
+    let r = B.deref h1 dst in
+    match res with
+    | Success ->
       // prev is known to be >= g_initial_packet_number (see lemma invariant_packet_number)
-      let curr = g_packet_number (B.deref h1 s) h1 in
-      curr == max prev (U64.v r.pn) /\ (
+      U64.v (g_last_packet_number (B.deref h1 s) h1) == max (U64.v prev) (U64.v r.pn) /\ (
 
       // Lengths
-      let r = B.deref h1 dst in
-      U32.v r.total_len = U32.v r.header_len + U32.v r.plain_len +
-        Spec.Agile.AEAD.tag_length i.aead_alg /\
-      r.header_len = header_len r.header /\
-      B.(loc_includes (loc_buffer packet) (header_footprint r.header)) /\
-      header_live r.header h1 /\ (
-
-      U32.v r.total_len <= B.length packet /\ (
-      let plain: QUIC.Spec.pbytes =
+      r.header_len == header_len r.header /\
+      U32.v r.header_len + U32.v r.plain_len <= U32.v r.total_len /\
+      U32.v r.total_len <= B.length packet /\
+      B.(loc_includes (loc_buffer (B.gsub packet 0ul r.header_len)) (header_footprint r.header)) /\
+      header_live r.header h1 /\
+      U32.v r.total_len <= B.length packet /\
+      
+      // Contents
+      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1) /\ (
+      let plain =
         S.slice (B.as_seq h1 packet) (U32.v r.header_len)
           (U32.v r.header_len + U32.v r.plain_len) in
-      let rem = S.slice (G.reveal packet0) (U32.v r.total_len) (S.length (G.reveal packet0)) in
-      let packet0: QUIC.Spec.packet = S.slice (G.reveal packet0) 0 (U32.v r.total_len) in
-      True
-      
-//      QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) packet0
-//        == QUIC.Spec.Success (g_header r.header h1) plain rem
-        ))))
-  | DecodeError | AuthenticationFailure ->
-      invariant h1 s /\
-      footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\
-      QUIC.Spec.Failure?
-        (QUIC.Spec.decrypt i.aead_alg k iv pne prev (U8.v cid_len) (G.reveal packet0))
-  | _ ->
+      let rem = B.as_seq h0 (B.gsub packet r.total_len (B.len packet `U32.sub `r.total_len)) in
+      match QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
+      | QSpec.Success h' plain' rem' ->
+        h' == g_header r.header h1 r.pn /\
+        plain' == plain /\
+        rem' == rem
+      | _ -> False
+    ))
+    | DecodeError ->
+      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
+      B.modifies (B.loc_buffer packet) h0 h1
+    | AuthenticationFailure ->
+      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
+      U32.v r.total_len <= B.length packet /\
+      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+    | _ ->
       False
+  end
 
 val decrypt: #i:G.erased index -> (
   let i = G.reveal i in
@@ -391,10 +385,6 @@ val decrypt: #i:G.erased index -> (
       invariant h0 s /\
       incrementable s h0)
     (ensures fun h0 r h1 ->
-      decrypt_post i s dst (G.hide (B.as_seq h0 packet)) packet len cid_len h0 r h1 /\ (
-      match r with
-      | Success ->
-          B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-            loc_buffer packet `loc_union` loc_buffer dst) h0 h1)
-      | DecodeError | AuthenticationFailure ->
-          B.(modifies (loc_buffer packet `loc_union` footprint_s h0 (B.deref h0 s)) h0 h1))))
+      decrypt_post i s dst packet len cid_len h0 r h1
+    )
+  )

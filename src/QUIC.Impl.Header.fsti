@@ -82,7 +82,7 @@ val pn_offset
 : HST.Stack U32.t
   (requires (fun m ->
     Impl.header_live h m /\
-    (~ (is_retry (Impl.g_header h m (Ghost.reveal pn))))
+    (~ (Spec.is_retry (Impl.g_header h m (Ghost.reveal pn))))
   ))
   (ensures (fun m res m' ->
     B.modifies B.loc_none m m' /\

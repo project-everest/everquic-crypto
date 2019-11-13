@@ -63,6 +63,27 @@ noeq type header =
     packet_number_length: packet_number_length_t ->
     header
 
+inline_for_extraction
+let is_retry
+  (h: header)
+: Tot bool
+= BLong? h && BRetry? (BLong?.spec h)
+
+inline_for_extraction
+let has_payload_length
+  (h: header)
+: Tot bool
+= BLong? h && not (BRetry? (BLong?.spec h))
+
+inline_for_extraction
+let payload_length
+  (h: header { has_payload_length h })
+: Tot uint62_t
+= match BLong?.spec h with
+  | BInitial pl _ _ _ -> pl
+  | BZeroRTT pl _ -> pl
+  | BHandshake pl _ -> pl
+
 module HS = FStar.HyperStack
 
 let header_live (h: header) (m: HS.mem) : GTot Type0 =
