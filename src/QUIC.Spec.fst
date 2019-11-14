@@ -594,8 +594,6 @@ let encrypt a k siv hpk h plain =
       let seqn = packet_number h in
       let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
       let pnb = FStar.Endianness.n_to_be 12 (U64.v seqn) in
-      // network packet number: truncated lower bytes
-      let npn : lbytes (1+pn_len) = S.slice pnb (11 - pn_len) 12 in
       xor_inplace pnb siv 0
   in
   let cipher = if is_retry h then plain else AEAD.encrypt #a k iv aad plain in

@@ -295,3 +295,31 @@ let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
         (U8.v (S.last s) + pow2 8 * be_to_n (S.slice s 0 (S.length s - 1))) %
           pow2 (8 * (S.length s - i));
       }
+
+let n_to_be_lower
+  (len: nat)
+  (len' : nat)
+  (n: nat)
+: Lemma
+  (requires (
+    len <= len' /\
+    n < pow2 (8 * len)
+  ))
+  (ensures (
+    let open FStar.Endianness in
+    n < pow2 (8 * len') /\
+    n_to_be len n `FStar.Seq.equal` FStar.Seq.slice (n_to_be len' n) (len' - len) len'
+  ))
+= let open FStar.Math.Lemmas in
+  let open FStar.Endianness in
+  pow2_le_compat (8 * len') (8 * len);
+  let s1 = n_to_be len n in
+  let s2 = FStar.Seq.slice (n_to_be len' n) (len' - len) len' in
+  let phi
+    (i: nat {i < len})
+  : Lemma
+    (S.index s1 i == S.index s2 i)
+  = QSL.index_n_to_be len n i;
+    QSL.index_n_to_be len' n (i + len' - len)
+  in
+  Classical.forall_intro phi

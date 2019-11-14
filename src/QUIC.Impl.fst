@@ -605,140 +605,151 @@ let pn_sizemask (dst: B.buffer U8.t) (pn_len: u2): Stack unit
 let g_hp_key #i h (s: state i) =
   B.as_seq h (State?.hp_key (B.deref h s))
 
+unfold
 let header_encrypt_pre
   (i: index)
   (dst:B.buffer U8.t)
-  (dst_len:U32.t)
+  (dst_len: U32.t)
   (s:state i)
   (h:header)
-  (cipher:G.erased QUIC.Spec.cbytes)
-  (iv:G.erased (S.seq U8.t))
-  (npn:B.buffer U8.t)
-  (pn_len:u2)
+  (cipher:G.erased (QUIC.Spec.cbytes' (is_retry h)))
   (pn: u62)
   (h0: HS.mem)
 =
   let h_len = HeaderS.header_len (g_header h h0 pn) in
 
   // Administrative: memory
-  B.(all_live h0 [ buf dst; buf s; buf npn ]) /\
+  B.(all_live h0 [ buf dst; buf s ]) /\
   invariant h0 s /\
-  B.(all_disjoint [ footprint h0 s; loc_buffer dst; loc_buffer npn ]) /\
+  B.(all_disjoint [ footprint h0 s; loc_buffer dst; header_footprint h ]) /\
+  header_live h h0 /\
 
   // Administrative: lengths
-  B.length dst = U32.v dst_len /\
-  U32.v dst_len = h_len + S.length (G.reveal cipher) /\
-  S.length (G.reveal iv) = 12 /\
-  B.length npn = 1 + U8.v pn_len /\ (
+  U32.v dst_len == B.length dst /\
+  B.length dst == h_len + S.length (G.reveal cipher) /\ (
 
   // ``dst`` contains formatted header + ciphertext
   let h_seq = S.slice (B.as_seq h0 dst) 0 h_len in
-  let c = S.slice (B.as_seq h0 dst) h_len (U32.v dst_len) in
+  let c = S.slice (B.as_seq h0 dst) h_len (B.length dst) in
   h_seq `S.equal` HeaderS.format_header (g_header h h0 pn) /\
   c `S.equal` G.reveal cipher)
 
 val header_encrypt: i:G.erased index -> (
   let i = G.reveal i in
   dst:B.buffer U8.t ->
-  dst_len:U32.t ->
+  dst_len: U32.t ->
   s:state i ->
   h:header ->
-  cipher:G.erased QUIC.Spec.cbytes ->
-  iv:G.erased (S.seq U8.t) ->
-  npn:B.buffer U8.t ->
-  pn_len:u2 ->
+  cipher:G.erased (QUIC.Spec.cbytes' (is_retry h)) ->
   pn: u62 ->
   Stack unit
-    (requires header_encrypt_pre i dst dst_len s h cipher iv npn pn_len pn)
+    (requires header_encrypt_pre i dst dst_len s h cipher pn)
     (ensures fun h0 _ h1 ->
       B.(modifies (loc_buffer dst `loc_union` footprint_s #i h0 (B.deref h0 s)) h0 h1) /\
-(*      
       B.as_seq h1 dst `S.equal`
-        QUIC.Spec.header_encrypt i.aead_alg (g_hp_key h0 s) (g_header h h0)
+        QUIC.Spec.header_encrypt_ct i.aead_alg (g_hp_key h0 s) (g_header h h0 pn)
           (G.reveal cipher) /\
-*)
       invariant h1 s /\
       footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s)))
 
+module BF = LowParse.BitFields
 
-
-#push-options "--z3rlimit 1000"
-let header_encrypt i dst dst_len s h cipher iv npn pn_len pn =
+#push-options "--z3rlimit 2048"
+let header_encrypt i dst dst_len s h cipher pn =
   let State _ aead_alg _ _ aead_state _ k _ ctr_state = !*s in
-  // [@inline_let]
+  [@inline_let]
   let u32_of_u8 = FStar.Int.Cast.uint8_to_uint32 in
-  (**) assert (U32.v dst_len >= 4);
   (**) let h0  = ST.get () in
 
-  admit ();
-  let pn_offset = HeaderI.pn_offset h (Ghost.hide pn) in
-  let h_len = HeaderI.header_len h in
-  let sample = B.sub dst (h_len `U32.add` 3ul `U32.sub` u32_of_u8 pn_len) 16ul in
-  let c = B.sub dst h_len (dst_len `U32.sub` h_len) in
-  (**) assert (U32.v h_len = HeaderS.header_len (g_header h h0 pn));
-  (**) assert (U32.v dst_len = U32.v h_len + S.length (G.reveal cipher));
-  (**) lemma_slice (B.as_seq h0 dst) (U32.v h_len);
-  (**) assert (B.as_seq h0 c `S.equal` G.reveal cipher);
-  (**) assert (B.as_seq h0 sample `S.equal`
-  (**)   S.slice (G.reveal cipher) (3 - U8.v pn_len) (19 - U8.v pn_len));
+  if is_retry h
+  then ()
+  else begin
+    (**) assert (B.length dst >= 4);
+    let pn_offset = HeaderI.pn_offset h (Ghost.hide pn) in
+    let pn_len = pn_length h `U32.sub` 1ul in
+    let h_len = HeaderI.header_len h in
+    HeaderI.header_len_correct h h0 pn;
+    let c = B.sub dst h_len (dst_len `U32.sub` h_len) in
+    let sample = B.sub c (3ul `U32.sub` pn_len) 16ul in
+    (**) assert (U32.v h_len = HeaderS.header_len (g_header h h0 pn));
+    (**) assert (U32.v dst_len = U32.v h_len + S.length (G.reveal cipher));
+    (**) lemma_slice (B.as_seq h0 dst) (U32.v h_len);
+    (**) assert (B.as_seq h0 c `S.equal` G.reveal cipher);
+    (**) assert (B.as_seq h0 sample `S.equal`
+    (**)   S.slice (G.reveal cipher) (3 - U32.v pn_len) (19 - U32.v pn_len));
 
-  push_frame ();
-  let mask = B.alloca 0uy 16ul in
-  let pn_mask = B.alloca 0uy 4ul in
-  (**) let h1 = ST.get () in
-  (**) assert (B.(loc_disjoint (loc_buffer pn_mask) (footprint h1 s)));
-  (**) assert (B.(all_live h1 [ buf mask; buf k; buf sample ]));
+    push_frame ();
+    let mask = B.alloca 0uy 16ul in
+    let pn_mask = B.alloca 0uy 4ul in
+    (**) let h1 = ST.get () in
+    (**) assert (B.(loc_disjoint (loc_buffer pn_mask) (footprint h1 s)));
+    (**) assert (B.(all_live h1 [ buf mask; buf k; buf sample ]));
 
-  (**) assert (CTR.invariant h1 ctr_state);
-  (**) assert (invariant h1 s);
-  (**) assert (B.(all_disjoint
-    [ CTR.footprint h1 ctr_state; loc_buffer k ]));
+    (**) assert (CTR.invariant h1 ctr_state);
+    (**) assert (invariant h1 s);
+    (**) assert (B.(all_disjoint
+      [ CTR.footprint h1 ctr_state; loc_buffer k ]));
 
-  block_of_sample (as_cipher_alg aead_alg) mask ctr_state k sample;
-  (**) let h2 = ST.get () in
-  (**) assert (CTR.footprint h1 ctr_state == CTR.footprint h2 ctr_state);
-  (**) assert (AEAD.footprint h1 aead_state == AEAD.footprint h2 aead_state);
+    block_of_sample (as_cipher_alg aead_alg) mask ctr_state k sample;
+    (**) let h2 = ST.get () in
+    (**) assert (CTR.footprint h1 ctr_state == CTR.footprint h2 ctr_state);
+    (**) assert (AEAD.footprint h1 aead_state == AEAD.footprint h2 aead_state);
 
-  pn_sizemask pn_mask pn_len;
-  (**) let h3 = ST.get () in
-  (**) frame_invariant B.(loc_buffer pn_mask) s h2 h3;
+    pn_sizemask pn_mask (FStar.Int.Cast.uint32_to_uint8 pn_len);
+    (**) let h3 = ST.get () in
+    (**) frame_invariant B.(loc_buffer pn_mask) s h2 h3;
 
-  let sub_mask = B.sub mask 1ul 4ul in
-  (**) assert (B.as_seq h3 sub_mask `S.equal` S.slice (B.as_seq h3 mask) 1 5);
-  op_inplace pn_mask 4ul sub_mask 4ul 0ul U8.logand;
-  (**) pointwise_seq_map2 U8.logand (B.as_seq h3 pn_mask) (B.as_seq h3 sub_mask) 0;
-  (**) and_inplace_commutative (B.as_seq h3 pn_mask) (B.as_seq h3 sub_mask);
-  (**) pointwise_seq_map2 U8.logand (B.as_seq h3 sub_mask) (B.as_seq h3 pn_mask) 0;
-  (**) let h4 = ST.get () in
-  (**) frame_invariant B.(loc_buffer pn_mask) s h3 h4;
-  (**) assert (invariant h4 s);
-  (**) assert (B.(loc_disjoint (footprint h4 s) (loc_buffer dst)));
-  let sflags = if BShort? h then 0x1fuy else 0x0fuy in
-  let fmask = mask.(0ul) `U8.logand` sflags in
+    let sub_mask = B.sub mask 1ul 4ul in
+    (**) assert (B.as_seq h3 sub_mask `S.equal` S.slice (B.as_seq h3 mask) 1 5);
+    op_inplace pn_mask 4ul sub_mask 4ul 0ul U8.logand;
+    (**) pointwise_seq_map2 U8.logand (B.as_seq h3 pn_mask) (B.as_seq h3 sub_mask) 0;
+    (**) and_inplace_commutative (B.as_seq h3 pn_mask) (B.as_seq h3 sub_mask);
+    (**) pointwise_seq_map2 U8.logand (B.as_seq h3 sub_mask) (B.as_seq h3 pn_mask) 0;
+    (**) let h4 = ST.get () in
+    (**) frame_invariant B.(loc_buffer pn_mask) s h3 h4;
+    (**) assert (invariant h4 s);
+    (**) assert (B.(loc_disjoint (footprint h4 s) (loc_buffer dst)));
+    let f = dst.(0ul) in
+    let fmask = mask.(0ul) in
+    let f' =
+      if BShort? h
+      then BF.(uint8.set_bitfield) f 0 5 (BF.(uint8.get_bitfield) (f `U8.logxor` fmask) 0 5)
+      else BF.(uint8.set_bitfield) f 0 4 (BF.(uint8.get_bitfield) (f `U8.logxor` fmask) 0 4)
+    in
+    op_inplace dst dst_len pn_mask 4ul pn_offset U8.logxor;
+    (**) let h5 = ST.get () in
+    (**) frame_invariant B.(loc_buffer dst) s h4 h5;
+    (**) assert (invariant h5 s);
 
-  op_inplace dst dst_len pn_mask 4ul pn_offset U8.logxor;
-  (**) let h5 = ST.get () in
-  (**) frame_invariant B.(loc_buffer dst) s h4 h5;
-  (**) assert (invariant h5 s);
+    dst.(0ul) <- f' ;
+    (**) let h6 = ST.get () in
+    (**) frame_invariant B.(loc_buffer dst) s h5 h6;
+    (**) assert (invariant h6 s);
+    (**) upd_op_inplace U8.logxor (B.as_seq h5 dst) fmask;
 
-  dst.(0ul) <- dst.(0ul) `U8.logxor` fmask;
-  (**) let h6 = ST.get () in
-  (**) frame_invariant B.(loc_buffer dst) s h5 h6;
-  (**) assert (invariant h6 s);
-  (**) upd_op_inplace U8.logxor (B.as_seq h5 dst) fmask;
-  assert (
-    let the_npn = npn in
-    let open QUIC.Spec in
-    let a = aead_alg in
-    let k = B.as_seq h0 k in
-    let h = g_header h h0 pn in
-    let npn = B.as_seq h0 the_npn in
-    let c = G.reveal cipher in
-    B.as_seq h6 dst `S.equal` QUIC.Spec.header_encrypt aead_alg k h c);
-  pop_frame ();
-  (**) let h7 = ST.get () in
-  ()
+    assert (
+      B.as_seq h6 dst `S.equal`
+        QUIC.Spec.header_encrypt_ct i.aead_alg (g_hp_key h0 s) (g_header h h0 pn)
+          (G.reveal cipher)
+    );
 
+(*    
+    assert (
+      let the_npn = npn in
+      let open QUIC.Spec in
+      let a = aead_alg in
+      let k = B.as_seq h0 k in
+      let h = g_header h h0 pn in
+      let npn = B.as_seq h0 the_npn in
+      let c = G.reveal cipher in
+      B.as_seq h6 dst `S.equal` QUIC.Spec.header_encrypt aead_alg k h c);
+*)
+    pop_frame ();
+    (**) let h7 = ST.get () in
+    ()
+  end
+
+#pop-options
 
 let tag_len (a: QUIC.Spec.ea): x:U32.t { U32.v x = Spec.Agile.AEAD.tag_length a /\ U32.v x = 16} =
   let open Spec.Agile.AEAD in
@@ -747,6 +758,7 @@ let tag_len (a: QUIC.Spec.ea): x:U32.t { U32.v x = Spec.Agile.AEAD.tag_length a 
   | AES128_GCM        -> 16ul
   | AES256_GCM        -> 16ul
 
+(*
 inline_for_extraction
 let tricky_addition (aead_alg: QUIC.Spec.ea) (h: header) (pn_len: u2) (pn: u62) (plain_len: U32.t {
     3 <= U32.v plain_len /\
@@ -759,10 +771,57 @@ let tricky_addition (aead_alg: QUIC.Spec.ea) (h: header) (pn_len: u2) (pn: u62) 
       U32.v x = HeaderS.header_len (g_header h h0 pn) + U32.v plain_len +
         Spec.Agile.AEAD.tag_length aead_alg)
 =
-  admit ();
   HeaderI.header_len h `U32.add` plain_len `U32.add` tag_len aead_alg
+*)
 
 open FStar.Mul
+
+#push-options "--z3rlimit 32"
+
+unfold
+let encrypt_core_pre
+  (#gi:G.erased index)
+  (s:state (G.reveal gi))
+  (dst:B.buffer U8.t)
+  (h:header)
+  (plain: B.buffer U8.t)
+  (plain_len: U32.t {
+    B.length plain = U32.v plain_len
+  })
+  (stack: G.erased B.loc)
+  (this_iv:B.buffer U8.t)
+  (bpn12: B.lbuffer U8.t 12)
+  (h0: HS.mem)
+: Tot Type0
+= let i = G.reveal gi in
+  assert_norm (pow2 62 < pow2 (8 * 12));
+  let stack = G.reveal stack in
+  // Memory & preservation
+  B.(all_live h0 [ buf dst; buf plain; buf this_iv; buf bpn12 ]) /\
+  header_live h h0 /\
+  B.(all_disjoint [ stack; footprint h0 s; loc_buffer dst;
+    header_footprint h; loc_buffer plain ]) /\
+  B.loc_disjoint (B.loc_buffer this_iv) (B.loc_buffer bpn12) /\
+
+  invariant h0 s /\
+
+  // Local stuff
+  B.(loc_includes stack (loc_buffer this_iv)) /\
+  B.(loc_includes stack (loc_buffer bpn12)) /\
+  B.length this_iv = 12 /\ (
+
+  // Packet number
+  let ctr = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
+  B.as_seq h0 bpn12 == FStar.Endianness.n_to_be 12 (U64.v ctr) /\ 
+
+  incrementable s h0 /\ (
+  let clen = if is_retry h then 0 else U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
+  (if is_retry h then U32.v plain_len == 0 else 3 <= U32.v plain_len /\ U32.v plain_len < QSpec.max_plain_length) /\
+  (has_payload_length h ==> U64.v (payload_length h) == clen) /\
+  B.length dst == U32.v (header_len h) + clen
+  ))
+
+#pop-options
 
 val encrypt_core: #i:G.erased index -> (
   let i = G.reveal i in
@@ -771,230 +830,191 @@ val encrypt_core: #i:G.erased index -> (
   h:header ->
   plain: B.buffer U8.t ->
   plain_len: U32.t {
-    3 <= U32.v plain_len /\
-    U32.v plain_len < QUIC.Spec.max_plain_length /\
     B.length plain = U32.v plain_len
   } ->
-  pn_len: u2 ->
   stack: G.erased B.loc ->
-  pnb:B.buffer U8.t ->
   this_iv:B.buffer U8.t ->
+  bpn12: B.lbuffer U8.t 12 ->
   Stack unit
-    (requires fun h0 ->
-      assert_norm (pow2 62 < pow2 (8 * 12));
-      let stack = G.reveal stack in
-      // Memory & preservation
-      B.(all_live h0 [ buf dst; buf plain; buf pnb; buf this_iv ]) /\
-      header_live h h0 /\
-      B.(all_disjoint [ stack; footprint h0 s; loc_buffer dst;
-        header_footprint h; loc_buffer plain ]) /\
-
-      invariant h0 s /\
-
-      // Local stuff
-      B.(loc_includes stack (loc_buffer pnb)) /\
-      B.(loc_includes stack (loc_buffer this_iv)) /\
-      B.(disjoint pnb this_iv) /\
-      B.length pnb = 12 /\
-      B.length this_iv = 12 /\
-
-//      B.as_seq h0 pnb `S.equal`
-//        FStar.Endianness.n_to_be 12 (g_last_packet_number (B.deref h0 s) h0) /\
-
-      incrementable s h0 /\ (
-      let clen = U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
-      let pn = (B.deref h0 s).pn in
-      let len = clen + HeaderS.header_len (g_header h h0 (B.deref h0 pn)) in
-//      (Long? h ==> U32.v (Long?.plain_len h) = clen) /\
-      B.length dst == len
-    ))
+    (requires fun h0 -> encrypt_core_pre #i s dst h plain plain_len stack this_iv bpn12 h0
+    )
     (ensures fun h0 r h1 ->
         // Memory & preservation
         B.(modifies (stack `loc_union`
           footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst)) h0 h1 /\
         invariant h1 s /\
         footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\ (
-
-True
-(*
         // Functional correctness
         let s0 = g_traffic_secret (B.deref h0 s) in
         let open QUIC.Spec in
         let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
         let iv = derive_secret i.hash_alg s0 label_iv 12 in
         let pne = derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg) in
-        let plain: pbytes = B.as_seq h0 plain in
+        let plain = B.as_seq h0 plain in
         let packet: packet = B.as_seq h1 dst in
-        let ctr = g_packet_number (B.deref h0 s) h0 in
-        packet ==
-          QUIC.Spec.encrypt i.aead_alg k iv pne (g_header h h0) plain
-*)
+        let ctr = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
+        packet `S.equal`
+          QUIC.Spec.encrypt i.aead_alg k iv pne (g_header h h0 ctr) plain
 )))
 
-let encrypt_core #i s dst h plain plain_len pn_len stack pnb this_iv =
+#push-options "--z3rlimit 1024"
+
+let encrypt_core #i s dst h plain plain_len stack this_iv bpn12 =
   (**) let h0 = ST.get () in
   (**) let m_loc = G.hide B.(G.reveal stack `loc_union`
   (**)   footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst) in
   (**) assert_norm (pow2 62 < pow2 (8 * 12));
-
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
-    aead_state iv hp_key pn ctr_state = !*s
+    aead_state iv hp_key bpn ctr_state = !*s
   in
-  admit ();
-  let npn = B.sub pnb (11ul `U32.sub` u32_of_u8 pn_len) (1ul `U32.add` u32_of_u8 pn_len) in
+  let last_pn = !* bpn in
+  let pn = last_pn `U64.add` 1uL in
   let dst_h = B.sub dst 0ul (HeaderI.header_len h) in
-  let dst_ciphertag = B.sub dst (HeaderI.header_len h) (plain_len `U32.add` tag_len aead_alg) in
-  let dst_cipher = B.sub dst_ciphertag 0ul plain_len in
-  let dst_tag = B.sub dst_ciphertag plain_len (tag_len aead_alg) in
-  let pn_value = !* pn in
-
-//  format_header dst_h h npn pn_len pn_value;
+  HeaderI.header_len_correct h h0 pn;
+  HeaderI.write_header dst_h h pn;
   (**) let h1 = ST.get () in
   (**) frame_invariant B.(loc_buffer dst) s h0 h1;
   (**) assert (footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s));
   (**) B.(modifies_loc_includes (G.reveal m_loc) h0 h1 (loc_buffer dst));
-//  (**) QUIC.Spec.lemma_format_len aead_alg (g_header h h0) (B.as_seq h1 npn);
+  frame_header h pn (B.loc_buffer dst_h) h0 h1;
+  assert (header_live h h1);
+  if is_retry h
+  then ()
+  else begin
+    let dst_ciphertag = B.sub dst (HeaderI.header_len h) (plain_len `U32.add` tag_len aead_alg) in
+    let dst_cipher = B.sub dst_ciphertag 0ul plain_len in
+    let dst_tag = B.sub dst_ciphertag plain_len (tag_len aead_alg) in
+    let pn_len = pn_length h `U32.sub` 1ul in
+    C.Loops.map2 this_iv bpn12 iv 12ul U8.logxor;
+    (**) let h2 = ST.get () in
+    (**) frame_invariant B.(loc_buffer this_iv) s h1 h2;
+    (**) assert (footprint_s h1 (B.deref h1 s) == footprint_s h2 (B.deref h2 s));
+    (**) B.(modifies_loc_includes (G.reveal m_loc) h1 h2 (loc_buffer this_iv));
+    (**) B.(modifies_trans (G.reveal m_loc) h0 h1 (G.reveal m_loc) h2);
+    (**) pointwise_seq_map2 U8.logxor (B.as_seq h1 bpn12) (B.as_seq h1 iv) 0;
+    (**) assert (
+      let open QUIC.Spec in
+      let npn: lbytes (1 + U32.v pn_len) = S.slice (B.as_seq h0 bpn12) (11 - U32.v pn_len) 12 in
+      let s0 = g_traffic_secret (B.deref h0 s) in
+      let siv = derive_secret i.hash_alg s0 label_iv 12 in
+      B.as_seq h2 this_iv `S.equal` QUIC.Spec.Lemmas.xor_inplace (B.as_seq h0 bpn12) siv 0
+    );
+    assert (B.loc_disjoint (header_footprint h) (B.loc_buffer this_iv));
+    frame_header h pn (B.loc_buffer this_iv) h1 h2;
+    assert (header_live h h2);
+    let l = HeaderI.header_len h in
+    let r = AEAD.encrypt #(G.hide aead_alg) aead_state
+      this_iv 12ul dst_h (HeaderI.header_len h) plain plain_len dst_cipher dst_tag in
+    (**) let h3 = ST.get () in
+    (**) assert (invariant h3 s);
+    (**) assert (footprint_s h2 (B.deref h2 s) == footprint_s h2 (B.deref h3 s));
+    (**) B.(modifies_loc_includes (G.reveal m_loc) h2 h3
+      (AEAD.footprint h2 aead_state `loc_union` loc_buffer dst));
+    (**) B.(modifies_trans (G.reveal m_loc) h0 h2 (G.reveal m_loc) h3);
+    (**) assert (r = Success);
+    (**) assert (
+      let open QUIC.Spec in
+      let s0 = g_traffic_secret (B.deref h0 s) in
+      let siv = derive_secret i.hash_alg s0 label_iv 12 in
+      let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
+      let h = g_header h h0 pn in
+      let plain = B.as_seq h0 plain in
+      let a = aead_alg in
+      let pnb = FStar.Endianness.n_to_be 12 (U64.v pn) in
+      let npn: lbytes (1 + U32.v pn_len) = S.slice pnb (11 - U32.v pn_len) 12 in
+      let header = HeaderS.format_header h in
+      let iv = QUIC.Spec.Lemmas.xor_inplace pnb siv 0 in
+      let cipher = Spec.Agile.AEAD.encrypt #a k iv header plain in
+      cipher `S.equal` B.as_seq h3 dst_ciphertag
+    );
+    frame_header h pn (AEAD.footprint h2 aead_state `B.loc_union` (B.loc_buffer dst_cipher `B.loc_union` B.loc_buffer dst_tag)) h2 h3;
+    assert (header_live h h3);
+    let clen = plain_len `U32.add` tag_len aead_alg in
+    let dst_len = header_len h `U32.add` clen in
+    let e_cipher = G.hide ((B.as_seq h3 dst_ciphertag) <: QUIC.Spec.cbytes) in
+    let e_iv = G.hide (B.as_seq h3 this_iv) in
+    QUIC.Spec.header_encrypt_ct_correct i.aead_alg (g_hp_key h3 s) (g_header h h3 pn) (G.reveal e_cipher);
+    header_encrypt i dst dst_len s h e_cipher pn;
+    (**) let h4 = ST.get () in
+    (**) assert (invariant h4 s);
+    (**) assert (footprint_s h3 (B.deref h3 s) == footprint_s h4 (B.deref h4 s));
+    (**) B.(modifies_loc_includes (G.reveal m_loc) h3 h4
+      (footprint_s h3 (B.deref h3 s) `loc_union` loc_buffer dst));
+    (**) B.(modifies_trans (G.reveal m_loc) h0 h3 (G.reveal m_loc) h4);
+    (**) assert (
+      let open QUIC.Spec in
+      let s0 = g_traffic_secret (B.deref h0 s) in
+      let siv = derive_secret i.hash_alg s0 label_iv 12 in
+      let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
+      let h = g_header h h0 pn in
+      let plain = B.as_seq h0 plain in
+      let a = aead_alg in
+      let hpk = g_hp_key h0 s in
+      let pn_len = U32.v pn_len in
+      B.as_seq h4 dst `S.equal` QUIC.Spec.encrypt a k siv hpk h plain
+    )
+  end
 
-  C.Loops.map2 this_iv pnb iv 12ul U8.logxor;
-  (**) let h2 = ST.get () in
-  (**) frame_invariant B.(loc_buffer this_iv) s h1 h2;
-  (**) assert (footprint_s h1 (B.deref h1 s) == footprint_s h2 (B.deref h2 s));
-  (**) B.(modifies_loc_includes (G.reveal m_loc) h1 h2 (loc_buffer this_iv));
-  (**) B.(modifies_trans (G.reveal m_loc) h0 h1 (G.reveal m_loc) h2);
-  (**) pointwise_seq_map2 U8.logxor (B.as_seq h1 pnb) (B.as_seq h1 iv) 0;
-  (**) assert (
-    let open QUIC.Spec in
-    let npn: lbytes (1 + U8.v pn_len) = S.slice (B.as_seq h0 pnb) (11 - U8.v pn_len) 12 in
-    let s0 = g_traffic_secret (B.deref h0 s) in
-    let siv = derive_secret i.hash_alg s0 label_iv 12 in
-    B.as_seq h2 this_iv `S.equal` QUIC.Spec.Lemmas.xor_inplace (B.as_seq h0 pnb) siv 0
-  );
+#pop-options
 
-  let l = HeaderI.header_len h in
-  let r = AEAD.encrypt #(G.hide aead_alg) aead_state
-    this_iv 12ul dst_h (HeaderI.header_len h) plain plain_len dst_cipher dst_tag in
-  (**) let h3 = ST.get () in
-  (**) assert (invariant h3 s);
-  (**) assert (footprint_s h2 (B.deref h2 s) == footprint_s h2 (B.deref h3 s));
-  (**) B.(modifies_loc_includes (G.reveal m_loc) h2 h3
-    (AEAD.footprint h2 aead_state `loc_union` loc_buffer dst));
-  (**) B.(modifies_trans (G.reveal m_loc) h0 h2 (G.reveal m_loc) h3);
-  (**) assert (r = Success);
-  (**) assert (
-    let open QUIC.Spec in
-    let s0 = g_traffic_secret (B.deref h0 s) in
-    let siv = derive_secret i.hash_alg s0 label_iv 12 in
-    let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
-    let seqn = g_last_packet_number (B.deref h0 s) h0 in
-    let h = g_header h h0 pn_value in
-    let plain = B.as_seq h0 plain in
-    let a = aead_alg in
-    True
-(*    
-    let pnb = FStar.Endianness.n_to_be 12 seqn  in
-    let npn: lbytes (1 + U8.v pn_len) = S.slice pnb (11 - U8.v pn_len) 12 in
-    let header = HeaderS.format_header h in
-    let iv = QUIC.Spec.Lemmas.xor_inplace pnb siv 0 in
-    let cipher = Spec.Agile.AEAD.encrypt #a k iv header plain in
-    cipher `S.equal` B.as_seq h3 dst_ciphertag
-*)
-  );
+#push-options "--z3rlimit 1024 --max_ifuel 2 --initial_ifuel 2"
 
-  let dst_len = tricky_addition aead_alg h pn_len pn_value plain_len in
-  let e_cipher = G.hide ((B.as_seq h3 dst_ciphertag) <: QUIC.Spec.cbytes) in
-  let e_iv = G.hide (B.as_seq h3 this_iv) in
-  header_encrypt i dst dst_len s h e_cipher e_iv npn pn_len pn_value;
-  (**) let h4 = ST.get () in
-  (**) assert (invariant h4 s);
-  (**) assert (footprint_s h3 (B.deref h3 s) == footprint_s h4 (B.deref h4 s));
-  (**) B.(modifies_loc_includes (G.reveal m_loc) h3 h4
-    (footprint_s h3 (B.deref h3 s) `loc_union` loc_buffer dst));
-  (**) B.(modifies_trans (G.reveal m_loc) h0 h3 (G.reveal m_loc) h4);
-  (**) assert (
-    let open QUIC.Spec in
-    let s0 = g_traffic_secret (B.deref h0 s) in
-    let siv = derive_secret i.hash_alg s0 label_iv 12 in
-    let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
-    let seqn = g_last_packet_number (B.deref h0 s) h0 in
-    let h = g_header h h0 pn_value in
-    let plain = B.as_seq h0 plain in
-    let a = aead_alg in
-    let hpk = g_hp_key h0 s in
-    let pn_len = U8.v pn_len in
-
-    B.as_seq h4 dst `S.equal` QUIC.Spec.encrypt a k siv hpk h plain
-  )
-
-#set-options "--z3rlimit 300"
 let encrypt #i s dst h plain plain_len =
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
     aead_state iv hp_key pn ctr_state = !*s
   in
-
   push_frame ();
   (**) let h1 = ST.get () in
   (**) let mloc = G.hide B.(loc_all_regions_from false (HS.get_tip h1) `loc_union`
     footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst) in
-
   let pnb0 = B.alloca 0uy 16ul in
   let this_iv = B.alloca 0uy 12ul in
   (**) let h2 = ST.get () in
   (**) frame_invariant B.(loc_none) s h1 h2;
   (**) assert (footprint_s h1 (B.deref h1 s) == footprint_s h2 (B.deref h2 s));
   (**) B.(modifies_loc_includes (G.reveal mloc) h1 h2 loc_none);
-
-  let pn_: U64.t = !*pn in
-  let pn128: FStar.UInt128.t = FStar.Int.Cast.Full.uint64_to_uint128 pn_ in
+  let last_pn: U64.t = !*pn in
+  let pn_value = last_pn `U64.add` 1uL in
+  let pn128: FStar.UInt128.t = FStar.Int.Cast.Full.uint64_to_uint128 pn_value in
   LowStar.Endianness.store128_be pnb0 pn128;
   (**) let h3 = ST.get () in
   (**) frame_invariant B.(loc_buffer pnb0) s h2 h3;
   (**) assert (footprint_s h2 (B.deref h2 s) == footprint_s h3 (B.deref h3 s));
   (**) B.(modifies_trans (G.reveal mloc) h1 h2 (G.reveal mloc) h3);
-
   let pnb = B.sub pnb0 4ul 12ul in
-  (**) (
-  (**) let open FStar.Endianness in
-  (**) assert_norm (pow2 64 < pow2 (8 * 12));
-  (**) calc (==) {
-  (**)   be_to_n (B.as_seq h3 pnb);
-  (**) (==) { }
-  (**)   be_to_n (S.slice (B.as_seq h3 pnb0) 4 16);
-  (**) (==) { be_to_n_slice (B.as_seq h3 pnb0) 4 }
-  (**)   be_to_n (B.as_seq h3 pnb0) % pow2 (8 * 12);
-  (**) (==) { FStar.Math.Lemmas.small_mod (U64.v pn_) (pow2 (8 * 12)) }
-  (**)   be_to_n (B.as_seq h3 pnb0);
-  (**) });
-//  (**) assert (B.as_seq h3 pnb `S.equal`
-//  (**)   FStar.Endianness.n_to_be 12 (g_last_packet_number (B.deref h0 s) h0));
-
-  admit ();
+  FStar.Math.Lemmas.pow2_le_compat (8 * 12) (8 * 8);
+  n_to_be_lower 12 16 (U64.v pn_value);
   (**) assert B.(loc_disjoint (loc_region_only true (B.frameOf s))
   (**)   (loc_all_regions_from false (HS.get_tip h1)));
-//  encrypt_core #i s dst h plain plain_len pn_len
-//    (G.hide B.(loc_all_regions_from false (HS.get_tip h1))) pnb this_iv;
-
+  frame_header h pn_value B.loc_none h0 h3;
+  let phi () : Lemma
+    (G.reveal mloc `B.loc_disjoint` header_footprint h)
+  = allow_inversion header;
+    assert (G.reveal mloc `B.loc_disjoint` header_footprint h)
+  in
+  phi ();
+  encrypt_core #i s dst h plain plain_len
+    (G.hide B.(loc_all_regions_from false (HS.get_tip h1))) this_iv pnb;
   (**) let h4 = ST.get () in
   (**) assert (invariant h4 s);
   (**) assert (footprint_s h3 (B.deref h3 s) == footprint_s h4 (B.deref h4 s));
   (**) B.(modifies_trans (G.reveal mloc) h1 h3 (G.reveal mloc) h4);
-
   (**) assert_norm (pow2 62 < pow2 64);
-  pn *= (pn_ `U64.add` 1UL);
+  pn *= pn_value;
   (**) let h5 = ST.get () in
   (**) assert (invariant h5 s);
   (**) assert (footprint_s h4 (B.deref h4 s) == footprint_s h5 (B.deref h5 s));
   (**) B.(modifies_trans (G.reveal mloc) h1 h4 (G.reveal mloc) h5);
-
   pop_frame ();
-
   (**) let h6 = ST.get () in
   (**) frame_invariant B.(loc_all_regions_from false (HS.get_tip h1)) s h5 h6;
   (**) assert (footprint_s h5 (B.deref h5 s) == footprint_s h6 (B.deref h6 s));
   (**) B.modifies_fresh_frame_popped h0 h1
   (**)   B.(loc_buffer dst `loc_union` footprint_s h0 (B.deref h0 s)) h5 h6;
-
   Success
+
+#pop-options
 
 /// Initial secrets
 /// ---------------

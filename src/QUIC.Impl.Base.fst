@@ -63,19 +63,36 @@ noeq type header =
     packet_number_length: packet_number_length_t ->
     header
 
-inline_for_extraction
+// inline_for_extraction
 let is_retry
   (h: header)
 : Tot bool
 = BLong? h && BRetry? (BLong?.spec h)
 
-inline_for_extraction
+// inline_for_extraction
+let pn_length
+  (h: header {~ (is_retry h)})
+: Tot packet_number_length_t
+= match h with
+  | BShort spin phase cid cid_len packet_number_length ->
+    packet_number_length
+  | BLong version dcid dcil scid scil spec ->
+    begin match spec with
+    | BInitial payload_length packet_number_length token token_length ->
+      packet_number_length
+    | BZeroRTT payload_length packet_number_length ->
+      packet_number_length
+    | BHandshake payload_length packet_number_length ->
+      packet_number_length
+    end
+
+// inline_for_extraction
 let has_payload_length
   (h: header)
 : Tot bool
 = BLong? h && not (BRetry? (BLong?.spec h))
 
-inline_for_extraction
+// inline_for_extraction
 let payload_length
   (h: header { has_payload_length h })
 : Tot uint62_t
@@ -133,13 +150,30 @@ let g_header (h: header) (m: HS.mem) (packet_number: uint62_t) : GTot Spec.heade
         MRetry unused (FB.hide (B.as_seq m odcid))
       end
 
+let frame_header_live
+  (h: header)
+  (l: B.loc)
+  (m1 m2: HS.mem)
+: Lemma
+  (requires (
+    header_live h m1 /\
+    B.modifies l m1 m2 /\
+    B.loc_disjoint l (header_footprint h)
+  ))
+  (ensures (header_live h m2))
+= ()
+
 let frame_header
   (h: header)
   (packet_number: uint62_t)
   (l: B.loc)
   (m1 m2: HS.mem)
 : Lemma
-  (requires (header_live h m1 /\ B.modifies l m1 m2 /\ B.loc_disjoint l (header_footprint h)))
+  (requires (
+    header_live h m1 /\
+    B.modifies l m1 m2 /\
+    B.loc_disjoint l (header_footprint h)
+  ))
   (ensures (header_live h m2 /\ g_header h m2 packet_number == g_header h m1 packet_number))
 = ()
 
