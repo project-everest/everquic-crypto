@@ -1,5 +1,5 @@
 [
-  "þ\néÏ~1Ý|@,ó¦„~ûû",
+  "â\u0005[Äý<¸\u0000“Z²Ñ’¦±ß",
   [
     [
       "QUIC.Impl.Base.long_header_specifics",
@@ -407,6 +407,52 @@
       "692032dde3420c1d34d97936da9da2a0"
     ],
     [
+      "QUIC.Impl.Base.pn_length",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "disc_equation_QUIC.Impl.Base.BHandshake",
+        "disc_equation_QUIC.Impl.Base.BInitial",
+        "disc_equation_QUIC.Impl.Base.BLong",
+        "disc_equation_QUIC.Impl.Base.BRetry",
+        "disc_equation_QUIC.Impl.Base.BShort",
+        "disc_equation_QUIC.Impl.Base.BZeroRTT",
+        "equation_QUIC.Impl.Base.is_retry",
+        "fuel_guarded_inversion_QUIC.Impl.Base.header",
+        "fuel_guarded_inversion_QUIC.Impl.Base.long_header_specifics",
+        "primitive_Prims.op_AmpAmp",
+        "proj_equation_QUIC.Impl.Base.BLong_spec",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_QUIC.Impl.Base.BLong_spec",
+        "refinement_interpretation_Tm_refine_ceae1db257afaa69b3c1c3cea5a01dba"
+      ],
+      0,
+      "30bfefe9bd15b565c02114d6f9ea273a"
+    ],
+    [
+      "QUIC.Impl.Base.payload_length",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "disc_equation_QUIC.Impl.Base.BHandshake",
+        "disc_equation_QUIC.Impl.Base.BInitial",
+        "disc_equation_QUIC.Impl.Base.BRetry",
+        "disc_equation_QUIC.Impl.Base.BZeroRTT",
+        "equation_QUIC.Impl.Base.has_payload_length",
+        "fuel_guarded_inversion_QUIC.Impl.Base.long_header_specifics",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_Negation",
+        "proj_equation_QUIC.Impl.Base.BLong_spec",
+        "projection_inverse_BoxBool_proj_0",
+        "refinement_interpretation_Tm_refine_c9f4ec57637d1b8b481ba590f2cc4d1e"
+      ],
+      0,
+      "c70996c0dd92f7c917235428e1d60e86"
+    ],
+    [
       "QUIC.Impl.Base.header_live",
       1,
       2,
@@ -418,7 +464,7 @@
         "fuel_guarded_inversion_QUIC.Impl.Base.header"
       ],
       0,
-      "59dba42517946eae46d89f9b94312003"
+      "aad9f2ad8ce306d62b5c48db1e3e7583"
     ],
     [
       "QUIC.Impl.Base.header_footprint",
@@ -432,7 +478,7 @@
         "fuel_guarded_inversion_QUIC.Impl.Base.header"
       ],
       0,
-      "3a71d08c304c65325bdde9d6d8ea5444"
+      "d28dd7f4665a5233d9d811e3b23ae5f6"
     ],
     [
       "QUIC.Impl.Base.g_header",
@@ -470,7 +516,34 @@
         "typing_FStar.UInt32.v", "typing_LowStar.Buffer.trivial_preorder"
       ],
       0,
-      "1c4d1ed3864505c26e907ff0e8c77bd4"
+      "30611e264e4f47ddd32193a29e07bc6d"
+    ],
+    [
+      "QUIC.Impl.Base.frame_header_live",
+      1,
+      2,
+      2,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "data_elim_QUIC.Impl.Base.BInitial",
+        "data_elim_QUIC.Impl.Base.BLong", "data_elim_QUIC.Impl.Base.BRetry",
+        "data_elim_QUIC.Impl.Base.BShort", "equation_LowStar.Buffer.buffer",
+        "equation_LowStar.Buffer.trivial_preorder",
+        "equation_QUIC.Impl.Base.header_footprint",
+        "equation_QUIC.Impl.Base.header_live",
+        "fuel_guarded_inversion_QUIC.Impl.Base.header",
+        "function_token_typing_FStar.UInt8.t", "l_and-interp",
+        "lemma_LowStar.Monotonic.Buffer.loc_disjoint_sym_",
+        "lemma_LowStar.Monotonic.Buffer.loc_disjoint_union_r_",
+        "lemma_LowStar.Monotonic.Buffer.modifies_buffer_elim", "true_interp",
+        "typing_LowStar.Buffer.trivial_preorder",
+        "typing_LowStar.Monotonic.Buffer.loc_buffer",
+        "typing_LowStar.Monotonic.Buffer.loc_none",
+        "typing_LowStar.Monotonic.Buffer.loc_union",
+        "typing_QUIC.Impl.Base.header_footprint"
+      ],
+      0,
+      "4fa4a2f44e0779f7c1d80125f2c83c2d"
     ],
     [
       "QUIC.Impl.Base.frame_header",
@@ -499,7 +572,7 @@
         "typing_QUIC.Impl.Base.header_footprint"
       ],
       0,
-      "ef8d711affd6b3d9674923845feea88e"
+      "8fa1e4e0785c6ebf93dd5f3807e048d5"
     ],
     [
       "QUIC.Impl.Base.header_len",
@@ -548,7 +621,7 @@
         "typing_QUIC.Impl.Base.varint_len"
       ],
       0,
-      "f8d2f4f0833fae14565e9422d4c3d8cf"
+      "9d01184df266609baa95e281bd5664b0"
     ]
   ]
 ]
