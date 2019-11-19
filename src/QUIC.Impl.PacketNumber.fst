@@ -35,3 +35,7 @@ let read_packet_number
     (fun x -> synth_packet_number last pn_len x)
     (read_bounded_integer' pn_len)
     ()
+
+let write_packet_number
+  last pn_len
+= admit ()

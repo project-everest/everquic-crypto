@@ -23,3 +23,9 @@ val read_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
 : Tot (leaf_reader (parse_packet_number last pn_len))
+
+inline_for_extraction
+val write_packet_number
+  (last: last_packet_number_t)
+  (pn_len: packet_number_length_t)
+: Tot (leaf_writer_strong (serialize_packet_number last pn_len))

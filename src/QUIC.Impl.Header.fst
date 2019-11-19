@@ -238,10 +238,6 @@ let read_header_body_long_initial
     let spec = Impl.BInitial (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length token token_len in
     Impl.BLong version dcid dcid_len scid scid_len spec, pn
 
-#pop-options
-
-#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
-
 #restart-solver
 
 let read_header_body_long_handshake
@@ -366,6 +362,108 @@ let read_header
     lemma_header_parsing_post (U32.v cid_len) (U64.v last) (LL.bytes_of_slice_from h0 sl 0ul);
     Some (res, pn, len)
   end
+
+module HS = FStar.HyperStack
+module LW = LowParse.Low.Writers.Instances
+
+assume val mk : synth_bitsum'_recip_t first_byte
+
+inline_for_extraction
+noextract
+let swrite_header_short
+  (spin: bool)
+  (phase: bool)
+  (cid: B.buffer U8.t)
+  (cid_len: U32.t {
+    let l = U32.v cid_len in
+    l == B.length cid /\
+    0 <= l /\ l <= 20
+  })
+  (pn_len: packet_number_length_t)
+  (last: last_packet_number_t)
+  (pn: packet_number_t last pn_len)
+  (h0: HS.mem {
+    B.live h0 cid
+  })
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _) {
+    (parse_header_kind' cid_len last).parser_kind_subkind == Some ParserStrong /\
+    B.loc_disjoint (B.loc_buffer cid) (LW.loc_slice_from out 0ul)
+  })
+: Tot (w: LW.swriter (serialize_header cid_len last) h0 0 out 0ul {
+    LW.swvalue w == g_header (BShort spin phase cid cid_len pn_len) h0 pn
+  })
+= let tg : bitsum'_type first_byte =
+    (| Short, (| (), ((if spin then 1uy else 0uy), (| (), ((if phase then 1uy else 0uy), (| pn_len, () |) ) |) ) |) |)
+  in
+  let k : bitsum'_key_type first_byte =
+    (| Short, (| (), (| (), (| pn_len, () |) |) |) |)
+  in
+  assert_norm (bitsum'_key_of_t first_byte tg == k);
+  assert_norm (first_byte_of_header cid_len last (g_header (BShort spin phase cid cid_len pn_len) h0 pn) == tg);
+  let s : LW.swriter (serialize_header_body cid_len last k) h0 0 out 0ul =
+    LW.swrite_weaken (strong_parser_kind 0 20 None) (LW.swrite_flbytes h0 out 0ul cid_len cid) `LW.swrite_nondep_then` LW.swrite_leaf (write_packet_number last pn_len) h0 out 0ul pn
+  in
+  let res = LW.swrite_bitsum
+    h0
+    0
+    out
+    0ul
+    #parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' cid_len last)
+    (first_byte_of_header cid_len last)
+    (header_body_type cid_len last)
+    (header_synth cid_len last)
+    #parse_u8
+    #serialize_u8
+    LJ.write_u8
+    mk
+    #(parse_header_body cid_len last)
+    (serialize_header_body cid_len last)
+    tg
+    s
+  in
+  res
+
+let write_header_short
+  (spin: bool)
+  (phase: bool)
+  (cid: B.buffer U8.t)
+  (cid_len: U32.t {
+    let l = U32.v cid_len in
+    l == B.length cid /\
+    0 <= l /\ l <= 20
+  })
+  (pn_len: packet_number_length_t)
+  (last: last_packet_number_t)
+  (pn: packet_number_t last pn_len)
+  (out: B.buffer U8.t)
+  (out_len: U32.t { U32.v out_len <= B.length out })
+: HST.Stack U32.t
+  (requires (fun h ->
+    let s = serialize (serialize_header cid_len last) (g_header (BShort spin phase cid cid_len pn_len) h pn) in
+    B.live h cid /\
+    B.live h out /\
+    B.loc_disjoint (B.loc_buffer cid) (B.loc_buffer out) /\
+    S.length s <= U32.v out_len
+  ))
+  (ensures (fun h len h' ->
+    let s = serialize (serialize_header cid_len last) (g_header (BShort spin phase cid cid_len pn_len) h pn) in
+    B.modifies (B.loc_buffer out) h h' /\
+    U32.v len <= U32.v out_len /\
+    S.slice (B.as_seq h' out) 0 (U32.v len) == s 
+  ))
+= let h0 = HST.get () in
+  assert_norm ((parse_header_kind' cid_len last).parser_kind_subkind == Some ParserStrong);
+  let sl = LW.make_slice out out_len in
+  LW.serialized_length_eq (serialize_header cid_len last) (g_header (BShort spin phase cid cid_len pn_len) h0 pn);
+  let len = LW.swrite (swrite_header_short spin phase cid cid_len pn_len last pn h0 sl) 0ul in
+  let h = HST.get () in
+  LL.valid_pos_valid_exact  (lp_parse_header cid_len last) h sl 0ul len;
+  LL.valid_exact_serialize (serialize_header cid_len last) h sl 0ul len;
+  len
 
 let write_header
   dst x pn
