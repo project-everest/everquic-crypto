@@ -910,6 +910,27 @@ let putative_pn_offset
               then 0ul
               else pos4
 
+let pn_offset'
+  (h: Impl.header)
+: Tot U32.t
+= match h with
+  | BShort spin phase cid cid_len packet_number_length ->
+    1ul `U32.add` cid_len
+  | BLong version dcid dcil scid scil spec ->
+    7ul `U32.add` dcil `U32.add` scil `U32.add`
+    begin match spec with
+    | BInitial payload_length packet_number_length token token_length ->
+      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len payload_length
+    | BZeroRTT payload_length packet_number_length ->
+      varint_len payload_length
+    | BHandshake payload_length packet_number_length ->
+      varint_len payload_length
+    | BRetry unused odcid odcil ->
+      1ul `U32.add` odcil
+    end
+
 let pn_offset
   h pn
-= admit ()
+= let h0 = HST.get () in
+  header_len_correct h h0 (Ghost.reveal pn);
+  pn_offset' h
