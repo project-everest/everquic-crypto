@@ -38,4 +38,11 @@ let read_packet_number
 
 let write_packet_number
   last pn_len
-= admit ()
+= [@inline_let]
+  let _ = synth_packet_number_recip_inverse last pn_len in
+  write_synth
+    (write_bounded_integer' pn_len)
+    (synth_packet_number last pn_len)
+    (synth_packet_number_recip last pn_len)
+    (fun x -> synth_packet_number_recip last pn_len x)
+    ()
