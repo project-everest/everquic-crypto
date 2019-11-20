@@ -335,7 +335,13 @@ let read_header
   let sl = LL.make_slice packet packet_len in
   LL.valid_facts (lp_parse_header cid_len last) h0 sl 0ul;
   assert (B.as_seq h0 packet `Seq.equal` LL.bytes_of_slice_from h0 sl 0ul);
-  let len = validate_header cid_len last sl 0ul in
+  assert_norm (
+    let k = parse_header_kind' cid_len last in
+    Some? k.parser_kind_high /\
+    Some?.v k.parser_kind_high <= U32.v LL.validator_max_length /\
+    k.parser_kind_subkind == Some ParserStrong
+  );
+  let len = LL.validate_bounded_strong_prefix (validate_header cid_len last) sl in
   if len `U32.gt` LL.validator_max_length
   then None
   else begin

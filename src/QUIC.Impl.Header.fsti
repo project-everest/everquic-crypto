@@ -14,7 +14,7 @@ module Impl = QUIC.Impl.Base
 
 val read_header
   (packet: B.buffer U8.t)
-  (packet_len: U32.t { let v = U32.v packet_len in v == B.length packet /\ v < 4294967280 })
+  (packet_len: U32.t { let v = U32.v packet_len in v == B.length packet })
   (cid_len: U32.t { U32.v cid_len < 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
 : HST.Stack (option (Impl.header & uint62_t & U32.t))
