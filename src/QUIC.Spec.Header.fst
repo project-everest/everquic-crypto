@@ -16,7 +16,6 @@ module U8 = FStar.UInt8
 
 
 inline_for_extraction
-noextract
 type header_form_t =
   | Long
   | Short
@@ -37,7 +36,6 @@ let fixed_bit : enum unit (bitfield uint8 1) = [
 ]
 
 inline_for_extraction
-noextract
 type long_packet_type_t =
   | Initial
   | ZeroRTT

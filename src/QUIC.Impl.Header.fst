@@ -202,7 +202,7 @@ let read_header_body_long_retry
 
 #pop-options
 
-#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+#push-options "--z3rlimit 1024 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
 #restart-solver
 
@@ -237,6 +237,10 @@ let read_header_body_long_initial
 //    assert (LL.loc_slice_from_to sl 0ul len `B.loc_includes` B.loc_buffer token);
     let spec = Impl.BInitial (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length token token_len in
     Impl.BLong version dcid dcid_len scid scid_len spec, pn
+
+#pop-options
+
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
 #restart-solver
 
@@ -366,7 +370,13 @@ let read_header
 module HS = FStar.HyperStack
 module LW = LowParse.Low.Writers.Instances
 
-assume val mk : synth_bitsum'_recip_t first_byte
+[@filter_bitsum'_t_attr]
+inline_for_extraction
+noextract
+let synth_first_byte
+: synth_bitsum'_recip_t first_byte
+= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
+  (mk_synth_bitsum'_recip first_byte)
 
 inline_for_extraction
 noextract
@@ -392,18 +402,24 @@ let swrite_header_short
 : Tot (w: LW.swriter (serialize_header cid_len last) h0 0 out 0ul {
     LW.swvalue w == g_header (BShort spin phase cid cid_len pn_len) h0 pn
   })
-= let tg : bitsum'_type first_byte =
+= [@inline_let]
+  let tg : bitsum'_type first_byte =
     (| Short, (| (), ((if spin then 1uy else 0uy), (| (), ((if phase then 1uy else 0uy), (| pn_len, () |) ) |) ) |) |)
   in
+  [@inline_let]
   let k : bitsum'_key_type first_byte =
     (| Short, (| (), (| (), (| pn_len, () |) |) |) |)
   in
-  assert_norm (bitsum'_key_of_t first_byte tg == k);
-  assert_norm (first_byte_of_header cid_len last (g_header (BShort spin phase cid cid_len pn_len) h0 pn) == tg);
+  [@inline_let]
+  let _ =
+    assert_norm (bitsum'_key_of_t first_byte tg == k);
+    assert_norm (first_byte_of_header cid_len last (g_header (BShort spin phase cid cid_len pn_len) h0 pn) == tg)
+  in
+  [@inline_let]
   let s : LW.swriter (serialize_header_body cid_len last k) h0 0 out 0ul =
     LW.swrite_weaken (strong_parser_kind 0 20 None) (LW.swrite_flbytes h0 out 0ul cid_len cid) `LW.swrite_nondep_then` LW.swrite_leaf (write_packet_number last pn_len) h0 out 0ul pn
   in
-  let res = LW.swrite_bitsum
+  LW.swrite_bitsum
     h0
     0
     out
@@ -419,56 +435,425 @@ let swrite_header_short
     #parse_u8
     #serialize_u8
     LJ.write_u8
-    mk
+    synth_first_byte
     #(parse_header_body cid_len last)
     (serialize_header_body cid_len last)
     tg
     s
-  in
-  res
 
-let write_header_short
-  (spin: bool)
-  (phase: bool)
-  (cid: B.buffer U8.t)
-  (cid_len: U32.t {
-    let l = U32.v cid_len in
-    l == B.length cid /\
-    0 <= l /\ l <= 20
+inline_for_extraction
+noextract
+let swrite_common_long
+  (version: U32.t)
+  (dcid: B.buffer U8.t)
+  (dcid_len: U32.t {
+    let len = U32.v dcid_len in
+    len == B.length dcid /\
+    0 <= len /\ len <= 20
   })
-  (pn_len: packet_number_length_t)
+  (scid: B.buffer U8.t)
+  (scid_len: U32.t {
+    let len = U32.v scid_len in
+    len == B.length scid /\
+    0 <= len /\ len <= 20
+  })
+  (h0: HS.mem {
+    B.live h0 dcid /\
+    B.live h0 scid
+  })
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _) {
+    B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
+  })
+: Tot (w: LW.swriter serialize_common_long h0 0 out 0ul {
+    LW.swvalue w == (version, (FB.hide (B.as_seq h0 dcid), FB.hide (B.as_seq h0 scid)))
+  })
+= LW.swrite_leaf LJ.write_u32 h0 out 0ul version `LW.swrite_nondep_then` (
+    LW.swrite_bounded_vlbytes h0 out 0ul 0 20 dcid_len dcid `LW.swrite_nondep_then`
+    LW.swrite_bounded_vlbytes h0 out 0ul 0 20 scid_len scid
+  )
+
+inline_for_extraction
+let swrite_payload_length_pn
   (last: last_packet_number_t)
-  (pn: packet_number_t last pn_len)
+  (pn_length: packet_number_length_t)
+  (payload_and_pn_length: parse_filter_refine (payload_and_pn_length_prop pn_length))
+  (pn: packet_number_t last pn_length)
+  (h0: HS.mem)
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _))
+: Tot (w: LW.swriter (serialize_payload_length_pn last pn_length) h0 0 out 0ul {
+    LW.swvalue w == (payload_and_pn_length, pn)
+  })
+= (payload_and_pn_length_prop pn_length `LW.swrite_filter` LW.swrite_leaf (LC.leaf_writer_strong_of_serializer32 serialize_varint ()) h0 out 0ul payload_and_pn_length) `LW.swrite_nondep_then` LW.swrite_leaf (write_packet_number last pn_length) h0 out 0ul pn
+
+inline_for_extraction
+noextract
+let swrite_header_long_initial
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: B.buffer U8.t)
+  (dcid_len: U32.t {
+    let len = U32.v dcid_len in
+    len == B.length dcid /\
+    0 <= len /\ len <= 20
+  })
+  (scid: B.buffer U8.t)
+  (scid_len: U32.t {
+    let len = U32.v scid_len in
+    len == B.length scid /\
+    0 <= len /\ len <= 20
+  })
+  (payload_length: uint62_t)
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 })
+  (token: B.buffer U8.t)
+  (token_length: U32.t {
+    let v = U32.v token_length in
+    v == B.length token /\
+    0 <= v /\ v <= token_max_len
+  })
+  (pn: packet_number_t last packet_number_length)
+  (h0: HS.mem {
+    B.live h0 dcid /\
+    B.live h0 scid /\
+    B.live h0 token
+  })
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _) {
+    (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
+    B.loc_disjoint ((B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) `B.loc_union` B.loc_buffer token) (LW.loc_slice_from out 0ul)
+  })
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+    LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BInitial payload_length packet_number_length token token_length)) h0 pn
+  })
+= [@inline_let]
+  let tg : bitsum'_type first_byte =
+    (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |)
+  in
+  [@inline_let]
+  let k : bitsum'_key_type first_byte =
+    (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |)
+  in
+  [@inline_let]
+  let _ =
+    assert_norm (bitsum'_key_of_t first_byte tg == k);
+    assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BInitial payload_length packet_number_length token token_length)) h0 pn) == tg)
+  in
+  [@inline_let]
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+    swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then` (
+      LW.swrite_bounded_vlgenbytes h0 out 0ul 0 token_max_len (LL.leaf_writer_strong_of_serializer32 (serialize_bounded_varint 0 token_max_len) ()) token_length token `LW.swrite_nondep_then`
+      swrite_payload_length_pn last packet_number_length (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) pn h0 out
+    )
+  in
+  LW.swrite_bitsum
+    h0
+    0
+    out
+    0ul
+    #parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' short_dcid_len last)
+    (first_byte_of_header short_dcid_len last)
+    (header_body_type short_dcid_len last)
+    (header_synth short_dcid_len last)
+    #parse_u8
+    #serialize_u8
+    LJ.write_u8
+    synth_first_byte
+    #(parse_header_body short_dcid_len last)
+    (serialize_header_body short_dcid_len last)
+    tg
+    s
+
+inline_for_extraction
+noextract
+let swrite_header_long_zeroRTT
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: B.buffer U8.t)
+  (dcid_len: U32.t {
+    let len = U32.v dcid_len in
+    len == B.length dcid /\
+    0 <= len /\ len <= 20
+  })
+  (scid: B.buffer U8.t)
+  (scid_len: U32.t {
+    let len = U32.v scid_len in
+    len == B.length scid /\
+    0 <= len /\ len <= 20
+  })
+  (payload_length: uint62_t)
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 })
+  (pn: packet_number_t last packet_number_length)
+  (h0: HS.mem {
+    B.live h0 dcid /\
+    B.live h0 scid
+  })
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _) {
+    (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
+    B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
+  })
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+      LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BZeroRTT payload_length packet_number_length)) h0 pn
+  })
+= [@inline_let]
+  let tg : bitsum'_type first_byte =
+    (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |)
+  in
+  [@inline_let]
+  let k : bitsum'_key_type first_byte =
+    (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |)
+  in
+  [@inline_let]
+  let _ =
+    assert_norm (bitsum'_key_of_t first_byte tg == k);
+    assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BZeroRTT payload_length packet_number_length)) h0 pn) == tg)
+  in
+  [@inline_let]
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+    swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then`
+    swrite_payload_length_pn last packet_number_length (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) pn h0 out
+  in
+  LW.swrite_bitsum
+    h0
+    0
+    out
+    0ul
+    #parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' short_dcid_len last)
+    (first_byte_of_header short_dcid_len last)
+    (header_body_type short_dcid_len last)
+    (header_synth short_dcid_len last)
+    #parse_u8
+    #serialize_u8
+    LJ.write_u8
+    synth_first_byte
+    #(parse_header_body short_dcid_len last)
+    (serialize_header_body short_dcid_len last)
+    tg
+    s
+
+inline_for_extraction
+noextract
+let swrite_header_long_handshake
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: B.buffer U8.t)
+  (dcid_len: U32.t {
+    let len = U32.v dcid_len in
+    len == B.length dcid /\
+    0 <= len /\ len <= 20
+  })
+  (scid: B.buffer U8.t)
+  (scid_len: U32.t {
+    let len = U32.v scid_len in
+    len == B.length scid /\
+    0 <= len /\ len <= 20
+  })
+  (payload_length: uint62_t)
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 })
+  (pn: packet_number_t last packet_number_length)
+  (h0: HS.mem {
+    B.live h0 dcid /\
+    B.live h0 scid
+  })
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _) {
+    (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
+    B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
+  })
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+      LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BHandshake payload_length packet_number_length)) h0 pn
+  })
+= [@inline_let]
+  let tg : bitsum'_type first_byte =
+    (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |)
+  in
+  [@inline_let]
+  let k : bitsum'_key_type first_byte =
+    (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |)
+  in
+  [@inline_let]
+  let _ =
+    assert_norm (bitsum'_key_of_t first_byte tg == k);
+    assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BHandshake payload_length packet_number_length)) h0 pn) == tg)
+  in
+  [@inline_let]
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+    swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then`
+    swrite_payload_length_pn last packet_number_length (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) pn h0 out
+  in
+  LW.swrite_bitsum
+    h0
+    0
+    out
+    0ul
+    #parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' short_dcid_len last)
+    (first_byte_of_header short_dcid_len last)
+    (header_body_type short_dcid_len last)
+    (header_synth short_dcid_len last)
+    #parse_u8
+    #serialize_u8
+    LJ.write_u8
+    synth_first_byte
+    #(parse_header_body short_dcid_len last)
+    (serialize_header_body short_dcid_len last)
+    tg
+    s
+
+inline_for_extraction
+noextract
+let swrite_header_long_retry
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: B.buffer U8.t)
+  (dcid_len: U32.t {
+    let len = U32.v dcid_len in
+    len == B.length dcid /\
+    0 <= len /\ len <= 20
+  })
+  (scid: B.buffer U8.t)
+  (scid_len: U32.t {
+    let len = U32.v scid_len in
+    len == B.length scid /\
+    0 <= len /\ len <= 20
+  })
+  (unused: bitfield 4)
+  (odcid: B.buffer U8.t)
+  (odcid_len: U32.t {
+    let len = U32.v odcid_len in
+    len == B.length odcid /\
+    0 <= len /\ len <= 20
+  })
+  (pn: uint62_t)
+  (h0: HS.mem {
+    B.live h0 dcid /\
+    B.live h0 scid /\
+    B.live h0 odcid
+  })
+  (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _) {
+    (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
+    B.loc_disjoint ((B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) `B.loc_union` B.loc_buffer odcid) (LW.loc_slice_from out 0ul)
+  })
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+      LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BRetry unused odcid odcid_len)) h0 pn
+  })
+= [@inline_let]
+  let tg : bitsum'_type first_byte =
+    (| Long, (| (), (| Retry, ( unused, () ) |) |) |)
+  in
+  [@inline_let]
+  let k : bitsum'_key_type first_byte =
+    (| Long, (| (), (| Retry, () |) |) |)
+  in
+  [@inline_let]
+  let _ =
+    assert_norm (bitsum'_key_of_t first_byte tg == k);
+    assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BRetry unused odcid odcid_len)) h0 pn) == tg)
+  in
+  [@inline_let]
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+    swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then`
+    LW.swrite_bounded_vlbytes h0 out 0ul 0 20 odcid_len odcid
+  in
+  LW.swrite_bitsum
+    h0
+    0
+    out
+    0ul
+    #parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' short_dcid_len last)
+    (first_byte_of_header short_dcid_len last)
+    (header_body_type short_dcid_len last)
+    (header_synth short_dcid_len last)
+    #parse_u8
+    #serialize_u8
+    LJ.write_u8
+    synth_first_byte
+    #(parse_header_body short_dcid_len last)
+    (serialize_header_body short_dcid_len last)
+    tg
+    s
+
+#restart-solver
+
+let write_header'
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (h: Impl.header)
+  (pn: uint62_t)
   (out: B.buffer U8.t)
   (out_len: U32.t { U32.v out_len <= B.length out })
 : HST.Stack U32.t
-  (requires (fun h ->
-    let s = serialize (serialize_header cid_len last) (g_header (BShort spin phase cid cid_len pn_len) h pn) in
-    B.live h cid /\
-    B.live h out /\
-    B.loc_disjoint (B.loc_buffer cid) (B.loc_buffer out) /\
-    S.length s <= U32.v out_len
+  (requires (fun h0 ->
+    (BShort? h ==> BShort?.cid_len h == short_dcid_len) /\
+    ((~ (Impl.is_retry h)) ==> in_window (U32.v (Impl.pn_length h) - 1) (U64.v last) (U64.v pn)) /\
+    header_live h h0 /\
+    B.live h0 out /\
+    B.loc_disjoint (header_footprint h) (B.loc_buffer out) /\
+    S.length (serialize (serialize_header short_dcid_len last) (g_header h h0 pn)) <= U32.v out_len
   ))
-  (ensures (fun h len h' ->
-    let s = serialize (serialize_header cid_len last) (g_header (BShort spin phase cid cid_len pn_len) h pn) in
-    B.modifies (B.loc_buffer out) h h' /\
+  (ensures (fun h0 len h1 ->
+    let gh = g_header h h0 pn in
+    let s = serialize (serialize_header short_dcid_len last) gh in
+    B.modifies (B.loc_buffer out) h0 h1 /\
     U32.v len <= U32.v out_len /\
-    S.slice (B.as_seq h' out) 0 (U32.v len) == s 
+    S.slice (B.as_seq h1 out) 0 (U32.v len) == s 
   ))
 = let h0 = HST.get () in
-  assert_norm ((parse_header_kind' cid_len last).parser_kind_subkind == Some ParserStrong);
+  assert_norm ((parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong);
   let sl = LW.make_slice out out_len in
-  LW.serialized_length_eq (serialize_header cid_len last) (g_header (BShort spin phase cid cid_len pn_len) h0 pn);
-  let len = LW.swrite (swrite_header_short spin phase cid cid_len pn_len last pn h0 sl) 0ul in
-  let h = HST.get () in
-  LL.valid_pos_valid_exact  (lp_parse_header cid_len last) h sl 0ul len;
-  LL.valid_exact_serialize (serialize_header cid_len last) h sl 0ul len;
+  LW.serialized_length_eq (serialize_header short_dcid_len last) (g_header h h0 pn);
+  let len = match h with
+  | BShort spin phase cid cid_len pn_len ->
+    LW.swrite (swrite_header_short spin phase cid cid_len pn_len last pn h0 sl) 0ul
+  | BLong version dcid dcil scid scil spec ->
+    begin match spec with
+    | BInitial payload_length packet_number_length token token_length ->
+      LW.swrite (swrite_header_long_initial short_dcid_len last version dcid dcil scid scil payload_length packet_number_length token token_length pn h0 sl) 0ul
+    | BZeroRTT payload_length packet_number_length ->
+      LW.swrite (swrite_header_long_zeroRTT short_dcid_len last version dcid dcil scid scil payload_length packet_number_length pn h0 sl) 0ul
+    | BHandshake payload_length packet_number_length ->
+      LW.swrite (swrite_header_long_handshake short_dcid_len last version dcid dcil scid scil payload_length packet_number_length pn h0 sl) 0ul
+    | BRetry unused odcid odcil ->
+      LW.swrite (swrite_header_long_retry short_dcid_len last version dcid dcil scid scil unused odcid odcil pn h0 sl) 0ul
+    end  
+  in
+//  LW.swrite (swrite_header short_dcid_len last h pn h0 sl) 0ul in
+  let h1 = HST.get () in
+  LL.valid_pos_valid_exact  (lp_parse_header short_dcid_len last) h1 sl 0ul len;
+  LL.valid_exact_serialize (serialize_header short_dcid_len last) h1 sl 0ul len;
   len
+
+let header_len_correct
+  h m pn
+= admit ()
 
 let write_header
   dst x pn
-=
-  admit ()
+= let short_dcid_len = Impl.dcid_len x in
+  let last : last_packet_number_t = if Impl.is_retry x then 0uL else if pn = 0uL then 0uL else pn `U64.sub` 1uL in
+  let header_len = Impl.header_len x in
+  let h0 = HST.get () in
+  parse_header_prop_intro (g_header x h0 pn);
+  header_len_correct x h0 pn;
+  let len' = write_header' short_dcid_len last x pn dst header_len in
+  let h1 = HST.get () in
+  assert (B.as_seq h1 dst `S.equal` S.slice (B.as_seq h1 dst) 0 (U32.v len'));
+  ()
 
 let putative_pn_offset
   cid_len b len
@@ -527,8 +912,4 @@ let putative_pn_offset
 
 let pn_offset
   h pn
-= admit ()
-
-let header_len_correct
-  h m pn
 = admit ()

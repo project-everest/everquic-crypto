@@ -63,6 +63,14 @@ noeq type header =
     packet_number_length: packet_number_length_t ->
     header
 
+let dcid_len
+  (h: header)
+: Tot U32.t
+= match h with
+  | BShort spin phase cid cid_len packet_number_length ->
+    cid_len
+  | BLong version dcid dcil scid scil spec -> dcil
+
 // inline_for_extraction
 let is_retry
   (h: header)

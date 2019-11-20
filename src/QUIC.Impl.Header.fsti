@@ -40,6 +40,15 @@ val read_header
     end
   ))
 
+module HS = FStar.HyperStack
+
+val header_len_correct
+  (h: Impl.header)
+  (m: HS.mem)
+  (pn: uint62_t)
+: Lemma
+  (U32.v (Impl.header_len h) == Spec.header_len (Impl.g_header h m pn))
+
 val write_header
   (dst: B.buffer U8.t)
   (x: Impl.header)
@@ -88,12 +97,3 @@ val pn_offset
     B.modifies B.loc_none m m' /\
     U32.v res == pn_offset (Impl.g_header h m (Ghost.reveal pn))
   ))
-
-module HS = FStar.HyperStack
-
-val header_len_correct
-  (h: Impl.header)
-  (m: HS.mem)
-  (pn: uint62_t)
-: Lemma
-  (U32.v (Impl.header_len h) == Spec.header_len (Impl.g_header h m pn))
