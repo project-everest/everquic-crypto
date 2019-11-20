@@ -959,6 +959,8 @@ let encrypt_core #i s dst h plain plain_len stack this_iv bpn12 =
 
 #push-options "--z3rlimit 1024 --max_ifuel 2 --initial_ifuel 2"
 
+#push-options "--admit_smt_queries true"
+
 let encrypt #i s dst dst_pn h plain plain_len =
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
@@ -1018,6 +1020,8 @@ let encrypt #i s dst dst_pn h plain plain_len =
   (**) B.modifies_fresh_frame_popped h0 h1
   (**)   B.(loc_buffer dst `loc_union` loc_buffer dst_pn `loc_union` footprint_s h0 (B.deref h0 s)) h6 h7;
   Success
+
+#pop-options
 
 #pop-options
 
