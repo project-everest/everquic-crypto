@@ -1,5 +1,5 @@
 [
-  "â\u0005[Äý<¸\u0000“Z²Ñ’¦±ß",
+  "?ˆÂÓyDD›˜¯³¼NÎ",
   [
     [
       "QUIC.Impl.Base.long_header_specifics",
@@ -407,6 +407,20 @@
       "692032dde3420c1d34d97936da9da2a0"
     ],
     [
+      "QUIC.Impl.Base.dcid_len",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "disc_equation_QUIC.Impl.Base.BLong",
+        "disc_equation_QUIC.Impl.Base.BShort",
+        "fuel_guarded_inversion_QUIC.Impl.Base.header"
+      ],
+      0,
+      "97590f3ecd4272680f5de462d75d8891"
+    ],
+    [
       "QUIC.Impl.Base.pn_length",
       1,
       2,
@@ -429,7 +443,7 @@
         "refinement_interpretation_Tm_refine_ceae1db257afaa69b3c1c3cea5a01dba"
       ],
       0,
-      "30bfefe9bd15b565c02114d6f9ea273a"
+      "a02d54d00f52995ee24e804b9e447253"
     ],
     [
       "QUIC.Impl.Base.payload_length",
@@ -450,7 +464,7 @@
         "refinement_interpretation_Tm_refine_c9f4ec57637d1b8b481ba590f2cc4d1e"
       ],
       0,
-      "c70996c0dd92f7c917235428e1d60e86"
+      "f27bdaa8137b283528f047532ecbd1e5"
     ],
     [
       "QUIC.Impl.Base.header_live",
@@ -464,7 +478,7 @@
         "fuel_guarded_inversion_QUIC.Impl.Base.header"
       ],
       0,
-      "aad9f2ad8ce306d62b5c48db1e3e7583"
+      "5241214aa6a953d3c0afa95b498ec8de"
     ],
     [
       "QUIC.Impl.Base.header_footprint",
@@ -478,7 +492,7 @@
         "fuel_guarded_inversion_QUIC.Impl.Base.header"
       ],
       0,
-      "d28dd7f4665a5233d9d811e3b23ae5f6"
+      "4c64cacef8b68319d581ec24b43290d3"
     ],
     [
       "QUIC.Impl.Base.g_header",
@@ -516,7 +530,7 @@
         "typing_FStar.UInt32.v", "typing_LowStar.Buffer.trivial_preorder"
       ],
       0,
-      "30611e264e4f47ddd32193a29e07bc6d"
+      "bb40a42747675399e7be6af12da0160c"
     ],
     [
       "QUIC.Impl.Base.frame_header_live",
@@ -543,7 +557,7 @@
         "typing_QUIC.Impl.Base.header_footprint"
       ],
       0,
-      "4fa4a2f44e0779f7c1d80125f2c83c2d"
+      "035abc30e14056c4304e18444a37d8d6"
     ],
     [
       "QUIC.Impl.Base.frame_header",
@@ -572,7 +586,7 @@
         "typing_QUIC.Impl.Base.header_footprint"
       ],
       0,
-      "8fa1e4e0785c6ebf93dd5f3807e048d5"
+      "1f635d20aab8fde73f1e6d9ff043016b"
     ],
     [
       "QUIC.Impl.Base.header_len",
@@ -621,7 +635,7 @@
         "typing_QUIC.Impl.Base.varint_len"
       ],
       0,
-      "9d01184df266609baa95e281bd5664b0"
+      "22a2e7c725ddf1e3a299bb665132fa07"
     ]
   ]
 ]
