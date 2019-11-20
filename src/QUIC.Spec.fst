@@ -452,7 +452,111 @@ let header_decrypt_aux_post_parse
 
 #pop-options
 
+(* A constant-time specification of header_decrypt_aux which does not test or truncate on pn_len *)
+
+let header_decrypt_aux_ct
+  (a:ea)
+  (hpk: lbytes (ae_keysize a))
+  (cid_len: nat { cid_len < 20 })
+  (packet: packet)
+: GTot (option header_decrypt_aux_t)
+= let open FStar.Math.Lemmas in
+  if S.length packet = 0
+  then None
+  else
+    let f = S.index packet 0 in
+    let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
+    let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
+    if is_retry
+    then
+      Some ({
+        is_short = is_short;
+        is_retry = is_retry;
+        packet = packet;
+        pn_offset = ();
+        pn_len = ();
+      })
+    else
+      match putative_pn_offset cid_len packet with
+      | None -> None
+      | Some pn_offset ->
+        let sample_offset = pn_offset + 4 in
+        if sample_offset + 16 > S.length packet
+        then None
+        else begin
+          let sample = S.slice packet sample_offset (sample_offset+16) in
+          let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+          (* mask the least significant bits of the first byte *)
+          let protected_bits = if is_short then 5 else 4 in
+          let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits) in
+          let packet' = S.cons (U8.uint_to_t f') (S.slice packet 1 (S.length packet)) in
+          (* now the packet number length is available, so mask the packet number *)
+          let pn_len = BF.get_bitfield f' 0 2 in
+          let pnmask = and_inplace (S.slice mask 1 5) (pn_sizemask_ct pn_len) 0 in
+          let packet'' = xor_inplace packet' pnmask pn_offset in
+          Some ({
+            is_short = is_short;
+            is_retry = is_retry;
+            packet = packet'';
+            pn_offset = pn_offset;
+            pn_len = pn_len;
+          })
+        end
+
 #push-options "--z3rlimit 16"
+
+let header_decrypt_aux_ct_correct
+  (a:ea)
+  (hpk: lbytes (ae_keysize a))
+  (cid_len: nat { cid_len < 20 })
+  (packet: packet)
+: Lemma
+  (header_decrypt_aux_ct a hpk cid_len packet == header_decrypt_aux a hpk cid_len packet)
+= 
+  let open FStar.Math.Lemmas in
+  if S.length packet = 0
+  then ()
+  else
+    let f = S.index packet 0 in
+    let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
+    let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
+    if is_retry
+    then ()
+    else
+      match putative_pn_offset cid_len packet with
+      | None -> ()
+      | Some pn_offset ->
+        let sample_offset = pn_offset + 4 in
+        if sample_offset + 16 > S.length packet
+        then ()
+        else begin
+          let sample = S.slice packet sample_offset (sample_offset+16) in
+          let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+          (* mask the least significant bits of the first byte *)
+          let protected_bits = if is_short then 5 else 4 in
+          let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (S.index mask 0)) 0 protected_bits) in
+          let packet' = S.cons (U8.uint_to_t f') (S.slice packet 1 (S.length packet)) in
+          (* now the packet number length is available, so mask the packet number *)
+          let pn_len = BF.get_bitfield f' 0 2 in
+          let pnmask_ct = and_inplace (S.slice mask 1 5) (pn_sizemask_ct pn_len) 0 in
+          let pnmask_naive = and_inplace (S.slice mask 1 (pn_len + 2)) (pn_sizemask_naive pn_len) 0 in
+          pointwise_op_split U8.logand (S.slice mask 1 5) (pn_sizemask_ct pn_len) 0 (pn_len + 1);
+          assert (pnmask_naive `S.equal` S.slice pnmask_ct 0 (pn_len + 1));
+          let r = packet' in
+          S.lemma_split r (pn_offset + pn_len + 1);
+          pointwise_op_split U8.logxor r pnmask_ct pn_offset (pn_offset + pn_len + 1);
+          pointwise_op_split U8.logxor r pnmask_naive pn_offset (pn_offset + pn_len + 1);
+          pointwise_op_empty U8.logxor (S.slice r (pn_offset + pn_len + 1) (S.length r)) (S.slice pnmask_naive (pn_len + 1) (S.length pnmask_naive)) 0;
+          xor_inplace_zero (S.slice r (pn_offset + pn_len + 1) (S.length r)) (S.slice pnmask_ct (pn_len + 1) 4)
+            (fun i ->
+              and_inplace_zero
+                (S.slice mask (pn_len + 2) 5)
+                (S.slice (pn_sizemask_ct pn_len) (pn_len + 1) 4)
+                (fun j -> index_pn_sizemask_ct_right pn_len (j + (pn_len + 1)))
+                i
+            )
+            0
+        end
 
 let header_decrypt a hpk cid_len last packet =
   let open FStar.Math.Lemmas in
