@@ -228,15 +228,16 @@ val encrypt: #i:G.erased index -> (
   let i = G.reveal i in
   s: state i ->
   dst: B.buffer U8.t ->
+  dst_pn: B.pointer u62 ->
   h: header ->
   plain: B.buffer U8.t ->
   plain_len: U32.t ->
   Stack error_code
     (requires fun h0 ->
       // Memory & preservation
-      B.live h0 plain /\ B.live h0 dst /\
+      B.live h0 plain /\ B.live h0 dst /\ B.live h0 dst_pn /\
       header_live h h0 /\
-      B.(all_disjoint [ footprint h0 s; loc_buffer dst; header_footprint h; loc_buffer plain ]) /\
+      B.(all_disjoint [ footprint h0 s; loc_buffer dst; loc_buffer dst_pn; header_footprint h; loc_buffer plain ]) /\
       invariant h0 s /\
       incrementable s h0 /\
       B.length plain == U32.v plain_len /\ (
@@ -249,7 +250,7 @@ val encrypt: #i:G.erased index -> (
       match r with
       | Success ->
           // Memory & preservation
-          B.(modifies (footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst)) h0 h1 /\
+          B.(modifies (footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst `loc_union` loc_buffer dst_pn)) h0 h1 /\
           invariant h1 s /\
           footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\ (
           // Functional correctness
@@ -261,6 +262,7 @@ val encrypt: #i:G.erased index -> (
           let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
           let pn = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
+          B.deref h1 dst_pn == pn /\
           packet == encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
           g_last_packet_number (B.deref h1 s) h1 == pn)
       | _ ->
