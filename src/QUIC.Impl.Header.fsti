@@ -26,7 +26,12 @@ val read_header
     begin
       let spec = parse_header (U32.v cid_len) (U64.v last) (B.as_seq h packet) in
       match res with
-      | None -> H_Failure? spec
+      | None ->
+        begin match spec with
+        | H_Failure -> True
+        | H_Success hd _ ->
+          ((~ (Spec.is_retry hd)) /\ Spec.header_len hd + 4 > B.length packet)
+        end
       | Some (x, pn, len) ->
         H_Success? spec /\
         begin

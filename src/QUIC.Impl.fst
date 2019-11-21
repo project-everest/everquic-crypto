@@ -1346,7 +1346,7 @@ val header_decrypt: i:G.erased index ->
       end
     ))
 
-#push-options "--z3rlimit 1024 --max_ifuel 3 --initial_ifuel 3"
+#push-options "--z3rlimit 1024 --max_ifuel 4 --initial_ifuel 4"
 
 #restart-solver
 
@@ -1361,7 +1361,17 @@ let header_decrypt i s packet packet_len cid_len =
   | None -> None
   | Some ({ is_short; is_retry; pn_offset; pn_len }) ->
     begin match HeaderI.read_header packet packet_len (FStar.Int.Cast.uint8_to_uint32 cid_len) last_pn with
-    | None -> None
+    | None ->
+      let h1 = ST.get () in
+      let phi () : Lemma
+        (requires (HeaderS.H_Success? (HeaderS.parse_header (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet))))
+        (ensures False)
+      = QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);
+        HeaderS.lemma_header_parsing_post (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet);
+        HeaderS.putative_pn_offset_correct (HeaderS.H_Success?.h (HeaderS.parse_header (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet))) (U8.v cid_len)
+      in
+      Classical.move_requires phi ();
+      None
     | Some (header, pn, header_len) ->
       let h1 = ST.get () in
       QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);

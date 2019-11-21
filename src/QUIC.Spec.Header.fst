@@ -539,6 +539,21 @@ let format_header_is_short h =
 
 #pop-options
 
+let first_byte_is_retry
+  (k: bitsum'_type first_byte)
+: GTot bool
+= match k with
+  | (| Long, (| (), (| Retry, (unused, ()) |) |) |) -> true
+  | _ -> false
+
+let first_byte_is_retry_correct
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (is_retry h <==> first_byte_is_retry (first_byte_of_header short_dcid_len last h))
+= ()
+
 let format_header_is_retry h = admit ()
 
 let format_header_pn_length h = admit ()
