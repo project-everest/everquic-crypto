@@ -1,5 +1,5 @@
 [
-  "´×öxÏ•ƒÇzè\u0019Ì„†ù\u0001",
+  "BLß÷û\u0005Ye\u0004 \"±Ä.\u007fp",
   [
     [
       "QUIC.Impl.Header.read_header",
@@ -52,7 +52,7 @@
         "typing_FStar.UInt64.v", "typing_LowStar.Buffer.trivial_preorder"
       ],
       0,
-      "8c79d6d368eae9c3ddc6cd8054235e40"
+      "0e841fc9526863f1798db1e312230498"
     ],
     [
       "QUIC.Impl.Header.header_len_correct",
@@ -68,9 +68,26 @@
       1,
       2,
       1,
-      [ "@query" ],
+      [
+        "@MaxIFuel_assumption", "@query", "bool_inversion",
+        "equation_FStar.Monotonic.HyperStack.live_region",
+        "equation_LowStar.Buffer.buffer",
+        "equation_LowStar.Buffer.trivial_preorder", "equation_Prims.pos",
+        "function_token_typing_FStar.UInt8.t",
+        "lemma_LowStar.Monotonic.Buffer.length_as_seq",
+        "lemma_LowStar.Monotonic.Buffer.live_region_frameOf",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_LessThanOrEqual",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_5616d3bf468efb308a459eec5c61667c",
+        "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
+        "refinement_interpretation_Tm_refine_f68c7a70b63d80c1ce0a308c4f9f4e76",
+        "typing_FStar.Monotonic.HyperStack.live_region",
+        "typing_LowStar.Buffer.trivial_preorder",
+        "typing_LowStar.Monotonic.Buffer.frameOf"
+      ],
       0,
-      "220503b48d33531b54820606214c2656"
+      "2cb62687fe3a4467280d0b7e3477d6ff"
     ],
     [
       "QUIC.Impl.Header.putative_pn_offset",
@@ -86,7 +103,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "f8df4a1b02c92df19765b1a1ac343fe7"
+      "b1d4712c86bf1b0d184d82a2842d601e"
     ],
     [
       "QUIC.Impl.Header.pn_offset",
@@ -98,7 +115,7 @@
         "refinement_interpretation_Tm_refine_ebc0288a8ed9cebeb97ca999a045f6e0"
       ],
       0,
-      "3c8a02ec902481b00f96e10be5d38728"
+      "847e66d22577601291c96929093febc2"
     ]
   ]
 ]
