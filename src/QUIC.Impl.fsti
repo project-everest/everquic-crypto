@@ -290,13 +290,14 @@ type result = {
   pn: u62;
   header: header;
   header_len: U32.t;
-  plain_len: n:U32.t{let l = U32.v n in 3 <= l /\ l < QSpec.max_plain_length};
+  plain_len: n:U32.t;
   total_len: n:U32.t
 }
 
 noextract
 let max (x y: nat) = if x >= y then x else y
 
+unfold
 let decrypt_post (i: index)
   (s:state i)
   (dst: B.pointer result)
@@ -335,8 +336,7 @@ let decrypt_post (i: index)
       U32.v r.total_len <= B.length packet /\
       
       // Contents
-      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1) /\ (
+      (
       let plain =
         S.slice (B.as_seq h1 packet) (U32.v r.header_len)
           (U32.v r.header_len + U32.v r.plain_len) in
@@ -349,13 +349,10 @@ let decrypt_post (i: index)
       | _ -> False
     ))
     | DecodeError ->
-      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
-      B.modifies (B.loc_buffer packet) h0 h1
+      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet))
     | AuthenticationFailure ->
       QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
-      U32.v r.total_len <= B.length packet /\
-      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+      U32.v r.total_len <= B.length packet
     | _ ->
       False
   end
@@ -366,7 +363,6 @@ val decrypt: #i:G.erased index -> (
   dst: B.pointer result ->
   packet: B.buffer U8.t ->
   len: U32.t{
-    21 <= U32.v len /\ U32.v len < pow2 32 /\
     B.length packet == U32.v len
   } ->
   cid_len: u4 ->
@@ -383,10 +379,22 @@ val decrypt: #i:G.erased index -> (
       // ``[header_len, header_len + plain_len)``.
       B.live h0 packet /\ B.live h0 dst /\
       B.(all_disjoint [ loc_buffer dst; loc_buffer packet; footprint h0 s ]) /\
-
       invariant h0 s /\
       incrementable s h0)
-    (ensures fun h0 r h1 ->
-      decrypt_post i s dst packet len cid_len h0 r h1
+    (ensures fun h0 res h1 ->
+      let r = B.deref h1 dst in
+      decrypt_post i s dst packet len cid_len h0 res h1 /\
+      begin match res with
+      | Success ->
+      // Contents
+      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+      | DecodeError ->
+        B.modifies (B.loc_buffer packet) h0 h1
+      | AuthenticationFailure ->
+        B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+      | _ -> False
+      end
     )
   )

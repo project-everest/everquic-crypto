@@ -1122,7 +1122,8 @@ let header_decrypt_pre (i:index)
   B.live h0 packet /\
   B.length packet == U32.v packet_len /\
   invariant h0 s /\
-  incrementable s h0
+  incrementable s h0 /\
+  B.loc_disjoint (B.loc_buffer packet) (footprint h0 s)
 
 #push-options "--max_ifuel 2 --initial_ifuel 2"
 
@@ -1326,7 +1327,6 @@ let header_decrypt_post (i:index)
   B.deref h0 (State?.pn (B.deref h0 s)) == B.deref h1 (State?.pn (B.deref h1 s)) /\
   begin match r with
   | None ->
-    B.modifies (B.loc_buffer packet) h0 h1 /\
     QSpec.H_Failure? spec_result
   | Some (header, header_len, cipher_len, pn) ->
     begin match spec_result with
@@ -1334,9 +1334,10 @@ let header_decrypt_post (i:index)
     | QSpec.H_Success spec_header spec_cipher spec_rem ->
       header_len == HeaderI.header_len header /\
       U32.v header_len + U32.v cipher_len <= B.length packet /\
-      B.modifies (B.loc_buffer (B.gsub packet 0ul header_len)) h0 h1 /\
       B.loc_buffer (B.gsub packet 0ul header_len) `B.loc_includes` header_footprint header /\
+      header_live header h1 /\
       g_header header h1 pn == spec_header /\
+      S.slice (B.as_seq h1 packet) 0 (U32.v header_len) `S.equal` HeaderI.format_header spec_header /\
       S.slice (B.as_seq h0 packet) (U32.v header_len) (U32.v header_len + U32.v cipher_len) == spec_cipher /\
       S.slice (B.as_seq h0 packet) (U32.v header_len + U32.v cipher_len) (B.length packet) == spec_rem
     end
@@ -1353,7 +1354,13 @@ val header_decrypt: i:G.erased index ->
       B.(loc_disjoint (loc_buffer packet) (footprint h0 s)) /\
       invariant h0 s))
     (ensures (fun h0 r h1 ->
-      header_decrypt_post i s packet packet_len cid_len h0 r h1
+      header_decrypt_post i s packet packet_len cid_len h0 r h1 /\
+      begin match r with
+      | None ->
+        B.modifies (B.loc_buffer packet) h0 h1
+      | Some (header, header_len, cipher_len, pn) ->
+        B.modifies (B.loc_buffer (B.gsub packet 0ul header_len)) h0 h1
+      end
     ))
 
 [@CMacro]
@@ -1364,7 +1371,9 @@ let max_cipher_length : (max_cipher_length: U64.t { U64.v max_cipher_length == Q
   let _ = assert_norm (U64.v v == QSpec.max_cipher_length) in
   v
 
-#push-options "--z3rlimit 256"
+#push-options "--z3rlimit 1024 --max_ifuel 3 --initial_ifuel 3"
+
+#restart-solver
 
 let header_decrypt i s packet packet_len cid_len =
   let h0 = ST.get () in
@@ -1382,6 +1391,8 @@ let header_decrypt i s packet packet_len cid_len =
       let h1 = ST.get () in
       QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);
       HeaderI.header_len_correct header h1 pn;
+      HeaderS.lemma_header_parsing_post (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet);
+      assert (S.slice (B.as_seq h1 packet) 0 (U32.v header_len) == HeaderS.format_header (g_header header h1 pn));
       if is_retry
       then
         Some (header, header_len, 0ul, pn)
@@ -1395,7 +1406,9 @@ let header_decrypt i s packet packet_len cid_len =
           if 19uL `U64.lte` clen && clen `U64.lt` max_cipher_length
           then
             let _ = FStar.Math.Lemmas.lemma_mod_lt (U64.v clen) (pow2 32) in
-            Some (header, header_len, FStar.Int.Cast.uint64_to_uint32 clen, pn)
+            let res = Some (header, header_len, FStar.Int.Cast.uint64_to_uint32 clen, pn) in
+            let _ = assert (header_decrypt_post i s packet packet_len cid_len h0 res h1) in
+            res
           else
             None
       end
@@ -1545,23 +1558,139 @@ let decrypt_core #i s dst packet0 packet packet_len cid_len h h_len npn pn_len
       Success
 *)
 
-#push-options "--z3rlimit 400"
+val decrypt_core: #i:G.erased index -> (
+  let i = G.reveal i in
+  s:state i ->
+  dst: B.pointer result ->
+  packet: B.buffer U8.t ->
+  len: U32.t{
+    B.length packet == U32.v len
+  } ->
+  cid_len: u4 ->
+  bpn128: B.buffer U8.t ->
+  biv: B.buffer U8.t ->
+  Stack error_code
+    (requires fun h0 ->
+      // We require clients to allocate space for a result, e.g.
+      //   result r = { 0 };
+      //   decrypt(s, &r, ...);
+      // This means that we don't require that the pointers inside ``r`` be live
+      // (i.e. NO ``header_live header`` precondition).
+      // After a successful call to decrypt, ``packet`` contains the decrypted
+      // data; ``header`` is modified to point within the header area of
+      // ``packet``; and the plaintext is within ``packet`` in range
+      // ``[header_len, header_len + plain_len)``.
+      B.live h0 packet /\ B.live h0 dst /\
+      B.live h0 bpn128 /\ B.live h0 biv /\
+      B.(all_disjoint [ loc_buffer dst; loc_buffer packet; footprint h0 s; loc_buffer bpn128; loc_buffer biv ]) /\
+      invariant h0 s /\
+      incrementable s h0 /\
+      B.length biv == 12 /\
+      B.length bpn128 == 16
+    )
+    (ensures fun h0 res h1 ->
+      let r = B.deref h1 dst in
+      decrypt_post i s dst packet len cid_len h0 res h1 /\
+      begin match res with
+      | Success ->
+      // Contents
+      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst `loc_union` loc_buffer bpn128 `loc_union` loc_buffer biv) h0 h1)
+      | DecodeError ->
+        B.modifies (B.loc_buffer packet) h0 h1
+      | AuthenticationFailure ->
+        B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst `loc_union` loc_buffer bpn128 `loc_union` loc_buffer biv) h0 h1)
+      | _ -> False
+      end
+    )
+  )
+
+#push-options "--z3rlimit 512"
+
+#restart-solver
+
+let decrypt_core #i s dst packet packet_len cid_len bpn128 biv =
+  let h0 = ST.get () in
+  let State hash_alg aead_alg e_traffic_secret e_initial_pn
+    aead_state siv hp_key blastpn ctr_state = !*s
+  in
+  let lastpn = !* blastpn in
+  match header_decrypt i s packet packet_len cid_len with
+  | None -> DecodeError
+  | Some (header, header_len, cipher_len, pn) ->
+    if is_retry header
+    then begin
+      dst *= ({ pn = 0uL; header = header; header_len = header_len; plain_len = 0ul; total_len = header_len });
+      Success
+    end else begin
+      let aad = B.sub packet 0ul header_len in
+      let pn128: FStar.UInt128.t = FStar.Int.Cast.Full.uint64_to_uint128 pn in
+      LowStar.Endianness.store128_be bpn128 pn128;
+      let bpn = B.sub bpn128 4ul 12ul in
+      FStar.Math.Lemmas.pow2_le_compat (8 * 12) (8 * 8);
+      n_to_be_lower 12 16 (U64.v pn);
+      let h1 = ST.get () in
+      C.Loops.map2 biv bpn siv 12ul U8.logxor;
+      pointwise_seq_map2 U8.logxor (B.as_seq h1 bpn) (B.as_seq h1 siv) 0;
+      let h2 = ST.get () in
+      (**) assert (
+        let open QUIC.Spec in
+        let s0 = g_traffic_secret (B.deref h2 s) in
+        let siv = derive_secret i.hash_alg s0 label_iv 12 in
+        B.as_seq h2 biv `S.equal` QUIC.Spec.Lemmas.xor_inplace (B.as_seq h1 bpn) siv 0
+      );
+      let plain_len = cipher_len `U32.sub` tag_len aead_alg in
+      let plain = B.sub packet header_len plain_len in
+      let tag = B.sub packet (header_len `U32.add` plain_len) (tag_len aead_alg) in
+      let res_decrypt = AEAD.decrypt #(G.hide aead_alg) aead_state biv 12ul aad header_len plain plain_len tag plain in
+      assert (B.as_seq h1 (B.gsub packet 0ul header_len) == HeaderS.format_header (g_header header h1 pn));
+      let h3 = ST.get () in
+      assert_norm (pow2 62 < pow2 (8 `op_Multiply` 12));
+      assert (B.as_seq h1 bpn == FStar.Endianness.n_to_be 12 (U64.v pn));
+      assert ((B.as_seq h0 plain `S.append` B.as_seq h0 tag) `S.equal` S.slice (B.as_seq h0 packet) (U32.v header_len) (U32.v header_len + U32.v cipher_len));
+      match res_decrypt with
+      | AuthenticationFailure ->
+        dst *= ({ pn = 0uL; header = header; header_len = header_len; plain_len = 0ul; total_len = header_len `U32.add` cipher_len });
+        AuthenticationFailure
+      | Success ->
+        dst *= ({ pn = pn; header = header; header_len = header_len; plain_len = plain_len; total_len = header_len `U32.add` cipher_len });
+        let newlastpn = if pn `U64.gt` lastpn then pn else lastpn in
+        blastpn *= newlastpn;
+        Success
+      | _ ->
+        assert False;
+        InvalidKey
+    end
+
+#pop-options
+
+#restart-solver
+
 let decrypt #i s dst packet packet_len cid_len =
+  ST.push_frame ();
+  let bpn128 = B.alloca 0uy 16ul in
+  let biv = B.alloca 0uy 12ul in
+  let res = decrypt_core #i s dst packet packet_len cid_len bpn128 biv in
+  ST.pop_frame ();
+  res
+
+(*
+#push-options "--z3rlimit 400"
+  
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg _ initial_pn aead_state iv hp_key last_pn _ = !*s in
 
   // NOTE: typing error if I inline the definition of the_last_pn
   let the_last_pn = !*last_pn in
 
-  admit ()
-
-(*
-
-  // Watch out: the post-condition of header_decrypt is very loose w.r.t. its
-  // effects on state modification.
   match header_decrypt i s packet packet_len cid_len with
   | None -> DecodeError
-  | Some (h, h_len, npn, pn_len) ->
+  | Some (header, header_len, cipher_len, pn) ->
+    assume False;
+    DecodeError
+
+  (h, h_len, pn, pn_len) ->
       (**) assert_norm (pow2 32 < pow2 62);
       let pn = expand_pn pn_len the_last_pn (u64_of_u32 npn) in
 
