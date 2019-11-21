@@ -1121,32 +1121,65 @@ let header_decrypt_pre (i:index)
 =
   B.live h0 packet /\
   B.length packet == U32.v packet_len /\
-  21 <= B.length packet
+  invariant h0 s /\
+  incrementable s h0
 
-let header_decrypt_post (i:index)
+#push-options "--max_ifuel 2 --initial_ifuel 2"
+
+noeq
+type header_decrypt_aux_t = {
+  is_short: bool;
+  is_retry: bool;
+  pn_offset: U32.t;
+  pn_len: U32.t;
+}
+
+let header_decrypt_aux_post (i:index)
   (s: state i)
   (packet: B.buffer U8.t)
   (packet_len: U32.t)
   (cid_len: u4)
+  (locals: B.loc)
   (h0: HS.mem)
-  (r: (option (header & U32.t & U32.t & u2)))
-  (h1: HS.mem): Ghost _
-    (requires header_decrypt_pre i s packet packet_len cid_len h0)
-    (ensures fun _ -> True)
+  (r: option header_decrypt_aux_t)
+  (h1: HS.mem)
+: Ghost Type0
+  (requires (
+    header_decrypt_pre i s packet packet_len cid_len h0
+  ))
+  (ensures (fun _ -> True))
 =
-  admit ();
   let a = i.aead_alg in
   let hpk = g_hp_key h0 s in
-
-  let spec_result = QUIC.Spec.header_decrypt a hpk (U8.v cid_len) (U64.v (B.deref h0 (State?.pn (B.deref h0 s)))) (B.as_seq h0 packet) in
-//  parse_header_post packet packet_len cid_len r h1 spec_result /\
-
+  let spec_result = QUIC.Spec.header_decrypt_aux_ct a hpk (U8.v cid_len) (B.as_seq h0 packet) 
+  in
   invariant h1 s /\
   footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s) /\
-
   g_hp_key h0 s == g_hp_key h1 s /\
   B.as_seq h0 (State?.iv (B.deref h0 s)) `S.equal` B.as_seq h1 (State?.iv (B.deref h1 s)) /\
-  B.deref h0 (State?.pn (B.deref h0 s)) == B.deref h1 (State?.pn (B.deref h1 s))
+  B.deref h0 (State?.pn (B.deref h0 s)) == B.deref h1 (State?.pn (B.deref h1 s)) /\
+  begin match r with
+  | None ->
+    B.modifies (B.loc_buffer packet `B.loc_union` locals) h0 h1 /\
+    None? spec_result
+  | Some result ->
+    begin match spec_result with
+    | None -> False
+    | Some spec_result ->
+      result.is_short == spec_result.Spec.is_short /\
+      result.is_retry == spec_result.Spec.is_retry /\
+      B.as_seq h1 packet == spec_result.Spec.packet /\
+      begin if result.is_retry
+      then
+        B.modifies locals h0 h1
+      else
+        U32.v result.pn_offset == spec_result.Spec.pn_offset /\
+        U32.v result.pn_len == (spec_result.Spec.pn_len <: nat) /\
+        U32.v result.pn_offset + U32.v result.pn_len <= B.length packet /\
+        B.modifies (locals `B.loc_union` B.loc_buffer (B.gsub packet 0ul (result.pn_offset `U32.add` result.pn_len))) h0 h1
+      end
+    end
+  end
 
 (*
 val header_decrypt_core: i:G.erased index ->
@@ -1251,29 +1284,130 @@ let header_decrypt_core i s packet packet_len cid_len is_short sample_ofs pn_ofs
 #pop-options
 *)
 
+assume
+val header_decrypt_aux
+  (i:G.erased index)
+  (s: state i)
+  (packet: B.buffer U8.t)
+  (packet_len: U32.t)
+  (cid_len: u4)
+: Stack (option header_decrypt_aux_t)
+  (requires (fun h0 ->
+    header_decrypt_pre i s packet packet_len cid_len h0
+  ))
+  (ensures (fun h0 r h1 ->
+    header_decrypt_aux_post i s packet packet_len cid_len B.loc_none h0 r h1
+  ))
+
+unfold
+let header_decrypt_post (i:index)
+  (s: state i)
+  (packet: B.buffer U8.t)
+  (packet_len: U32.t)
+  (cid_len: u4)
+  (h0: HS.mem)
+  (r: (option (header & U32.t & U32.t & u62)))
+  (h1: HS.mem)
+: Ghost Type0
+  (requires (
+    header_decrypt_pre i s packet packet_len cid_len h0
+  ))
+  (ensures (fun _ -> True))
+=
+  let a = i.aead_alg in
+  let hpk = g_hp_key h0 s in
+  let last_pn = U64.v (B.deref h0 (State?.pn (B.deref h0 s))) in
+  let spec_result = QUIC.Spec.header_decrypt a hpk (U8.v cid_len) last_pn (B.as_seq h0 packet) 
+  in
+  invariant h1 s /\
+  footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s) /\
+  g_hp_key h0 s == g_hp_key h1 s /\
+  B.as_seq h0 (State?.iv (B.deref h0 s)) `S.equal` B.as_seq h1 (State?.iv (B.deref h1 s)) /\
+  B.deref h0 (State?.pn (B.deref h0 s)) == B.deref h1 (State?.pn (B.deref h1 s)) /\
+  begin match r with
+  | None ->
+    B.modifies (B.loc_buffer packet) h0 h1 /\
+    QSpec.H_Failure? spec_result
+  | Some (header, header_len, cipher_len, pn) ->
+    begin match spec_result with
+    | QSpec.H_Failure -> False
+    | QSpec.H_Success spec_header spec_cipher spec_rem ->
+      header_len == HeaderI.header_len header /\
+      U32.v header_len + U32.v cipher_len <= B.length packet /\
+      B.modifies (B.loc_buffer (B.gsub packet 0ul header_len)) h0 h1 /\
+      B.loc_buffer (B.gsub packet 0ul header_len) `B.loc_includes` header_footprint header /\
+      g_header header h1 pn == spec_header /\
+      S.slice (B.as_seq h0 packet) (U32.v header_len) (U32.v header_len + U32.v cipher_len) == spec_cipher /\
+      S.slice (B.as_seq h0 packet) (U32.v header_len + U32.v cipher_len) (B.length packet) == spec_rem
+    end
+  end
+
 val header_decrypt: i:G.erased index ->
   (s: state i) ->
   (packet: B.buffer U8.t) ->
   (packet_len: U32.t) ->
   (cid_len: u4) ->
-  Stack (option (header & U32.t & U32.t & u2))
+  Stack (option (header & U32.t & U32.t & u62))
     (requires (fun h0 ->
       header_decrypt_pre i s packet packet_len cid_len h0 /\
       B.(loc_disjoint (loc_buffer packet) (footprint h0 s)) /\
       invariant h0 s))
     (ensures (fun h0 r h1 ->
-      header_decrypt_post i s packet packet_len cid_len h0 r h1 /\
+      header_decrypt_post i s packet packet_len cid_len h0 r h1
+    ))
 
-      // Note: we could be more precise here and state that packet is modifies
-      // only up to the header length. Doesn't seem worth it for the moment.
-      B.(modifies (loc_buffer packet `loc_union`
-        footprint_s h0 (B.deref h0 s)) h0 h1)))
+[@CMacro]
+let max_cipher_length : (max_cipher_length: U64.t { U64.v max_cipher_length == QSpec.max_cipher_length }) =
+  [@inline_let]
+  let v = 4294950796uL in
+  [@inline_let]
+  let _ = assert_norm (U64.v v == QSpec.max_cipher_length) in
+  v
+
+#push-options "--z3rlimit 256"
 
 let header_decrypt i s packet packet_len cid_len =
+  let h0 = ST.get () in
+  let State hash_alg aead_alg e_traffic_secret e_initial_pn
+    aead_state iv hp_key bpn ctr_state = !*s
+  in
+  let last_pn = !* bpn in
+  Spec.header_decrypt_aux_ct_correct i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (B.as_seq h0 packet);
+  match header_decrypt_aux i s packet packet_len cid_len with
+  | None -> None
+  | Some ({ is_short; is_retry; pn_offset; pn_len }) ->
+    begin match HeaderI.read_header packet packet_len (FStar.Int.Cast.uint8_to_uint32 cid_len) last_pn with
+    | None -> None
+    | Some (header, pn, header_len) ->
+      let h1 = ST.get () in
+      QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);
+      HeaderI.header_len_correct header h1 pn;
+      if is_retry
+      then
+        Some (header, header_len, 0ul, pn)
+      else
+        let rem'_length = FStar.Int.Cast.uint32_to_uint64 (packet_len `U32.sub` header_len) in
+        if has_payload_length header && rem'_length `U64.lt` payload_length header
+        then
+          None
+        else
+          let clen = if has_payload_length header then payload_length header else rem'_length in
+          if 19uL `U64.lte` clen && clen `U64.lt` max_cipher_length
+          then
+            let _ = FStar.Math.Lemmas.lemma_mod_lt (U64.v clen) (pow2 32) in
+            Some (header, header_len, FStar.Int.Cast.uint64_to_uint32 clen, pn)
+          else
+            None
+      end
+
+#pop-options
+
+(*  
+
+
   let is_short = U8.(packet.(0ul) `U8.lt` 128uy) in
   (**) let h0 = ST.get () in
   admit ()
-(*  
   match sample_offset packet packet_len cid_len is_short with
   | None -> None
   | Some (sample_offset, pn_offset) ->
