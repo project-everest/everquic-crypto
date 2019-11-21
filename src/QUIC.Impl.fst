@@ -966,10 +966,10 @@ let encrypt #i s dst dst_pn h plain plain_len =
   in
   push_frame ();
   (**) let h1 = ST.get () in
-  (**) let mloc = G.hide B.(loc_all_regions_from false (HS.get_tip h1) `loc_union`
-    footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst `loc_union` loc_buffer dst_pn) in
   let pnb0 = B.alloca 0uy 16ul in
   let this_iv = B.alloca 0uy 12ul in
+  (**) let mloc = G.hide B.(loc_buffer pnb0 `loc_union` loc_buffer this_iv `loc_union`
+    footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst `loc_union` loc_buffer dst_pn) in
   (**) let h2 = ST.get () in
   (**) frame_invariant B.(loc_none) s h1 h2;
   (**) assert (footprint_s h1 (B.deref h1 s) == footprint_s h2 (B.deref h2 s));
@@ -985,8 +985,6 @@ let encrypt #i s dst dst_pn h plain plain_len =
   let pnb = B.sub pnb0 4ul 12ul in
   FStar.Math.Lemmas.pow2_le_compat (8 * 12) (8 * 8);
   n_to_be_lower 12 16 (U64.v pn_value);
-  (**) assert B.(loc_disjoint (loc_region_only true (B.frameOf s))
-  (**)   (loc_all_regions_from false (HS.get_tip h1)));
   frame_header h pn_value B.loc_none h0 h3;
   let phi () : Lemma
     (G.reveal mloc `B.loc_disjoint` header_footprint h)
@@ -995,7 +993,7 @@ let encrypt #i s dst dst_pn h plain plain_len =
   in
   phi ();
   encrypt_core #i s dst h plain plain_len
-    (G.hide B.(loc_all_regions_from false (HS.get_tip h1))) this_iv pnb;
+    (G.hide B.(loc_buffer this_iv `loc_union` loc_buffer pnb0)) this_iv pnb;
   (**) let h4 = ST.get () in
   (**) assert (invariant h4 s);
   (**) assert (footprint_s h3 (B.deref h3 s) == footprint_s h4 (B.deref h4 s));
@@ -1013,10 +1011,9 @@ let encrypt #i s dst dst_pn h plain plain_len =
   (**) B.(modifies_trans (G.reveal mloc) h1 h5 (G.reveal mloc) h6);  
   pop_frame ();
   (**) let h7 = ST.get () in
-  (**) frame_invariant B.(loc_all_regions_from false (HS.get_tip h1)) s h6 h7;
-  (**) assert (footprint_s h6 (B.deref h6 s) == footprint_s h7 (B.deref h7 s));
   (**) B.modifies_fresh_frame_popped h0 h1
   (**)   B.(loc_buffer dst `loc_union` loc_buffer dst_pn `loc_union` footprint_s h0 (B.deref h0 s)) h6 h7;
+  (**) assert (footprint_s h6 (B.deref h6 s) == footprint_s h7 (B.deref h7 s));
   Success
 
 #pop-options
