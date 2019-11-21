@@ -871,12 +871,12 @@ let encrypt_core #i s dst h plain plain_len stack this_iv bpn12 =
   let pn = last_pn `U64.add` 1uL in
   let dst_h = B.sub dst 0ul (HeaderI.header_len h) in
   HeaderI.header_len_correct h h0 pn;
-  HeaderI.write_header dst_h h pn;
+  HeaderI.write_header dst h pn;
   (**) let h1 = ST.get () in
   (**) frame_invariant B.(loc_buffer dst) s h0 h1;
   (**) assert (footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s));
   (**) B.(modifies_loc_includes (G.reveal m_loc) h0 h1 (loc_buffer dst));
-  frame_header h pn (B.loc_buffer dst_h) h0 h1;
+  frame_header h pn (B.loc_buffer dst) h0 h1;
   assert (header_live h h1);
   if is_retry h
   then ()

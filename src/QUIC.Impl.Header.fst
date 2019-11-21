@@ -879,7 +879,6 @@ let write_header
   header_len_correct x h0 pn;
   let len' = write_header' short_dcid_len last x pn dst header_len in
   let h1 = HST.get () in
-  assert (B.as_seq h1 dst `S.equal` S.slice (B.as_seq h1 dst) 0 (U32.v len'));
   ()
 
 let putative_pn_offset

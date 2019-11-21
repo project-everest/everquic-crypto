@@ -62,12 +62,13 @@ val write_header
   (requires (fun h ->
     B.live h dst /\
     Impl.header_live x h /\
-    B.length dst == Spec.header_len (Impl.g_header x h pn) /\
+    B.length dst >= Spec.header_len (Impl.g_header x h pn) + (if Impl.is_retry x then 0 else 4) /\
     Impl.header_footprint x `B.loc_disjoint` B.loc_buffer dst
   ))
   (ensures (fun h _ h' ->
+    let len = Spec.header_len (Impl.g_header x h pn) in
     B.modifies (B.loc_buffer dst) h h' /\
-    B.as_seq h' dst == format_header (Impl.g_header x h pn)
+    S.slice (B.as_seq h' dst) 0 len == format_header (Impl.g_header x h pn)
   ))
 
 val putative_pn_offset
