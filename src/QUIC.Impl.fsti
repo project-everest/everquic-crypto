@@ -386,11 +386,10 @@ val decrypt: #i:G.erased index -> (
       decrypt_post i s dst packet len cid_len h0 res h1 /\
       begin match res with
       | Success ->
-      // Contents
       B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
         loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
       | DecodeError ->
-        B.modifies (B.loc_buffer packet) h0 h1
+        B.modifies (footprint_s h0 (B.deref h0 s) `B.loc_union` B.loc_buffer packet) h0 h1
       | AuthenticationFailure ->
         B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
         loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
