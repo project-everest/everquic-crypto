@@ -341,7 +341,7 @@ let read_header
     Some?.v k.parser_kind_high <= U32.v LL.validator_max_length /\
     k.parser_kind_subkind == Some ParserStrong
   );
-  let len = LL.validate_bounded_strong_prefix (validate_header cid_len last) sl in
+  let len = LL.validate_bounded_strong_prefix (validate_header cid_len last) sl 0ul in
   if len `U32.gt` LL.validator_max_length
   then None
   else begin
@@ -870,7 +870,7 @@ let putative_pn_offset
   then 0ul
   else
     let _ = LL.valid_facts parse_u8 h0 sl 0ul in
-    let pos1 = LJ.validate_u8 () sl 0ul in
+    let pos1 = LL.validate_bounded_strong_prefix (LJ.validate_u8 ()) sl 0ul in
     if pos1 `U32.gt` LL.validator_max_length
     then 0ul
     else
@@ -882,7 +882,7 @@ let putative_pn_offset
       if uint8.get_bitfield hd 7 8 = 0uy
       then
         let _ = LL.valid_facts (parse_bounded_integer (U32.v cid_len)) h0 sl pos1 in
-        let pos2 = LI.validate_bounded_integer' cid_len sl pos1 in
+        let pos2 = LL.validate_bounded_strong_prefix (LI.validate_bounded_integer' cid_len) sl pos1 in
         if pos2 `U32.gt` LL.validator_max_length
         then 0ul
         else pos2
@@ -892,7 +892,7 @@ let putative_pn_offset
         then 0ul
         else
           let _ = LL.valid_facts parse_common_long h0 sl pos1 in
-          let pos2 = validate_common_long sl pos1 in
+          let pos2 = LL.validate_bounded_strong_prefix validate_common_long sl pos1 in
           if pos2 `U32.gt` LL.validator_max_length
           then 0ul
           else
@@ -900,7 +900,7 @@ let putative_pn_offset
               if packet_type = 0uy
               then
                 let _ = LL.valid_facts (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) h0 sl pos2 in
-                let pos3 = LB.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (validate_bounded_varint 0ul (U32.uint_to_t token_max_len)) (read_bounded_varint 0 token_max_len) sl pos2 in
+                let pos3 = LL.validate_bounded_strong_prefix (LB.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (validate_bounded_varint 0ul (U32.uint_to_t token_max_len)) (read_bounded_varint 0 token_max_len)) sl pos2 in
                 if pos3 `U32.gt` LL.validator_max_length
                 then 0ul
                 else pos3
@@ -911,7 +911,7 @@ let putative_pn_offset
             then 0ul
             else
               let _ = LL.valid_facts parse_varint h0 sl pos3 in
-              let pos4 = validate_varint sl pos3 in
+              let pos4 = LL.validate_bounded_strong_prefix validate_varint sl pos3 in
               if pos4 `U32.gt` LL.validator_max_length
               then 0ul
               else pos4

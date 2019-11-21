@@ -68,7 +68,7 @@ val write_header
 val putative_pn_offset
   (cid_len: U32.t)
   (b: B.buffer U8.t)
-  (len: U32.t { U32.v len == B.length b /\ U32.v len < 4294967280 })
+  (len: U32.t { U32.v len == B.length b })
 : HST.Stack U32.t
   (requires (fun h ->
     B.live h b
