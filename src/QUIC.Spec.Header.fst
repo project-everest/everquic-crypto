@@ -548,9 +548,6 @@ let pn_offset h = admit ()
 (* From https://tools.ietf.org/html/draft-ietf-quic-tls-23#section-5.4.2 *)
 
 let putative_pn_offset cid_len x =
-  if not (1 <= cid_len && cid_len <= 4)
-  then None
-  else
   match parse parse_u8 x with
   | None -> None
   | Some (hd, consumed1) ->
@@ -561,7 +558,10 @@ let putative_pn_offset cid_len x =
     let x1 = Seq.slice x consumed1 (Seq.length x) in
     if uint8.get_bitfield hd 7 8 = 0uy // test packet kind
     then // short
-      match parse (parse_bounded_integer cid_len) x1 with
+      if not (cid_len <= 20)
+      then None
+      else
+      match parse (parse_flbytes cid_len) x1 with
       | None -> None
       | Some (_, consumed2) ->
         Some (consumed1 + consumed2)

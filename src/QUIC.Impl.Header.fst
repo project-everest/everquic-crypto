@@ -866,9 +866,6 @@ let putative_pn_offset
 =
   let sl = LowParse.Slice.make_slice b len in
   let h0 = HST.get () in
-  if not (1ul `U32.lte` cid_len && cid_len `U32.lte` 4ul)
-  then 0ul
-  else
     let _ = LL.valid_facts parse_u8 h0 sl 0ul in
     let pos1 = LL.validate_bounded_strong_prefix (LJ.validate_u8 ()) sl 0ul in
     if pos1 `U32.gt` LL.validator_max_length
@@ -880,13 +877,16 @@ let putative_pn_offset
       in
       let hd = LJ.read_u8 sl 0ul in
       if uint8.get_bitfield hd 7 8 = 0uy
-      then
-        let _ = LL.valid_facts (parse_bounded_integer (U32.v cid_len)) h0 sl pos1 in
-        let pos2 = LL.validate_bounded_strong_prefix (LI.validate_bounded_integer' cid_len) sl pos1 in
+      then begin
+        if not (cid_len `U32.lte` 20ul)
+        then 0ul
+        else
+        let _ = LL.valid_facts (parse_flbytes (U32.v cid_len)) h0 sl pos1 in
+        let pos2 = LL.validate_bounded_strong_prefix (LB.validate_flbytes (U32.v cid_len) cid_len) sl pos1 in
         if pos2 `U32.gt` LL.validator_max_length
         then 0ul
         else pos2
-      else
+      end else
         let packet_type = uint8.get_bitfield hd 4 6 in
         if packet_type = 3uy
         then 0ul
