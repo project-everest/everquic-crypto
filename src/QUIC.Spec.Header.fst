@@ -600,21 +600,22 @@ let parse_header cid_len last b =
 
 module Seq = FStar.Seq
 
-#push-options "--z3rlimit 128"
-
 let lemma_header_parsing_correct
   h c cid_len last
 =
   parse_header_prop_intro h;
-  serialize_header_ext (U32.uint_to_t (dcid_len h)) (U32.uint_to_t cid_len) (last_packet_number h) (U64.uint_to_t last) h;
+  let cid_len32 : short_dcid_len_t = U32.uint_to_t cid_len in
+  serialize_header_ext (U32.uint_to_t (dcid_len h)) cid_len32 (last_packet_number h) (U64.uint_to_t last) h;
   let s = format_header h in
-  assert (s == serialize (serialize_header (U32.uint_to_t cid_len) (U64.uint_to_t last)) h);
-  parse_serialize (serialize_header (U32.uint_to_t cid_len) (U64.uint_to_t last)) h;
-  assert_norm ((parse_header_kind' (U32.uint_to_t cid_len) (U64.uint_to_t last)).parser_kind_subkind == Some ParserStrong);
-  parse_strong_prefix (lp_parse_header (U32.uint_to_t cid_len) (U64.uint_to_t last)) s (s `Seq.append` c);
+  assert (s == serialize (serialize_header cid_len32 (U64.uint_to_t last)) h);
+  parse_serialize (serialize_header cid_len32 (U64.uint_to_t last)) h;
+  assert_norm ((parse_header_kind' cid_len32 (U64.uint_to_t last)).parser_kind_subkind == Some ParserStrong);
+  parse_strong_prefix (lp_parse_header cid_len32 (U64.uint_to_t last)) s (s `Seq.append` c);
+  S.lemma_split (s `S.append` c) (S.length s);
+  assert (s `S.equal` S.slice s 0 (S.length s));
   match parse_header cid_len last Seq.(format_header h @| c) with
   | H_Failure -> ()
-  | H_Success h' c' -> assert (h == h' /\ c `Seq.equal` c')
+  | H_Success h' c' -> assert (h == h'); assert (c `Seq.equal` c')
 
 #push-options "--z3rlimit 256"
 

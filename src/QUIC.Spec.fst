@@ -288,7 +288,7 @@ type header_decrypt_aux_t = {
 let header_decrypt_aux
   (a:ea)
   (hpk: lbytes (ae_keysize a))
-  (cid_len: nat { cid_len < 20 })
+  (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : GTot (option header_decrypt_aux_t)
 = let open FStar.Math.Lemmas in
@@ -341,7 +341,7 @@ let header_decrypt_aux
 let header_decrypt_aux_post
   (a:ea)
   (hpk: lbytes (ae_keysize a))
-  (cid_len: nat { cid_len < 20 })
+  (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : Lemma
   (requires (Some? (header_decrypt_aux a hpk cid_len packet)))
@@ -404,7 +404,7 @@ module Header = QUIC.Spec.Header
 let header_decrypt_aux_post_parse
   (a:ea)
   (hpk: lbytes (ae_keysize a))
-  (cid_len: nat { cid_len < 20 })
+  (cid_len: nat { cid_len <= 20 })
   (last: nat { last + 1 < pow2 62 })
   (packet: packet)
 : Lemma
@@ -457,7 +457,7 @@ let header_decrypt_aux_post_parse
 let header_decrypt_aux_ct
   (a:ea)
   (hpk: lbytes (ae_keysize a))
-  (cid_len: nat { cid_len < 20 })
+  (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : GTot (option header_decrypt_aux_t)
 = let open FStar.Math.Lemmas in
@@ -508,7 +508,7 @@ let header_decrypt_aux_ct
 let header_decrypt_aux_ct_correct
   (a:ea)
   (hpk: lbytes (ae_keysize a))
-  (cid_len: nat { cid_len < 20 })
+  (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : Lemma
   (header_decrypt_aux_ct a hpk cid_len packet == header_decrypt_aux a hpk cid_len packet)
@@ -595,7 +595,7 @@ let lemma_header_encryption_correct_aux
   (a:ea)
   (k:lbytes (ae_keysize a))
   (h:header)
-  (cid_len: nat { cid_len < 20 /\ (MShort? h ==> cid_len == dcid_len h) })
+  (cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) })
   (c: cbytes' (is_retry h)) // { has_payload_length h ==> U64.v (payload_length h) == S.length c } ->
 : Lemma
   (let r' = header_decrypt_aux a k cid_len (header_encrypt a k h c) in
