@@ -1361,7 +1361,9 @@ let header_decrypt i s packet packet_len cid_len =
   | None -> None
   | Some ({ is_short; is_retry; pn_offset; pn_len }) ->
     begin match HeaderI.read_header packet packet_len (FStar.Int.Cast.uint8_to_uint32 cid_len) last_pn with
-    | None -> None
+    | None -> 
+      LowStar.Printf.printf "header_decrypt: read_header failure\n" LowStar.Printf.done;
+      None
     | Some (header, pn, header_len) ->
       let h1 = ST.get () in
       QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);
@@ -1376,6 +1378,7 @@ let header_decrypt i s packet packet_len cid_len =
         let rem'_length = FStar.Int.Cast.uint32_to_uint64 (packet_len `U32.sub` header_len) in
         if has_payload_length header && rem'_length `U64.lt` payload_length header
         then
+          let _ = LowStar.Printf.printf "header_decrypt: inconsistent payload length\n"  LowStar.Printf.done in
           None
         else
           let clen = if has_payload_length header then payload_length header else rem'_length in
@@ -1386,6 +1389,7 @@ let header_decrypt i s packet packet_len cid_len =
             let _ = assert (header_decrypt_post i s packet packet_len cid_len h0 res h1) in
             res
           else
+            let _ = LowStar.Printf.printf "header_decrypt: cipher too small\n"  LowStar.Printf.done in
             None
       end
 
