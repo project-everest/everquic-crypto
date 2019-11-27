@@ -326,7 +326,7 @@ let read_header_body
 
 #restart-solver
 
-#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --query_stats"
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats"
 
 let read_header
   packet packet_len cid_len last

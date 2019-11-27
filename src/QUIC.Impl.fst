@@ -654,7 +654,7 @@ val header_encrypt: i:G.erased index -> (
 
 module BF = LowParse.BitFields
 
-#push-options "--z3rlimit 2048"
+#push-options "--z3rlimit 1024 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2' --max_ifuel 0 --initial_ifuel 0"
 let header_encrypt i dst dst_len s h cipher pn =
   let State _ aead_alg _ _ aead_state _ k _ ctr_state = !*s in
   [@inline_let]
@@ -679,8 +679,18 @@ let header_encrypt i dst dst_len s h cipher pn =
     (**)   S.slice (G.reveal cipher) (3 - U32.v pn_len) (19 - U32.v pn_len));
 
     push_frame ();
+    let h08 = ST.get () in
+    frame_header h pn B.loc_none h0 h08;
+    header_live_loc_not_unused_in_footprint h h08;
+    B.loc_unused_in_not_unused_in_disjoint h08;
     let mask = B.alloca 0uy 16ul in
+    assert (header_footprint h `B.loc_disjoint` B.loc_buffer mask);
+    let h09 = ST.get () in
+    frame_header h pn B.loc_none h08 h09;
+    header_live_loc_not_unused_in_footprint h h09;
+    B.loc_unused_in_not_unused_in_disjoint h09;
     let pn_mask = B.alloca 0uy 4ul in
+    assert (header_footprint h `B.loc_disjoint` B.loc_buffer pn_mask);
     (**) let h1 = ST.get () in
     (**) assert (B.(loc_disjoint (loc_buffer pn_mask) (footprint h1 s)));
     (**) assert (B.(all_live h1 [ buf mask; buf k; buf sample ]));
@@ -957,25 +967,34 @@ let encrypt_core #i s dst h plain plain_len stack this_iv bpn12 =
 
 #pop-options
 
-#push-options "--z3rlimit 1024 --max_ifuel 2 --initial_ifuel 2"
+#push-options "--z3rlimit 1024 --max_ifuel 0 --initial_ifuel 0 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2'"
 
 let encrypt #i s dst dst_pn h plain plain_len =
   (**) let h0 = ST.get () in
   let State hash_alg aead_alg e_traffic_secret e_initial_pn
     aead_state iv hp_key pn ctr_state = !*s
   in
+  let last_pn: U64.t = !*pn in
+  let pn_value = last_pn `U64.add` 1uL in
   push_frame ();
   (**) let h1 = ST.get () in
+  frame_header h pn_value B.loc_none h0 h1;
+  header_live_loc_not_unused_in_footprint h h1;
+  B.loc_unused_in_not_unused_in_disjoint h1;
   let pnb0 = B.alloca 0uy 16ul in
+  assert (header_footprint h `B.loc_disjoint` B.loc_buffer pnb0);
+  let h11 = ST.get () in
+  frame_header h pn_value B.loc_none h1 h11;
+  header_live_loc_not_unused_in_footprint h h11;
+  B.loc_unused_in_not_unused_in_disjoint h11;
   let this_iv = B.alloca 0uy 12ul in
+  assert (header_footprint h `B.loc_disjoint` B.loc_buffer this_iv);
   (**) let mloc = G.hide B.(loc_buffer pnb0 `loc_union` loc_buffer this_iv `loc_union`
     footprint_s h0 (deref h0 s) `loc_union` loc_buffer dst `loc_union` loc_buffer dst_pn) in
   (**) let h2 = ST.get () in
   (**) frame_invariant B.(loc_none) s h1 h2;
   (**) assert (footprint_s h1 (B.deref h1 s) == footprint_s h2 (B.deref h2 s));
   (**) B.(modifies_loc_includes (G.reveal mloc) h1 h2 loc_none);
-  let last_pn: U64.t = !*pn in
-  let pn_value = last_pn `U64.add` 1uL in
   let pn128: FStar.UInt128.t = FStar.Int.Cast.Full.uint64_to_uint128 pn_value in
   LowStar.Endianness.store128_be pnb0 pn128;
   (**) let h3 = ST.get () in
@@ -986,12 +1005,6 @@ let encrypt #i s dst dst_pn h plain plain_len =
   FStar.Math.Lemmas.pow2_le_compat (8 * 12) (8 * 8);
   n_to_be_lower 12 16 (U64.v pn_value);
   frame_header h pn_value B.loc_none h0 h3;
-  let phi () : Lemma
-    (G.reveal mloc `B.loc_disjoint` header_footprint h)
-  = allow_inversion header;
-    assert (G.reveal mloc `B.loc_disjoint` header_footprint h)
-  in
-  phi ();
   encrypt_core #i s dst h plain plain_len
     (G.hide B.(loc_buffer this_iv `loc_union` loc_buffer pnb0)) this_iv pnb;
   (**) let h4 = ST.get () in
