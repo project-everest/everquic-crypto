@@ -1,5 +1,5 @@
 [
-  "ú½ý^ü8–3}ú\\ÞR˜KH",
+  "l±¡Íåš[íÝ³ýJ.£U€",
   [
     [
       "QUIC.Impl.index",
@@ -14,7 +14,7 @@
         "haseqTm_refine_55cba1a93af5949052c708af40d3b61d"
       ],
       0,
-      "bb47927a24bab922ac1cf209d00fcbd3"
+      "0453788e02b9563859de07cc10127548"
     ],
     [
       "QUIC.Impl.loc_includes_union_l_footprint_s",
@@ -23,7 +23,7 @@
       0,
       [ "@query" ],
       0,
-      "e9505cc04ab9eaaf446d6eb0d6e8209d"
+      "0b65facf6099943e901563963217633e"
     ],
     [
       "QUIC.Impl.hash_is_keysized",
@@ -79,7 +79,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "60d725ab47b1868ea50fb60efb7b4289"
+      "787908e38d716e9f7771afe90e1a7e38"
     ],
     [
       "QUIC.Impl.invariant",
@@ -92,7 +92,7 @@
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e"
       ],
       0,
-      "7fa11e9c23641db0e4844774d26fbf31"
+      "c22d202c8bbb9653061bab746060e93e"
     ],
     [
       "QUIC.Impl.incrementable",
@@ -101,7 +101,7 @@
       0,
       [ "@query", "equation_QUIC.Impl.invariant" ],
       0,
-      "eb4ed4fa6fe64a0b821cddd6fd04851c"
+      "93de6b0b39cd8bc00ac7f05c371cb605"
     ],
     [
       "QUIC.Impl.frame_invariant",
@@ -146,7 +146,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "e4afccc857f09d106cd6e7e2482561a4"
+      "6c36cd97ac5b17644f7203c74ba11025"
     ],
     [
       "QUIC.Impl.last_packet_number_of_state",
@@ -158,7 +158,7 @@
         "refinement_interpretation_Tm_refine_9f72cefa61c7cc8e5574a47696da7bf1"
       ],
       0,
-      "368365be824889e5025c9bb23cf1bdbe"
+      "b3bb867ebdcdaed964bc5679a22c4df2"
     ],
     [
       "QUIC.Impl.create_in_st",
@@ -167,7 +167,7 @@
       0,
       [ "@query", "projection_inverse_BoxBool_proj_0" ],
       0,
-      "46a1a0f9b66c8ea02d000c2bbdac1f8c"
+      "19d74285b58dab09c4f044f354f1f08f"
     ],
     [
       "QUIC.Impl.encrypt",
@@ -346,7 +346,7 @@
       0,
       [ "@query" ],
       0,
-      "d2105f77b51ce928e2abc11bee98fd6e"
+      "2f8c4f1a34b8b780f3e882330a2070a0"
     ],
     [
       "QUIC.Impl.decrypt_post",
@@ -455,7 +455,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "c4f120850aff25432e5ce9a7d37da1b1"
+      "28af807d09ad068d0b5a9910c13a9c6d"
     ],
     [
       "QUIC.Impl.decrypt",
@@ -463,32 +463,26 @@
       0,
       0,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def",
-        "constructor_distinct_Lib.IntTypes.U1",
-        "constructor_distinct_Lib.IntTypes.U32",
+        "@MaxIFuel_assumption", "@query",
         "constructor_distinct_Lib.IntTypes.U8",
         "disc_equation_EverCrypt.Error.AuthenticationFailure",
         "disc_equation_EverCrypt.Error.Success",
         "equality_tok_Lib.IntTypes.U1@tok",
-        "equality_tok_Lib.IntTypes.U8@tok", "equation_FStar.UInt.uint_t",
-        "equation_Lib.IntTypes.unsigned", "equation_QUIC.Impl.decrypt_post",
+        "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.unsigned",
         "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
-        "equation_Spec.GaloisField.gf", "int_inversion", "l_and-interp",
-        "primitive_Prims.op_Addition", "primitive_Prims.op_LessThanOrEqual",
+        "equation_Spec.GaloisField.gf", "primitive_Prims.op_Addition",
         "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
+        "refinement_interpretation_Tm_refine_175936f6c8391405a191781c06febbf7",
         "refinement_interpretation_Tm_refine_6ef4215141861f82b9cfe553cb9066e3",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "refinement_interpretation_Tm_refine_ec937407d98634a0c3f723ceb4530344",
-        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
-        "typing_FStar.UInt32.v",
-        "typing_QUIC.Impl.__proj__Mkresult__item__total_len",
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "48d443602dceddb1938ea9ebd8087077"
+      "be08984dec001322507c3c5b6eb6384a"
     ]
   ]
 ]
