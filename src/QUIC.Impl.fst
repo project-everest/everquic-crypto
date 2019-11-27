@@ -1109,9 +1109,10 @@ let header_decrypt_pre (i:index)
   (s: state i)
   (packet: B.buffer U8.t)
   (packet_len: U32.t)
-  (cid_len: u4)
+  (cid_len: U8.t)
   (h0: HS.mem)
 =
+  U8.v cid_len <= 20 /\
   B.live h0 packet /\
   B.length packet == U32.v packet_len /\
   invariant h0 s /\
@@ -1133,7 +1134,7 @@ let header_decrypt_aux_post (i:index)
   (s: state i)
   (packet: B.buffer U8.t)
   (packet_len: U32.t)
-  (cid_len: u4)
+  (cid_len: U8.t)
   (locals: B.loc)
   (h0: HS.mem)
   (r: option header_decrypt_aux_t)
@@ -1185,7 +1186,7 @@ let header_decrypt_aux_core
   (s: state i)
   (packet: B.buffer U8.t)
   (packet_len: U32.t)
-  (cid_len: u4)
+  (cid_len: U8.t)
   (mask: B.buffer U8.t)
   (pn_mask: B.buffer U8.t)
 : Stack (option header_decrypt_aux_t)
@@ -1260,7 +1261,7 @@ let header_decrypt_aux
   (s: state i)
   (packet: B.buffer U8.t)
   (packet_len: U32.t)
-  (cid_len: u4)
+  (cid_len: U8.t)
 : Stack (option header_decrypt_aux_t)
   (requires (fun h0 ->
     header_decrypt_pre i s packet packet_len cid_len h0
@@ -1280,7 +1281,7 @@ let header_decrypt_post (i:index)
   (s: state i)
   (packet: B.buffer U8.t)
   (packet_len: U32.t)
-  (cid_len: u4)
+  (cid_len: U8.t)
   (h0: HS.mem)
   (r: (option (header & U32.t & U32.t & u62)))
   (h1: HS.mem)
@@ -1330,7 +1331,7 @@ val header_decrypt: i:G.erased index ->
   (s: state i) ->
   (packet: B.buffer U8.t) ->
   (packet_len: U32.t) ->
-  (cid_len: u4) ->
+  (cid_len: U8.t) ->
   Stack (option (header & U32.t & U32.t & u62))
     (requires (fun h0 ->
       header_decrypt_pre i s packet packet_len cid_len h0 /\
@@ -1399,7 +1400,7 @@ val decrypt_core: #i:G.erased index -> (
   len: U32.t{
     B.length packet == U32.v len
   } ->
-  cid_len: u4 ->
+  cid_len: U8.t ->
   bpn128: B.buffer U8.t ->
   biv: B.buffer U8.t ->
   Stack error_code
@@ -1413,6 +1414,7 @@ val decrypt_core: #i:G.erased index -> (
       // data; ``header`` is modified to point within the header area of
       // ``packet``; and the plaintext is within ``packet`` in range
       // ``[header_len, header_len + plain_len)``.
+      U8.v cid_len <= 20 /\
       B.live h0 packet /\ B.live h0 dst /\
       B.live h0 bpn128 /\ B.live h0 biv /\
       B.(all_disjoint [ loc_buffer dst; loc_buffer packet; footprint h0 s; loc_buffer bpn128; loc_buffer biv ]) /\
