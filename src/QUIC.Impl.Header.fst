@@ -31,8 +31,22 @@ module LL = LowParse.Low.BitSum
 open QUIC.Impl.VarInt
 
 inline_for_extraction
+noextract
+let validate_with_error_trace
+  #k #t #p (v: LL.validator #k #t p)
+  (trace: string)
+: Tot (LL.validator p)
+= fun #rrel #rel sl pos ->
+  let res = v sl pos in
+  if res `U32.gt` LL.validator_max_length
+  then LowStar.Printf.printf "Error %ul at position %ul: %s\n" (res `U32.sub` LL.validator_max_length) pos trace LowStar.Printf.done;
+  res
+
+inline_for_extraction
 let validate_common_long : LC.validator parse_common_long =
-  LB.validate_u32 () `LC.validate_nondep_then` (LB.validate_bounded_vlbytes 0 20 `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20)
+  (LB.validate_u32 () `validate_with_error_trace` "version") `LC.validate_nondep_then` 
+    ((LB.validate_bounded_vlbytes 0 20 `validate_with_error_trace` "dcid") `LC.validate_nondep_then`
+    (LB.validate_bounded_vlbytes 0 20 `validate_with_error_trace` "scid"))
 
 inline_for_extraction
 noextract
@@ -40,7 +54,7 @@ let validate_payload_length_pn
   (last: last_packet_number_t)
   (pn_length: packet_number_length_t)
 : Tot (LC.validator (parse_payload_length_pn last pn_length))
-= LC.validate_filter validate_varint read_varint (payload_and_pn_length_prop pn_length) (fun x -> payload_and_pn_length_prop pn_length x) `LC.validate_nondep_then` validate_packet_number last pn_length
+= (LC.validate_filter (validate_varint `validate_with_error_trace` "varint") read_varint (payload_and_pn_length_prop pn_length) (fun x -> payload_and_pn_length_prop pn_length x) `validate_with_error_trace` "payload_and_pn_length") `LC.validate_nondep_then` (validate_packet_number last pn_length `validate_with_error_trace` "pn")
 
 #push-options "--z3rlimit 64 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
@@ -54,15 +68,15 @@ let validate_header_body_cases
 : Tot (LC.validator (dsnd (parse_header_body short_dcid_len last k')))
 = match coerce (bitsum'_key_type first_byte) k' with
   | (| Short, (| (), (| (), (| pn_length, () |) |) |) |) ->
-    LC.validate_weaken (strong_parser_kind 0 20 None) (LB.validate_flbytes (U32.v short_dcid_len) short_dcid_len) () `LC.validate_nondep_then` validate_packet_number last pn_length
+    LC.validate_weaken (strong_parser_kind 0 20 None) (LB.validate_flbytes (U32.v short_dcid_len) short_dcid_len `validate_with_error_trace` "short.cid") () `LC.validate_nondep_then` validate_packet_number last pn_length
   | (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) ->
-    validate_common_long `LC.validate_nondep_then` (LB.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (validate_bounded_varint 0ul (U32.uint_to_t token_max_len)) (read_bounded_varint 0 token_max_len) `LC.validate_nondep_then` validate_payload_length_pn last pn_length)
+    validate_common_long `LC.validate_nondep_then` ((LB.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (validate_bounded_varint 0ul (U32.uint_to_t token_max_len) `validate_with_error_trace` "long.initial.token.bounded_varint") (read_bounded_varint 0 token_max_len) `validate_with_error_trace` "long.initial.token") `LC.validate_nondep_then` validate_payload_length_pn last pn_length)
   | (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) ->
     validate_common_long `LC.validate_nondep_then` validate_payload_length_pn last pn_length
   | (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) ->
     validate_common_long `LC.validate_nondep_then` validate_payload_length_pn last pn_length
   | (| Long, (| (), (| Retry, () |) |) |) ->
-    validate_common_long `LC.validate_nondep_then` LB.validate_bounded_vlbytes 0 20
+    validate_common_long `LC.validate_nondep_then` (LB.validate_bounded_vlbytes 0 20 `validate_with_error_trace` "long.retry.ocid")
 
 #pop-options
 
