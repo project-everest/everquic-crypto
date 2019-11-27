@@ -303,11 +303,12 @@ let decrypt_post (i: index)
   (dst: B.pointer result)
   (packet: B.buffer U8.t)
   (len: U32.t)
-  (cid_len: u4)
+  (cid_len: U8.t)
   (h0: HS.mem)
   (res: error_code)
   (h1: HS.mem): Pure Type0
   (requires
+    U8.v cid_len <= 20 /\
     U32.v len == B.length packet /\
     invariant h0 s /\
     incrementable s h0)
@@ -365,7 +366,7 @@ val decrypt: #i:G.erased index -> (
   len: U32.t{
     B.length packet == U32.v len
   } ->
-  cid_len: u4 ->
+  cid_len: U8.t { U8.v cid_len <= 20 } ->
   Stack error_code
     (requires fun h0 ->
       // We require clients to allocate space for a result, e.g.

@@ -137,7 +137,7 @@ inline_for_extraction
 noextract
 let read_header_body_t
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (tg: bitsum'_type first_byte)
 : Tot (Type u#0)
@@ -166,7 +166,7 @@ module BF = LowParse.BitFields
 
 let read_header_body_short
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (spin: BF.bitfield uint8 1)
   (key_phase: BF.bitfield uint8 1)
@@ -191,7 +191,7 @@ let read_header_body_short
 
 let read_header_body_long_retry
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (unused: BF.bitfield uint8 4)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| Retry, (unused, ()) |) |) |) )
@@ -222,7 +222,7 @@ let read_header_body_long_retry
 
 let read_header_body_long_initial
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (pn_length: packet_number_length_t)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) )
@@ -260,7 +260,7 @@ let read_header_body_long_initial
 
 let read_header_body_long_handshake
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (pn_length: packet_number_length_t)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) )
@@ -289,7 +289,7 @@ let read_header_body_long_handshake
 
 let read_header_body_long_ZeroRTT
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (pn_length: packet_number_length_t)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) )
@@ -318,7 +318,7 @@ inline_for_extraction
 noextract
 let read_header_body
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (tg: bitsum'_type first_byte)
 : Tot (read_header_body_t sl cid_len last tg)
@@ -340,7 +340,7 @@ let read_header_body
 
 #restart-solver
 
-#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --query_stats"
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats"
 
 let read_header
   packet packet_len cid_len last
