@@ -8,7 +8,7 @@ test: dist/test.exe
 
 include Makefile.include
 
-FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti)
+FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti) $(wildcard test/*.fst) $(wildcard test/*.fsti)
 
 ifndef NODEPEND
 ifndef MAKE_RESTARTS

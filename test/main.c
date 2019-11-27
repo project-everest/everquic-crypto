@@ -2,8 +2,9 @@
 #include <stdlib.h>
 
 #include "EverQuic.h"
+#include "QUICTest.h"
 
 int main () {
-  printf("SUCCESS\n");
+  QUICTest_test ();
   return EXIT_SUCCESS;
 }

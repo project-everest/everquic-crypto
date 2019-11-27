@@ -8,6 +8,7 @@ include $(HACL_HOME)/Makefile.include
 
 FSTAR_INCLUDE_PATH= \
 	$(EVERQUIC_HOME)/src \
+	$(EVERQUIC_HOME)/test \
 	$(KREMLIN_HOME)/kremlib \
 	$(QD_HOME)/src/lowparse \
 	$(ALL_HACL_DIRS)
@@ -25,7 +26,7 @@ FSTAR_CHILL_FLAGS= \
 	$(OTHERFLAGS)
 
 FSTAR_FLAGS=$(FSTAR_CHILL_FLAGS) \
-	--already_cached '*,-QUIC' \
+	--already_cached '*,-QUIC,-QUICTest' \
 	--warn_error @241 \
 
 FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
