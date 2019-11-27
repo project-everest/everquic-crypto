@@ -38,14 +38,14 @@ inline_for_extraction
 noextract
 let packet_length = norm [delta; zeta; iota; primops] (L.length packet)
 
-let ppacket: ppacket: B.buffer U8.t {
+let ppacket0: ppacket: B.buffer U8.t {
   B.length ppacket == packet_length /\
   B.recallable ppacket
 }
  =
   B.gcmalloc_of_list HS.root packet
 
-let ppacket_len = U32.uint_to_t packet_length
+let ppacket0_len = U32.uint_to_t packet_length
 
 let is_success (e: EverCrypt.Error.error_code) : HST.Stack bool
   (requires (fun _ -> True))
@@ -71,7 +71,35 @@ let is_success (e: EverCrypt.Error.error_code) : HST.Stack bool
     LowStar.Printf.printf "success\n" LowStar.Printf.done;
     true
 
-#push-options "--z3rlimit 16"
+inline_for_extraction
+noextract
+let check_is_true
+  (s: string)
+  (e: bool)
+: HST.Stack bool
+  (requires (fun _ -> True))
+  (ensures (fun h r h' -> h == h' /\ r == e))
+= LowStar.Printf.printf "Checking %s: " s LowStar.Printf.done;
+  if e then LowStar.Printf.printf "OK\n" LowStar.Printf.done else LowStar.Printf.printf "KO\n" LowStar.Printf.done;
+  e
+
+assume
+val is_equal
+  (b1 b2: B.buffer U8.t)
+  (len: U32.t)
+: HST.Stack bool
+  (requires (fun h ->
+    B.live h b1 /\
+    B.live h b2 /\
+    U32.v len <= B.length b1 /\
+    U32.v len <= B.length b2
+  ))
+  (ensures (fun h res h' ->
+    h' == h /\
+    (res == true <==> Seq.slice (B.as_seq h b1) 0 (U32.v len) == Seq.slice (B.as_seq h b2) 0 (U32.v len))
+  ))
+
+#push-options "--z3rlimit 64 --query_stats --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2'"
 
 let test () : HST.ST unit
   (requires (fun _ -> True))
@@ -86,26 +114,60 @@ let test () : HST.ST unit
   LowStar.Printf.printf "OK\ncreate_in: " LowStar.Printf.done;
   B.recall psecret;
   assume (B.loc_disjoint (B.loc_buffer pstate) (B.loc_buffer psecret));
-  let r = Q.create_in i HS.root pstate 0uL psecret in
+  let r = Q.create_in i HS.root pstate 43uL psecret in
   if is_success r
   then begin
-    let init_result = {
-      Q.pn = 0uL;
-      Q.header = Q.BShort false false B.null 0ul 1ul;
-      Q.header_len = 0ul;
-      Q.plain_len = 0ul;
-      Q.total_len = 0ul;
-    } in
+    let pcid = B.malloc HS.root 0uy 14ul in
+    let plain = ppacket0 in
+    let plain_len = ppacket0_len in
+    let cipher_len = plain_len `U32.add` 16ul in
+    let header = Q.BShort false false pcid 14ul 1ul in
+    let header_len = Q.header_len header in
     let state = B.index pstate 0ul in
-    let dst : B.pointer Q.result = B.malloc HS.root init_result 1ul in
-    LowStar.Printf.printf "decrypt: " LowStar.Printf.done;
+    let ppacket_len = header_len `U32.add` cipher_len in
+    let ppacket : B.buffer U8.t = B.malloc HS.root 0uy ppacket_len in
+    let ppn : B.pointer Q.u62 = B.malloc HS.root 0uL 1ul in
+    LowStar.Printf.printf "encrypt: " LowStar.Printf.done;
     let j = Ghost.hide i in
-    B.recall ppacket;
+    B.recall ppacket0;
     let h = HST.get () in
-    assume False; // (B.all_disjoint [B.loc_buffer dst; B.loc_buffer ppacket; Q.footprint h state]);
-    let r = Q.decrypt #j state dst ppacket ppacket_len 20uy in
-    let _ = is_success r in
-    ()
+    assume (B.all_disjoint [ Q.footprint h state; B.loc_buffer ppacket; B.loc_buffer ppn; Q.header_footprint header; B.loc_buffer plain ] );
+    assume (Q.invariant h state);
+    assume (Q.incrementable state h);
+    let r = Q.encrypt #j state ppacket ppn header plain plain_len in
+    if is_success r
+    then begin
+      let pn = B.index ppn 0ul in
+      let idecryptres = {
+        Q.pn = 0uL;
+        Q.header = header;
+        Q.header_len = 0ul;
+        Q.plain_len = 0ul;
+        Q.total_len = 0ul;
+      } in
+      let pdecryptres : B.pointer Q.result = B.malloc HS.root idecryptres 1ul in
+      let h = HST.get () in
+      assume (B.all_disjoint [B.loc_buffer pdecryptres; B.loc_buffer ppacket; Q.footprint h state]);
+      assume (Q.invariant h state);
+      assume (Q.incrementable state h);
+      LowStar.Printf.printf "decrypt: " LowStar.Printf.done;
+      let r = Q.decrypt #j state pdecryptres ppacket ppacket_len 14uy in
+      if is_success r
+      then begin
+        let res = B.index pdecryptres 0ul in
+        let r1 = check_is_true "pn" (res.Q.pn = pn) in
+        let r2 = check_is_true "header_len" (res.Q.header_len = header_len) in
+        let r3 = check_is_true "plain_len" (res.Q.plain_len = plain_len) in
+        let r4 = check_is_true "total_len" (res.Q.total_len = ppacket_len) in
+        if (r1 && r2 && r3 && r4)
+        then begin
+          let b = B.sub ppacket header_len plain_len in
+          let chk = is_equal b plain plain_len in
+          let _ = check_is_true "plain" chk in
+          ()
+        end
+      end
+    end
   end
 
 #pop-options
