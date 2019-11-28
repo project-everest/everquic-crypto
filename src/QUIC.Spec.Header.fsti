@@ -66,7 +66,7 @@ type h_result =
   h_result
 | H_Failure
 
-val parse_header: cid_len: nat { cid_len < 20 } -> last: nat { last + 1 < pow2 62 } -> b:bytes -> GTot (r: h_result {
+val parse_header: cid_len: nat { cid_len <= 20 } -> last: nat { last + 1 < pow2 62 } -> b:bytes -> GTot (r: h_result {
   match r with
   | H_Failure -> True
   | H_Success h c ->
@@ -78,7 +78,7 @@ val parse_header: cid_len: nat { cid_len < 20 } -> last: nat { last + 1 < pow2 6
 val lemma_header_parsing_correct:
   h: header ->
   c: bytes ->
-  cid_len: nat { cid_len < 20 } ->
+  cid_len: nat { cid_len <= 20 } ->
   last: nat { last + 1 < pow2 62 } ->
   Lemma
   (requires (
@@ -91,14 +91,14 @@ val lemma_header_parsing_correct:
 // N.B. this is only true for a given DCID len
 val lemma_header_parsing_safe: cid_len: nat -> last: nat -> b1:bytes -> b2:bytes -> Lemma
   (requires (
-    cid_len < 20 /\
+    cid_len <= 20 /\
     last + 1 < pow2 62 /\
     parse_header cid_len last b1 == parse_header cid_len last b2
   ))
   (ensures parse_header cid_len last b1 == H_Failure \/ b1 = b2)
 
 let lemma_header_parsing_post
-  (cid_len: nat { cid_len < 20 })
+  (cid_len: nat { cid_len <= 20 })
   (last: nat { last + 1 < pow2 62 })
   (b: bytes)
 : Lemma

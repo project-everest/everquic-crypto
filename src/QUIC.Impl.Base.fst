@@ -139,6 +139,11 @@ let header_footprint (h: header) : GTot B.loc =
     | _ -> B.loc_none
     end
 
+let header_live_loc_not_unused_in_footprint (h: header) (m: HS.mem) : Lemma
+  (requires (header_live h m))
+  (ensures (B.loc_not_unused_in m `B.loc_includes` header_footprint h))
+= ()
+
 module FB = FStar.Bytes
 
 let g_header (h: header) (m: HS.mem) (packet_number: uint62_t) : GTot Spec.header =

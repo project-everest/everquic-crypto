@@ -72,7 +72,7 @@ dist/libeverquic.a: dist/Makefile.basic
 # Tests
 # -----
 
-CFLAGS+=-I$(realpath .)/dist -I$(realpath $(KREMLIN_HOME))/include
+CFLAGS+=-I$(realpath .)/dist -I$(realpath $(KREMLIN_HOME))/include -I$(realpath $(KREMLIN_HOME))/kremlib/dist/minimal
 export CFLAGS
 
 test/main.o: dist/Makefile.basic

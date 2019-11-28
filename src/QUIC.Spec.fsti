@@ -106,7 +106,7 @@ type h_result =
 // Note that cid_len cannot be parsed from short headers
 val header_decrypt: a:ea ->
   hpk: lbytes (ae_keysize a) ->
-  cid_len: nat { cid_len < 20 } ->
+  cid_len: nat { cid_len <= 20 } ->
   last: nat { last + 1 < pow2 62 } ->
   p: packet ->
   GTot (r: h_result { match r with
@@ -131,7 +131,7 @@ val lemma_header_encryption_correct:
   a:ea ->
   k:lbytes (ae_keysize a) ->
   h:header ->
-  cid_len: nat { cid_len < 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
+  cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))) } ->
   c: cbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length c } ->
   Lemma (
@@ -167,7 +167,7 @@ val decrypt:
   static_iv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   last: nat{last+1 < pow2 62} ->
-  cid_len: nat { cid_len < 20 } ->
+  cid_len: nat { cid_len <= 20 } ->
   packet: packet ->
   GTot (r: result {
     match r with
@@ -184,7 +184,7 @@ val lemma_encrypt_correct:
   siv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->
-  cid_len: nat { cid_len < 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
+  cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat{last+1 < pow2 62 } ->
   p: pbytes' (is_retry h)  { has_payload_length h ==> U64.v (payload_length h) == S.length p + AEAD.tag_length a } -> Lemma
   (requires (

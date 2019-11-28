@@ -123,7 +123,7 @@ inline_for_extraction
 noextract
 let read_header_body_t
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (tg: bitsum'_type first_byte)
 : Tot (Type u#0)
@@ -155,7 +155,7 @@ module BF = LowParse.BitFields
 
 let read_header_body_short
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (spin: BF.bitfield uint8 1)
   (key_phase: BF.bitfield uint8 1)
@@ -184,7 +184,7 @@ let read_header_body_short
 
 let read_header_body_long_retry
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (unused: BF.bitfield uint8 4)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| Retry, (unused, ()) |) |) |) )
@@ -215,7 +215,7 @@ let read_header_body_long_retry
 
 let read_header_body_long_initial
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (pn_length: packet_number_length_t)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) )
@@ -257,7 +257,7 @@ let read_header_body_long_initial
 
 let read_header_body_long_handshake
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (pn_length: packet_number_length_t)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) )
@@ -290,7 +290,7 @@ let read_header_body_long_handshake
 
 let read_header_body_long_ZeroRTT
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (pn_length: packet_number_length_t)
 : Tot (read_header_body_t sl cid_len last (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) )
@@ -323,7 +323,7 @@ inline_for_extraction
 noextract
 let read_header_body
   (sl: LL.slice (B.trivial_preorder _) (B.trivial_preorder _))
-  (cid_len: U32.t { U32.v cid_len < 20 } )
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
   (last: uint62_t { U64.v last + 1 < pow2 62 })
   (tg: bitsum'_type first_byte)
 : Tot (read_header_body_t sl cid_len last tg)
@@ -345,7 +345,7 @@ let read_header_body
 
 #restart-solver
 
-#push-options "--z3rlimit 256 --z3cliopt smt.arith.nl=false --query_stats"
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats"
 
 let read_header
   packet packet_len cid_len last
@@ -886,9 +886,6 @@ let putative_pn_offset
 =
   let sl = LowParse.Slice.make_slice b len in
   let h0 = HST.get () in
-  if not (1ul `U32.lte` cid_len && cid_len `U32.lte` 4ul)
-  then 0ul
-  else
     let _ = LL.valid_facts parse_u8 h0 sl 0ul in
     let pos1 = LL.validate_bounded_strong_prefix (LJ.validate_u8 ()) sl 0ul in
     if pos1 `U32.gt` LL.validator_max_length
@@ -900,13 +897,16 @@ let putative_pn_offset
       in
       let hd = LJ.read_u8 sl 0ul in
       if uint8.get_bitfield hd 7 8 = 0uy
-      then
-        let _ = LL.valid_facts (parse_bounded_integer (U32.v cid_len)) h0 sl pos1 in
-        let pos2 = LL.validate_bounded_strong_prefix (LI.validate_bounded_integer' cid_len) sl pos1 in
+      then begin
+        if not (cid_len `U32.lte` 20ul)
+        then 0ul
+        else
+        let _ = LL.valid_facts (parse_flbytes (U32.v cid_len)) h0 sl pos1 in
+        let pos2 = LL.validate_bounded_strong_prefix (LB.validate_flbytes (U32.v cid_len) cid_len) sl pos1 in
         if pos2 `U32.gt` LL.validator_max_length
         then 0ul
         else pos2
-      else
+      end else
         let packet_type = uint8.get_bitfield hd 4 6 in
         if packet_type = 3uy
         then 0ul
