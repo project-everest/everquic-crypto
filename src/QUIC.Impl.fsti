@@ -47,6 +47,9 @@ type index = {
   aead_alg: QSpec.ea
 }
 
+// Reexport this function, which was lost in the bundle
+let header_len = QUIC.Impl.Base.header_len
+
 /// Low-level types used in this API
 /// --------------------------------
 
