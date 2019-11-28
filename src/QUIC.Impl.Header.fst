@@ -39,7 +39,15 @@ let validate_with_error_trace
 = fun #rrel #rel sl pos ->
   let res = v sl pos in
   if res `U32.gt` LL.validator_max_length
-  then LowStar.Printf.printf "Error %ul at position %ul: %s\n" (res `U32.sub` LL.validator_max_length) pos trace LowStar.Printf.done;
+  then begin
+    LowStar.Printf.print_string "Error ";
+    LowStar.Printf.print_u32 (res `U32.sub` LL.validator_max_length);
+    LowStar.Printf.print_string " at position ";
+    LowStar.Printf.print_u32 pos;
+    LowStar.Printf.print_string ": ";
+    LowStar.Printf.print_string trace;
+    LowStar.Printf.print_string "\n"
+  end;
   res
 
 inline_for_extraction

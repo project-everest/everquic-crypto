@@ -44,22 +44,22 @@ let is_success_body (e: E.error_code) : HST.Stack bool
   (ensures (fun h r h' -> h == h' /\ r == (E.Success? e)))
 = match e with
   | E.UnsupportedAlgorithm ->
-    PF.printf "unsupported algorithm\n" PF.done;
+    PF.print_string "unsupported algorithm\n";
     false
   | E.InvalidKey ->
-    PF.printf "invalid key\n" PF.done;
+    PF.print_string "invalid key\n";
     false
   | E.AuthenticationFailure ->
-    PF.printf "auth failure\n" PF.done;
+    PF.print_string "auth failure\n";
     false
   | E.InvalidIVLength ->
-    PF.printf "invalid IV length\n" PF.done;
+    PF.print_string "invalid IV length\n";
     false
   | E.DecodeError ->
-    PF.printf "decode error\n" PF.done;
+    PF.print_string "decode error\n";
     false
   | E.Success ->
-    PF.printf "success\n" PF.done;
+    PF.print_string "success\n";
     true
 
 inline_for_extraction
@@ -67,7 +67,9 @@ noextract
 let is_success (s: string) (e: E.error_code) : HST.Stack bool
   (requires (fun _ -> True))
   (ensures (fun h r h' -> h == h' /\ r == (E.Success? e)))
-= PF.printf "Performing %s: " s PF.done;
+= PF.print_string "Performing ";
+  PF.print_string s;
+  PF.print_string ": ";
   is_success_body e
 
 let check_is_true_body
@@ -75,7 +77,7 @@ let check_is_true_body
 : HST.Stack bool
   (requires (fun _ -> True))
   (ensures (fun h r h' -> h == h' /\ r == e))
-= if e then PF.printf "OK\n" PF.done else PF.printf "KO\n" PF.done;
+= if e then PF.print_string "OK\n" else PF.print_string "KO\n";
   e
 
 inline_for_extraction
@@ -86,7 +88,9 @@ let check_is_true
 : HST.Stack bool
   (requires (fun _ -> True))
   (ensures (fun h r h' -> h == h' /\ r == e))
-= PF.printf "Checking %s: " s PF.done;
+= PF.print_string "Checking ";
+  PF.print_string s;
+  PF.print_string ": ";
   check_is_true_body e
 
 assume

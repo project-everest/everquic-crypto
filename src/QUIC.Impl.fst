@@ -1376,7 +1376,7 @@ let header_decrypt i s packet packet_len cid_len =
   | Some ({ is_short; is_retry; pn_offset; pn_len }) ->
     begin match HeaderI.read_header packet packet_len (FStar.Int.Cast.uint8_to_uint32 cid_len) last_pn with
     | None -> 
-      LowStar.Printf.printf "header_decrypt: read_header failure\n" LowStar.Printf.done;
+      LowStar.Printf.print_string "header_decrypt: read_header failure\n";
       None
     | Some (header, pn, header_len) ->
       let h1 = ST.get () in
@@ -1392,7 +1392,7 @@ let header_decrypt i s packet packet_len cid_len =
         let rem'_length = FStar.Int.Cast.uint32_to_uint64 (packet_len `U32.sub` header_len) in
         if has_payload_length header && rem'_length `U64.lt` payload_length header
         then
-          let _ = LowStar.Printf.printf "header_decrypt: inconsistent payload length\n"  LowStar.Printf.done in
+          let _ = LowStar.Printf.print_string "header_decrypt: inconsistent payload length\n" in
           None
         else
           let clen = if has_payload_length header then payload_length header else rem'_length in
@@ -1403,7 +1403,7 @@ let header_decrypt i s packet packet_len cid_len =
             let _ = assert (header_decrypt_post i s packet packet_len cid_len h0 res h1) in
             res
           else
-            let _ = LowStar.Printf.printf "header_decrypt: cipher too small\n"  LowStar.Printf.done in
+            let _ = LowStar.Printf.print_string "header_decrypt: cipher too small\n" in
             None
       end
 
