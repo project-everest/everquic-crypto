@@ -1458,7 +1458,7 @@ val decrypt_core: #i:G.erased index -> (
     )
   )
 
-#push-options "--z3rlimit 512"
+#push-options "--z3rlimit 1024 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_loc_unused_in_disjoint_2'"
 
 #restart-solver
 
