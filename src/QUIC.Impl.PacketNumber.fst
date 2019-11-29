@@ -28,13 +28,11 @@ let jump_packet_number
     ()
 
 let read_packet_number
-  last pn_len
-= read_synth
-    _
-    (synth_packet_number last pn_len)
-    (fun x -> synth_packet_number last pn_len x)
-    (read_bounded_integer' pn_len)
-    ()
+  last pn_len #rrel #rel sl pos
+= let h = HST.get () in
+  valid_synth h (parse_bounded_integer (U32.v pn_len)) (synth_packet_number last pn_len) sl pos;
+  let x = read_bounded_integer_ct pn_len sl pos in
+  synth_packet_number last pn_len x
 
 let write_packet_number
   last pn_len

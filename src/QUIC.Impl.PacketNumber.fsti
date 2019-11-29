@@ -5,6 +5,8 @@ open LowParse.Low.Base
 
 module U64 = FStar.UInt64
 module U32 = FStar.UInt32
+module HST = FStar.HyperStack.ST
+module B = LowStar.Buffer
 
 inline_for_extraction
 val validate_packet_number
@@ -22,7 +24,19 @@ inline_for_extraction
 val read_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-: Tot (leaf_reader (parse_packet_number last pn_len))
+  (#rrel: _)
+  (#rel: _)
+  (sl: slice rrel rel)
+  (pos: U32.t)
+: HST.Stack (packet_number_t last pn_len)
+  (requires (fun h ->
+    live_slice h sl /\
+    U32.v pos + 4 <= U32.v sl.len
+  ))
+  (ensures (fun h res h' ->
+    B.modifies B.loc_none h h' /\
+    valid_content (parse_packet_number last pn_len) h sl pos res
+  ))
 
 inline_for_extraction
 val write_packet_number
