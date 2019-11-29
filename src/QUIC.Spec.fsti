@@ -1,6 +1,8 @@
 module QUIC.Spec
 include QUIC.Spec.Base
 
+open Model.Indexing
+
 module S = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
@@ -8,16 +10,10 @@ module AEAD = Spec.Agile.AEAD
 // JP: should we allow inversion on either hash algorithm or AEAD algorithm?
 #set-options "--max_fuel 0 --max_ifuel 0"
 
-let supported_hash = function
-  | HD.SHA1 | HD.SHA2_256 | HD.SHA2_384 | HD.SHA2_512 -> true
-  | _ -> false
-
-let supported_aead = function
-  | AEAD.AES128_GCM | AEAD.AES256_GCM | AEAD.CHACHA20_POLY1305 -> true
-  | _ -> false
-
-type ha = a:HD.hash_alg{supported_hash a}
-type ea = a:AEAD.alg{supported_aead a}
+// Moved to Model.Indexing
+type ha = ha
+type ea = ea
+type ca = ca
 
 // Move from Hashing.Spec to Spec.Hash?
 let keysized (a:ha) (l:nat) =
