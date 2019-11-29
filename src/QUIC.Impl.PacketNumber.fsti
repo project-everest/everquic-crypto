@@ -1,12 +1,13 @@
 module QUIC.Impl.PacketNumber
 include QUIC.Spec.PacketNumber
 open QUIC.Spec.Base
-open LowParse.Low.Base
+open LowParse.Low.Writers
 
 module U64 = FStar.UInt64
 module U32 = FStar.UInt32
 module HST = FStar.HyperStack.ST
 module B = LowStar.Buffer
+module HS = FStar.HyperStack
 
 inline_for_extraction
 val validate_packet_number
@@ -39,7 +40,12 @@ val read_packet_number
   ))
 
 inline_for_extraction
-val write_packet_number
+noextract
+val swrite_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-: Tot (leaf_writer_strong (serialize_packet_number last pn_len))
+  (pn: packet_number_t last pn_len)
+  (h0: HS.mem)
+  (sout: slice (srel_of_buffer_srel (B.trivial_preorder _)) (srel_of_buffer_srel (B.trivial_preorder _)))
+  (pout_from0: U32.t)
+: Tot (y: swriter (serialize_packet_number last pn_len) h0 (4 - U32.v pn_len) sout pout_from0 { swvalue y == pn })

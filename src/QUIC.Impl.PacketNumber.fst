@@ -2,6 +2,7 @@ module QUIC.Impl.PacketNumber
 open QUIC.Spec.Base
 open LowParse.Low.Combinators
 open LowParse.Low.BoundedInt
+open LowParse.Low.Writers.Instances
 
 friend QUIC.Spec.PacketNumber
 
@@ -34,13 +35,12 @@ let read_packet_number
   let x = read_bounded_integer_ct pn_len sl pos in
   synth_packet_number last pn_len x
 
-let write_packet_number
-  last pn_len
+let swrite_packet_number
+  last pn_len pn h0 sout pout_from0
 = [@inline_let]
   let _ = synth_packet_number_recip_inverse last pn_len in
-  write_synth
-    (write_bounded_integer' pn_len)
+  swrite_synth
+    (swrite_bounded_integer_ct h0 sout pn_len pout_from0 (synth_packet_number_recip last pn_len pn))
     (synth_packet_number last pn_len)
     (synth_packet_number_recip last pn_len)
-    (fun x -> synth_packet_number_recip last pn_len x)
     ()
