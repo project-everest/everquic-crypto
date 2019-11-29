@@ -737,11 +737,11 @@ let header_encrypt i dst dst_len s h cipher pn =
     (**) assert (invariant h6 s);
     (**) upd_op_inplace U8.logxor (B.as_seq h5 dst) fmask;
 
-    assert (
-      B.as_seq h6 dst `S.equal`
-        QUIC.Spec.header_encrypt_ct i.aead_alg (g_hp_key h0 s) (g_header h h0 pn)
-          (G.reveal cipher)
-    );
+//    assert (
+//      B.as_seq h6 dst `S.equal`
+//        QUIC.Spec.header_encrypt_ct i.aead_alg (g_hp_key h0 s) (g_header h h0 pn)
+//          (G.reveal cipher)
+//    );
 
 (*    
     assert (
