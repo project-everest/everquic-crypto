@@ -1,0 +1,119 @@
+[
+  "¢Öy^MÅdËÓ4rðý\u001a:(",
+  [
+    [
+      "Model.Indexing.id",
+      1,
+      2,
+      1,
+      [
+        "@query", "assumption_FStar.Pervasives.Native.tuple3__uu___haseq",
+        "assumption_Spec.Agile.AEAD.alg__uu___haseq",
+        "assumption_Spec.Agile.Cipher.cipher_alg__uu___haseq",
+        "assumption_Spec.Hash.Definitions.hash_alg__uu___haseq",
+        "equation_Model.Indexing.ca", "equation_Model.Indexing.ea",
+        "equation_Model.Indexing.ha",
+        "haseqTm_refine_3654e32f764e2190dafc8cb3e1f14fb6",
+        "haseqTm_refine_5a9caa0972c89e72c31fc79a795af20b",
+        "haseqTm_refine_c40327b051bc81f80ad7246306330ced",
+        "refinement_kinding_Tm_refine_3654e32f764e2190dafc8cb3e1f14fb6",
+        "refinement_kinding_Tm_refine_5a9caa0972c89e72c31fc79a795af20b",
+        "refinement_kinding_Tm_refine_c40327b051bc81f80ad7246306330ced"
+      ],
+      0,
+      "a57ec44a46ec3310ec9fe8cdbe84c9ce"
+    ],
+    [
+      "Model.Indexing.id_ginfo",
+      1,
+      2,
+      1,
+      [ "@query", "equation_Model.Indexing.id" ],
+      0,
+      "79a1ba8a4a77be3b993e49d586838628"
+    ],
+    [
+      "Model.Indexing.id_info",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_Model.Indexing.id",
+        "equation_Model.Indexing.id_ginfo",
+        "refinement_interpretation_Tm_refine_890918879e8a6cc7dd521f0a7d0c0fda"
+      ],
+      0,
+      "063b519fe1309c0512984a6b9a4f6023"
+    ],
+    [
+      "Model.Indexing.ae_id",
+      1,
+      2,
+      1,
+      [
+        "@query", "assumption_Spec.Agile.AEAD.alg__uu___haseq",
+        "equation_Model.Indexing.ea",
+        "haseqTm_refine_c40327b051bc81f80ad7246306330ced"
+      ],
+      0,
+      "1d12848057a99b7e9731f6b016f36716"
+    ],
+    [
+      "Model.Indexing.ae_id_ginfo",
+      1,
+      2,
+      1,
+      [ "@query", "equation_Model.Indexing.ae_id" ],
+      0,
+      "bdd1fe787304e63e16c9e22062d158e1"
+    ],
+    [
+      "Model.Indexing.ae_id_info",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_Model.Indexing.ae_id",
+        "equation_Model.Indexing.ae_id_ginfo",
+        "refinement_interpretation_Tm_refine_5e2f07619493dc38e79baaa7ece7226a"
+      ],
+      0,
+      "63453917ed8ba2d7d33d9646b07acbbe"
+    ],
+    [
+      "Model.Indexing.pne_id",
+      1,
+      2,
+      1,
+      [
+        "@query", "assumption_Spec.Agile.Cipher.cipher_alg__uu___haseq",
+        "equation_Model.Indexing.ca",
+        "haseqTm_refine_3654e32f764e2190dafc8cb3e1f14fb6"
+      ],
+      0,
+      "f210c72cfc1dfb1af016d1f29881ef2f"
+    ],
+    [
+      "Model.Indexing.pne_id_ginfo",
+      1,
+      2,
+      1,
+      [ "@query", "equation_Model.Indexing.pne_id" ],
+      0,
+      "ec224cdcd7056a452cefdf38049d62d8"
+    ],
+    [
+      "Model.Indexing.pne_id_info",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_Model.Indexing.pne_id",
+        "equation_Model.Indexing.pne_id_ginfo",
+        "refinement_interpretation_Tm_refine_cf3830ea913748d4f4970df5e4e791a7"
+      ],
+      0,
+      "7def19332fa89d53e14320a8970faab2"
+    ]
+  ]
+]

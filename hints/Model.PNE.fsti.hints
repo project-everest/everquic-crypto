@@ -1,0 +1,167 @@
+[
+  "ò9dˆZ+Áv'²Å°\u0017>’ï",
+  [
+    [
+      "Model.PNE.sample",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Model.PNE.samplelen",
+        "projection_inverse_BoxInt_proj_0"
+      ],
+      0,
+      "cb491bc50365e92ef9671b46ba68b228"
+    ],
+    [
+      "Model.PNE.__proj__PNEPlainPkg__item__as_bytes",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.PNE.PNEPlainPkg_pne_plain",
+        "projection_inverse_Model.PNE.PNEPlainPkg_pne_plain",
+        "token_correspondence_Model.PNE.__proj__PNEPlainPkg__item__pne_plain"
+      ],
+      0,
+      "9af50488927861b9c5e0986763843a5a"
+    ],
+    [
+      "Model.PNE.__proj__PNEPlainPkg__item__repr",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.PNE.PNEPlainPkg_as_bytes",
+        "proj_equation_Model.PNE.PNEPlainPkg_pne_plain",
+        "projection_inverse_Model.PNE.PNEPlainPkg_as_bytes",
+        "projection_inverse_Model.PNE.PNEPlainPkg_pne_plain",
+        "token_correspondence_Model.PNE.__proj__PNEPlainPkg__item__as_bytes",
+        "token_correspondence_Model.PNE.__proj__PNEPlainPkg__item__pne_plain"
+      ],
+      0,
+      "33aee4fea5a875ae2269c1b8a90256d7"
+    ],
+    [
+      "Model.PNE.entry",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_FStar.Bytes.lbytes",
+        "equation_Model.PNE.pne_cipher", "equation_Model.PNE.pne_plain",
+        "equation_Model.PNE.pne_plainlen", "equation_Model.PNE.sample",
+        "equation_Model.PNE.samplelen", "equation_Prims.eqtype",
+        "equation_Prims.nat", "function_token_typing_Prims.int",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "haseqTm_refine_71ea40360194fe02ee1272538c9cacbc",
+        "haseqTm_refine_966a0cabb88632e9e7e1c84270bd4d36",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "typing_FStar.Bytes.bytes", "typing_Model.PNE.pne_plain"
+      ],
+      0,
+      "4591fcd4b120b95e65a30ff0e25959f2"
+    ],
+    [
+      "Model.PNE.__proj__Entry__item__n",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Model.PNE.pne_plain",
+        "proj_equation_Model.PNE.Entry_l",
+        "proj_equation_Model.PNE.PNEPlainPkg_pne_plain",
+        "projection_inverse_Model.PNE.Entry_l",
+        "token_correspondence_Model.PNE.__proj__PNEPlainPkg__item__pne_plain"
+      ],
+      0,
+      "14936a818b5962deb64b49534b422521"
+    ],
+    [
+      "Model.PNE.__proj__Entry__item__c",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.PNE.Entry_l",
+        "projection_inverse_Model.PNE.Entry_l"
+      ],
+      0,
+      "0ebf0b7e858337d6455fcb728480afdc"
+    ],
+    [
+      "Model.PNE.sample_filter",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_FStar.Bytes.lbytes",
+        "equation_Model.PNE.sample", "equation_Model.PNE.samplelen",
+        "haseqTm_refine_71ea40360194fe02ee1272538c9cacbc",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "typing_FStar.Bytes.bytes"
+      ],
+      0,
+      "94b00ded79ee9bc1e3aae6d52b100812"
+    ],
+    [
+      "Model.PNE.sample_cipher_filter",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_FStar.Bytes.lbytes",
+        "equation_Model.PNE.pne_plainlen", "equation_Model.PNE.sample",
+        "equation_Model.PNE.samplelen", "equation_Prims.eqtype",
+        "equation_Prims.nat", "function_token_typing_Prims.int",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "haseqTm_refine_71ea40360194fe02ee1272538c9cacbc",
+        "haseqTm_refine_966a0cabb88632e9e7e1c84270bd4d36",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "typing_FStar.Bytes.bytes"
+      ],
+      0,
+      "237dc9ffe863401b8d8defe52af88d7f"
+    ],
+    [
+      "Model.PNE.sample_cipherpad_filter",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_FStar.Bytes.lbytes",
+        "equation_Model.PNE.pne_cipher", "equation_Model.PNE.sample",
+        "equation_Model.PNE.samplelen",
+        "fuel_guarded_inversion_Model.PNE.entry",
+        "haseqTm_refine_71ea40360194fe02ee1272538c9cacbc",
+        "proj_equation_Model.PNE.Entry_l",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "typing_FStar.Bytes.bytes"
+      ],
+      0,
+      "8248f4415e67a210550cf7d6b73d6a8e"
+    ],
+    [
+      "Model.PNE.decrypt",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "bool_inversion",
+        "equation_Model.PNE.find_sample", "equation_Model.PNE.info",
+        "equation_Model.PNE.pne_plain", "equation_Model.PNE.pne_plainlen",
+        "equation_Prims.eqtype", "equation_Prims.nat",
+        "fuel_guarded_inversion_Model.PNE.pne_plain_pkg",
+        "function_token_typing_Prims.int",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "haseqTm_refine_966a0cabb88632e9e7e1c84270bd4d36",
+        "proj_equation_Model.PNE.PNEPlainPkg_pne_plain",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "token_correspondence_Model.PNE.__proj__PNEPlainPkg__item__pne_plain",
+        "typing_FStar.Bytes.bytes", "typing_Model.PNE.find_sample"
+      ],
+      0,
+      "5ff151b31e73a65ab046288325281526"
+    ]
+  ]
+]

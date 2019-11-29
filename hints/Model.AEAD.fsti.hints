@@ -1,0 +1,319 @@
+[
+  ")ÄCÆræEÜ\u0004‰WAçwé¸",
+  [
+    [
+      "Model.AEAD.iv",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Multiply", "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_Model.AEAD.ivlen"
+      ],
+      0,
+      "0431fe75620e69ec2189e93619852e49"
+    ],
+    [
+      "Model.AEAD.aadmax",
+      1,
+      2,
+      1,
+      [ "@query" ],
+      0,
+      "ca21b0ec537593a60145a6ac58e0c100"
+    ],
+    [
+      "Model.AEAD.__proj__PlainPkg__item__plain",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.AEAD.PlainPkg_min_len",
+        "projection_inverse_Model.AEAD.PlainPkg_min_len"
+      ],
+      0,
+      "eb935c1b6da9650a076a40be515165c5"
+    ],
+    [
+      "Model.AEAD.__proj__PlainPkg__item__as_bytes",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.AEAD.PlainPkg_min_len",
+        "proj_equation_Model.AEAD.PlainPkg_plain",
+        "projection_inverse_Model.AEAD.PlainPkg_min_len",
+        "projection_inverse_Model.AEAD.PlainPkg_plain",
+        "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
+      ],
+      0,
+      "7b34771fd9d6c0fb5ad42dcea236e331"
+    ],
+    [
+      "Model.AEAD.__proj__PlainPkg__item__repr",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.AEAD.PlainPkg_as_bytes",
+        "proj_equation_Model.AEAD.PlainPkg_min_len",
+        "proj_equation_Model.AEAD.PlainPkg_plain",
+        "projection_inverse_Model.AEAD.PlainPkg_as_bytes",
+        "projection_inverse_Model.AEAD.PlainPkg_min_len",
+        "projection_inverse_Model.AEAD.PlainPkg_plain",
+        "token_correspondence_Model.AEAD.__proj__PlainPkg__item__as_bytes",
+        "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
+      ],
+      0,
+      "2e53267f36de367f2b485c68701ea32e"
+    ],
+    [
+      "Model.AEAD.__proj__NoncePkg__item__as_bytes",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.AEAD.NoncePkg_nonce",
+        "projection_inverse_Model.AEAD.NoncePkg_nonce",
+        "token_correspondence_Model.AEAD.__proj__NoncePkg__item__nonce"
+      ],
+      0,
+      "e1f20103796c2435956ce464e203a3ad"
+    ],
+    [
+      "Model.AEAD.__proj__NoncePkg__item__repr",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.AEAD.NoncePkg_as_bytes",
+        "proj_equation_Model.AEAD.NoncePkg_nonce",
+        "projection_inverse_Model.AEAD.NoncePkg_as_bytes",
+        "projection_inverse_Model.AEAD.NoncePkg_nonce",
+        "token_correspondence_Model.AEAD.__proj__NoncePkg__item__as_bytes",
+        "token_correspondence_Model.AEAD.__proj__NoncePkg__item__nonce"
+      ],
+      0,
+      "ff0ffdbee3932af46059d6523ea20ca2"
+    ],
+    [
+      "Model.AEAD.plain_repr",
+      1,
+      2,
+      1,
+      [ "@query", "equation_Model.AEAD.plain_as_bytes" ],
+      0,
+      "42d41a0e662fa3bc19d2c3009406c91b"
+    ],
+    [
+      "Model.AEAD.cipher",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_Model.AEAD.id", "equation_Model.AEAD.plainLen",
+        "equation_Model.AEAD.plainLenM", "equation_Model.AEAD.plainLenMin",
+        "equation_Prims.nat", "primitive_Prims.op_Addition",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "proj_equation_Model.AEAD.PlainPkg_min_len",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_26a0919bfedd5b0016eb8ff008035313",
+        "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_975a67cf3a8d1bbba1415628774d20e3",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_Model.AEAD.taglen"
+      ],
+      0,
+      "fdb60dcc8dca877f6522cae9a9173754"
+    ],
+    [
+      "Model.AEAD.cipher32",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "constructor_distinct_Lib.IntTypes.U8",
+        "equality_tok_Lib.IntTypes.U1@tok",
+        "equality_tok_Lib.IntTypes.U8@tok", "equation_FStar.UInt.fits",
+        "equation_FStar.UInt.max_int", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_Lib.IntTypes.minint", "equation_Lib.IntTypes.unsigned",
+        "equation_Model.AEAD.taglen", "equation_Spec.AES.gf8",
+        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
+        "int_inversion", "int_typing", "lemma_FStar.UInt32.vu_inv",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_AmpAmp",
+        "primitive_Prims.op_LessThanOrEqual",
+        "proj_equation_Spec.GaloisField.GF_t",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_Spec.GaloisField.GF_t",
+        "refinement_interpretation_Tm_refine_3efdadb657a0dd98795ba8a94a1dcdf4",
+        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_Model.AEAD.taglen",
+        "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
+      ],
+      0,
+      "bc0fd6f5792f65a705b50cec71a7a30f"
+    ],
+    [
+      "Model.AEAD.entry",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_FStar.Bytes.lbytes",
+        "equation_Model.AEAD.adata", "equation_Model.AEAD.cipher",
+        "equation_Model.AEAD.id", "equation_Model.AEAD.nonce",
+        "equation_Model.AEAD.plain", "equation_Model.AEAD.plainLen",
+        "equation_Model.AEAD.plainLenM", "equation_Model.AEAD.plainLenMin",
+        "equation_Prims.eqtype", "equation_Prims.nat",
+        "function_token_typing_Prims.int",
+        "haseqTm_refine_26a0919bfedd5b0016eb8ff008035313",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "haseqTm_refine_71ea40360194fe02ee1272538c9cacbc",
+        "haseqTm_refine_975a67cf3a8d1bbba1415628774d20e3",
+        "haseqTm_refine_ec85855215b44961f049335437dfb70f",
+        "primitive_Prims.op_Addition",
+        "proj_equation_Model.AEAD.PlainPkg_min_len",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "typing_FStar.Bytes.bytes", "typing_Model.AEAD.nonce",
+        "typing_Model.AEAD.plain"
+      ],
+      0,
+      "b183fb135ad7bb7454740179670458d9"
+    ],
+    [
+      "Model.AEAD.__proj__Entry__item__p",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Model.AEAD.id", "equation_Model.AEAD.plain",
+        "proj_equation_Model.AEAD.Entry_l",
+        "proj_equation_Model.AEAD.Mkinfo__plain",
+        "proj_equation_Model.AEAD.PlainPkg_plain",
+        "projection_inverse_Model.AEAD.Entry_l",
+        "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
+      ],
+      0,
+      "f6471b0c7d3b20f0ecf7f20c15f950fa"
+    ],
+    [
+      "Model.AEAD.__proj__Entry__item__c",
+      1,
+      2,
+      1,
+      [
+        "@query", "proj_equation_Model.AEAD.Entry_l",
+        "projection_inverse_Model.AEAD.Entry_l"
+      ],
+      0,
+      "070abbd8a6d843aa78674a69fcb4f348"
+    ],
+    [
+      "Model.AEAD.ok_plain_len_32",
+      1,
+      2,
+      1,
+      [
+        "@query", "b2t_def", "equation_FStar.UInt.fits",
+        "equation_FStar.UInt.min_int", "equation_FStar.UInt.size",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "projection_inverse_BoxBool_proj_0"
+      ],
+      0,
+      "7c7164031b3647f18b296430fac46a0f"
+    ],
+    [
+      "Model.AEAD.gen",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Model.AEAD.is_safe", "primitive_Prims.op_AmpAmp",
+        "projection_inverse_BoxBool_proj_0"
+      ],
+      0,
+      "4b5bdabe53c580dc57e8a2f1b083f0cf"
+    ],
+    [
+      "Model.AEAD.encrypt",
+      1,
+      2,
+      1,
+      [ "@query" ],
+      0,
+      "be6c2f0a9789d4bf0c9494127e31abe9"
+    ],
+    [
+      "Model.AEAD.decrypt",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "assumption_FStar.Pervasives.Native.option__uu___haseq",
+        "bool_inversion", "constructor_distinct_Lib.IntTypes.U8",
+        "disc_equation_FStar.Pervasives.Native.None",
+        "equality_tok_Lib.IntTypes.U1@tok",
+        "equality_tok_Lib.IntTypes.U8@tok", "equation_FStar.Bytes.lbytes",
+        "equation_FStar.UInt.uint_t", "equation_Lib.IntTypes.unsigned",
+        "equation_Model.AEAD.adata", "equation_Model.AEAD.cipher",
+        "equation_Model.AEAD.id", "equation_Model.AEAD.info",
+        "equation_Model.AEAD.nonce", "equation_Model.AEAD.plain",
+        "equation_Model.AEAD.plainLen", "equation_Model.AEAD.plainLenM",
+        "equation_Model.AEAD.plainLenMin", "equation_Prims.eqtype",
+        "equation_Prims.nat", "equation_Spec.AES.gf8",
+        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
+        "fuel_guarded_inversion_Model.AEAD.plain_pkg",
+        "function_token_typing_Prims.int",
+        "haseqTm_refine_26a0919bfedd5b0016eb8ff008035313",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "haseqTm_refine_975a67cf3a8d1bbba1415628774d20e3",
+        "haseqTm_refine_ec85855215b44961f049335437dfb70f", "int_inversion",
+        "kinding_Model.AEAD.entry@tok",
+        "lemma_FStar.Pervasives.invertOption", "primitive_Prims.op_Addition",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_Equality",
+        "proj_equation_Model.AEAD.Mkinfo__nonce",
+        "proj_equation_Model.AEAD.Mkinfo__plain",
+        "proj_equation_Model.AEAD.NoncePkg_nonce",
+        "proj_equation_Model.AEAD.PlainPkg_min_len",
+        "proj_equation_Model.AEAD.PlainPkg_plain",
+        "proj_equation_Spec.GaloisField.GF_t",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_Spec.GaloisField.GF_t",
+        "refinement_interpretation_Tm_refine_26a0919bfedd5b0016eb8ff008035313",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
+        "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_695df406ab82ffda6036fe7abc8900cc",
+        "refinement_interpretation_Tm_refine_71ea40360194fe02ee1272538c9cacbc",
+        "refinement_interpretation_Tm_refine_78fff0c3247252408ea0a435735c4e4a",
+        "refinement_interpretation_Tm_refine_975a67cf3a8d1bbba1415628774d20e3",
+        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "token_correspondence_Model.AEAD.__proj__NoncePkg__item__nonce",
+        "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain",
+        "typing_FStar.Bytes.bytes", "typing_FStar.Bytes.len",
+        "typing_FStar.Pervasives.Native.uu___is_Some",
+        "typing_FStar.UInt32.v",
+        "typing_Model.AEAD.__proj__Mkinfo___item__plain",
+        "typing_Model.AEAD.rgetinfo", "typing_Model.AEAD.wgetinfo",
+        "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
+      ],
+      0,
+      "5122ca920d9de75bda8c599238ebda80"
+    ]
+  ]
+]
