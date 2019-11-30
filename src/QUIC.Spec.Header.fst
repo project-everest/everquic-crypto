@@ -554,9 +554,54 @@ let first_byte_is_retry_correct
   (is_retry h <==> first_byte_is_retry (first_byte_of_header short_dcid_len last h))
 = ()
 
-let format_header_is_retry h = admit ()
+let repr_of_pn_length
+  (x: packet_number_length_t)
+: Tot (y: enum_repr packet_number_length {
+    list_mem x (list_map fst packet_number_length) /\
+    y == enum_repr_of_key packet_number_length x
+  })
+= assert_norm (pow2 8 == 256);
+  Cast.uint32_to_uint8 (x `U32.sub` 1ul)
 
-let format_header_pn_length h = admit ()
+#push-options "--z3rlimit 128"
+
+let format_header_is_retry h =
+  parse_header_prop_intro h;
+  let dl = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq dl last h;
+  let tg = first_byte_of_header dl last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec x;
+  assert (Seq.index (format_header h) 0 == x);
+  assert (is_retry h <==> (
+    uint8.get_bitfield (Seq.index (format_header h) 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Long <: U8.t) /\
+    uint8.get_bitfield (Seq.index (format_header h) 0) 4 6 == (LowParse.Spec.Enum.enum_repr_of_key long_packet_type Retry <: U8.t)
+  ))
+
+#pop-options
+
+#push-options "--z3rlimit 256"
+
+let format_header_pn_length h =
+  parse_header_prop_intro h;
+  let dl = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq dl last h;
+  let tg = first_byte_of_header dl last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec x;
+  assert (Seq.index (format_header h) 0 == x);
+  let pnl_k = pn_length h in
+  let pnl_r = repr_of_pn_length pnl_k in
+  assert (list_mem pnl_k (list_map fst packet_number_length));
+  assert (pnl_r == enum_repr_of_key packet_number_length pnl_k); 
+  assert (
+    uint8.get_bitfield (Seq.index (format_header h) 0) 0 2 ==
+    (pnl_r <: U8.t)
+  )
+
+#pop-options
 
 let pn_offset h = admit ()
 
