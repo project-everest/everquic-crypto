@@ -52,7 +52,7 @@
         "typing_FStar.UInt64.v", "typing_LowStar.Buffer.trivial_preorder"
       ],
       0,
-      "b5a2c2613d8d3d39c36510ab9330a2cc"
+      "60bf18d8e6eea78ff53cb852ee10a299"
     ],
     [
       "QUIC.Impl.Header.header_len_correct",
@@ -87,7 +87,7 @@
         "typing_LowStar.Monotonic.Buffer.frameOf"
       ],
       0,
-      "52d9b546cef985173152f33078732e2f"
+      "67acf9a0203cb4dff23036cfd6dcce80"
     ],
     [
       "QUIC.Impl.Header.putative_pn_offset",
