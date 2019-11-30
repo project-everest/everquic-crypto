@@ -16,15 +16,12 @@ inline_for_extraction
 let bound_npn
   (pn_len: packet_number_length_t)
 : Tot (x: U64.t { U64.v x == bound_npn' (U32.v pn_len - 1) })
-= if pn_len = 1ul
-  then 256uL
-  else if pn_len = 2ul
-  then 65536uL
-  else if pn_len = 3ul
-  then 16777216uL
-  else 4294967296uL
+= FStar.UInt.shift_left_value_lemma #64 1 (8 `op_Multiply` U32.v pn_len);
+  1uL `U64.shift_left` (8ul `U32.mul` pn_len)
 
 let reduce_pn' pn_len pn = pn % (bound_npn' pn_len)
+
+module BF = LowParse.BitFields
 
 inline_for_extraction
 let reduce_pn
@@ -33,11 +30,10 @@ let reduce_pn
 : Tot (b: bounded_integer (U32.v pn_len) { U32.v b == reduce_pn' (U32.v pn_len - 1) (U64.v pn) })
 = [@inline_let]
   let _ =
-    assert_norm (pow2 32 == 4294967296)
+    assert_norm (pow2 32 == 4294967296);
+    BF.get_bitfield_eq #64 (U64.v pn) 0 (8 `op_Multiply` U32.v pn_len)
   in
-  if pn_len = 4ul
-  then Cast.uint64_to_uint32 pn
-  else Cast.uint64_to_uint32 (pn `U64.rem` bound_npn pn_len)
+  Cast.uint64_to_uint32 (BF.uint64.BF.get_bitfield_gen pn 0ul (8ul `U32.mul` pn_len))
 
 let in_window_self (pn_len: nat { pn_len < 4 }) (pn:nat) : Lemma
   (in_window pn_len pn (if pn = 0 then 0 else pn - 1))
@@ -107,13 +103,16 @@ let expand_pn
   let open FStar.Math.Lemmas in
   let expected : uint62_t = last `U64.add` 1uL in
   let bound = bound_npn pn_len in
+  let bound_2 = bound `U64.shift_right` 1ul in
+  FStar.UInt.shift_right_value_lemma #64 (U64.v bound) 1;
+  assert (U64.v bound_2 == U64.v bound / 2);
   let candidate = replace_modulo expected bound (Cast.uint32_to_uint64 npn) in
-  if (bound `U64.div` 2uL) `U64.lte` expected
-     && candidate `U64.lte` (expected `U64.sub` (bound `U64.div` 2uL))
+  if bound_2 `U64.lte` expected
+     && candidate `U64.lte` (expected `U64.sub` bound_2)
      && candidate `U64.lt` (uint62_bound `U64.sub` bound) then // the test for overflow (candidate < pow2 62 - bound) is not present in draft 22.
 //    let _ = lemma_mod_plus candidate 1 bound in
     candidate `U64.add` bound
-  else if candidate `U64.gt` (expected `U64.add` (bound `U64.div` 2uL))
+  else if candidate `U64.gt` (expected `U64.add` bound_2)
           && candidate `U64.gte` bound then // in draft 22 the test for underflow (candidate >= bound) uses a strict inequality, which makes it impossible to expand npn to 0
 //    let _ = lemma_mod_plus candidate (-1) bound in
     candidate `U64.sub` bound
