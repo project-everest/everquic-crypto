@@ -583,6 +583,8 @@ let format_header_is_retry h =
 
 #push-options "--z3rlimit 256"
 
+#restart-solver
+
 let format_header_pn_length h =
   parse_header_prop_intro h;
   let dl = U32.uint_to_t (dcid_len h) in
@@ -649,7 +651,65 @@ let putative_pn_offset cid_len x =
             | None -> None
             | Some (_, consumed4) -> Some (consumed1 + consumed2 + consumed3 + consumed4)
 
-let putative_pn_offset_frame cid_len x1 x2 = admit ()
+#push-options "--z3rlimit 512"
+
+#restart-solver
+
+let putative_pn_offset_frame
+  cid_len x1 x2
+= let Some off = putative_pn_offset cid_len x1 in
+  parse_u8_spec' x1;
+  parse_u8_spec' x2;
+  parser_kind_prop_equiv parse_u8_kind parse_u8;
+  let hd1 = Seq.index x1 0 in
+  let is_short = uint8.get_bitfield hd1 7 8 = 0uy in
+  let number_of_protected_bits = if is_short then 5 else 4 in
+  let hd2 = Seq.index x2 0 in
+  BF.get_bitfield_get_bitfield (U8.v hd1) number_of_protected_bits 8 (7 - number_of_protected_bits) (8 - number_of_protected_bits);
+  BF.get_bitfield_get_bitfield (U8.v hd2) number_of_protected_bits 8 (7 - number_of_protected_bits) (8 - number_of_protected_bits);
+  assert (uint8.get_bitfield hd1 7 8 == uint8.get_bitfield hd2 7 8);
+  let x1_1 = Seq.slice x1 1 (Seq.length x1) in
+  let x2_1 = Seq.slice x2 1 (Seq.length x2) in
+  let x'1 = Seq.slice x1_1 0 (off - 1) in
+  if is_short
+  then begin
+    parse_strong_prefix (parse_flbytes cid_len) x1_1 x'1;
+    parse_strong_prefix (parse_flbytes cid_len) x'1 x2_1
+  end else begin
+    let packet_type = uint8.get_bitfield hd1 4 6 in
+    BF.get_bitfield_get_bitfield (U8.v hd1) 4 8 0 2;
+    BF.get_bitfield_get_bitfield (U8.v hd2) 4 8 0 2;
+    assert (packet_type == uint8.get_bitfield hd2 4 6);
+    parse_strong_prefix parse_common_long x1_1 (Seq.slice x1_1 0 (off - 1));
+    parse_strong_prefix parse_common_long (Seq.slice x2_1 0 (off - 1)) x2_1;
+    let Some (_, consumed2) = parse parse_common_long x1_1 in
+    let x1_2 = Seq.slice x1_1 consumed2 (Seq.length x1_1) in
+    let x2_2 = Seq.slice x2_1 consumed2 (Seq.length x2_1) in
+    assert (Seq.slice (Seq.slice x1_1 0 (off - 1)) consumed2 (off - 1) == Seq.slice (Seq.slice x2_1 0 (off - 1)) consumed2 (off - 1));
+    if packet_type = 0uy
+    then begin
+      let x'2 = Seq.slice x1_2 0 (off - 1 - consumed2) in
+      parse_strong_prefix
+        (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len))
+        x1_2 x'2;
+      parse_strong_prefix
+        (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len))
+        x'2 x2_2          
+    end;
+    let consumed3 =
+      if packet_type = 0uy
+      then let Some (_, consumed3) = parse (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) x1_2 in consumed3
+      else 0
+    in
+    let x1_3 = Seq.slice x1_2 consumed3 (Seq.length x1_2) in
+    let x2_3 = Seq.slice x2_2 consumed3 (Seq.length x2_2) in
+    assert (Seq.slice (Seq.slice x1_2 0 (off - 1 - consumed2)) consumed3 (off - 1 - consumed2) == Seq.slice (Seq.slice x2_2 0 (off - 1 - consumed2)) consumed3 (off - 1 - consumed2));
+    let x'3 = Seq.slice x1_3 0 (off - 1 - consumed2 - consumed3) in
+    parse_strong_prefix parse_varint x1_3 x'3;
+    parse_strong_prefix parse_varint x'3 x2_3
+  end
+
+#pop-options
 
 let putative_pn_offset_correct h cid_len = admit ()
 
