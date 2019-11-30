@@ -1,5 +1,5 @@
 [
-  ",›Fí\u007fp¬2Åw§Ω¶\u0015\n\u001e",
+  "∫\tx;®ÜO\u0001y‚†Z\u0015;\u001a\u0003",
   [
     [
       "QUIC.Impl.Header.read_header",
@@ -37,6 +37,7 @@
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
         "refinement_interpretation_Tm_refine_05e15190c946858f68c69156f585f95a",
+        "refinement_interpretation_Tm_refine_1df8948052eb3332c495109b21c5dc73",
         "refinement_interpretation_Tm_refine_39373c6efdc4ec21ca70e255f7208534",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_8ae3c41c550c32d98fdbb9494ef06d85",
@@ -51,7 +52,7 @@
         "typing_FStar.UInt64.v", "typing_LowStar.Buffer.trivial_preorder"
       ],
       0,
-      "dee5d27079a10972eab039e9fbd2049f"
+      "b5a2c2613d8d3d39c36510ab9330a2cc"
     ],
     [
       "QUIC.Impl.Header.header_len_correct",
@@ -60,16 +61,33 @@
       1,
       [ "@query" ],
       0,
-      "a4ccfbd07166ed43a02410027f9df11a"
+      "10fad6d181616bb057d767cf3905d9f7"
     ],
     [
       "QUIC.Impl.Header.write_header",
       1,
       2,
       1,
-      [ "@query" ],
+      [
+        "@MaxIFuel_assumption", "@query", "bool_inversion",
+        "equation_FStar.Monotonic.HyperStack.live_region",
+        "equation_LowStar.Buffer.buffer",
+        "equation_LowStar.Buffer.trivial_preorder", "equation_Prims.pos",
+        "function_token_typing_FStar.UInt8.t",
+        "lemma_LowStar.Monotonic.Buffer.length_as_seq",
+        "lemma_LowStar.Monotonic.Buffer.live_region_frameOf",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_LessThanOrEqual",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_5616d3bf468efb308a459eec5c61667c",
+        "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
+        "refinement_interpretation_Tm_refine_f68c7a70b63d80c1ce0a308c4f9f4e76",
+        "typing_FStar.Monotonic.HyperStack.live_region",
+        "typing_LowStar.Buffer.trivial_preorder",
+        "typing_LowStar.Monotonic.Buffer.frameOf"
+      ],
       0,
-      "0322c38bd3724477305bb2143db84412"
+      "52d9b546cef985173152f33078732e2f"
     ],
     [
       "QUIC.Impl.Header.putative_pn_offset",
@@ -85,7 +103,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "bff8fb2ca9ea9c3c79c09777637a4806"
+      "059ba442301e8aeea27bafec8ae4eae9"
     ],
     [
       "QUIC.Impl.Header.pn_offset",
@@ -97,7 +115,7 @@
         "refinement_interpretation_Tm_refine_ebc0288a8ed9cebeb97ca999a045f6e0"
       ],
       0,
-      "4e6753f3c03a6d885438e7106e5e8be1"
+      "35625d0581f9cc23e6e7d306f6f9970d"
     ]
   ]
 ]
