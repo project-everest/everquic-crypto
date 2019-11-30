@@ -66,10 +66,123 @@ let validate_header_body_cases
 
 #pop-options
 
+(* I can no longer use mk_filter_bitsum'_t' and similar automatic
+   destructors/constructors by normalization, because these would
+   branch on pn_len, which would no longer be constant-time. So I use
+   tactics to structurally build (i.e. in a syntax-directed way)
+   tailored destructors in a convenient way without the tedium of
+   providing arguments every time. *)
+
+module T = FStar.Tactics
+module BF = LowParse.BitFields
+
+inline_for_extraction
+let is_fixed_bit
+  (x: BF.bitfield uint8 1)
+: Tot (y: bool { y == list_mem x (list_map snd fixed_bit) })
+= x = 1uy
+
+inline_for_extraction
+let key_of_fixed_bit
+  (x: enum_repr fixed_bit) 
+: Tot (y: enum_key fixed_bit { y == enum_key_of_repr fixed_bit x })
+= ()
+
+inline_for_extraction
+let are_reserved_bits
+  (x: LowParse.BitFields.bitfield uint8 2)
+: Tot (y: bool { y == list_mem x (list_map snd reserved_bits) })
+= x = 0uy
+
+inline_for_extraction
+let key_of_reserved_bits
+  (x: enum_repr reserved_bits)
+: Tot (y: enum_key reserved_bits { y == enum_key_of_repr reserved_bits x })
+= ()
+
+(* this is constant-time, no longer branches on pn_len *)
+inline_for_extraction
+let is_packet_number_length
+  (x: BF.bitfield uint8 2)
+: Tot (y: bool { y == list_mem x (list_map snd packet_number_length) })
+= true
+
+(* this is constant-time, no longer branches on pn_len *)
+inline_for_extraction
+let key_of_packet_number_length
+  (x: enum_repr packet_number_length)
+: Tot (y: enum_key packet_number_length { y == enum_key_of_repr packet_number_length x })
+= Cast.uint8_to_uint32 x `U32.add` 1ul
+
+inline_for_extraction
+noextract
+let filter_rrpp
+: filter_bitsum'_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`are_reserved_bits);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`is_packet_number_length);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`filter_bitsum'_bitstop uint8)
+  )
+
+module L = FStar.List.Tot
+
+let append_l_nil (#t: Type) (l: list t) : Tot (squash (l == l `L.append` [])) =
+  L.append_l_nil l
+
 let filter_first_byte'
 : (filter_bitsum'_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_filter_bitsum'_t' first_byte)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`filter_bitsum'_bitsum'_intro);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* long *)
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.exact (`is_fixed_bit);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitsum'_intro);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* initial *)
+  T.exact_with_ref (`filter_rrpp);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`filter_rrpp);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* Handshake *)
+  T.exact_with_ref (`filter_rrpp);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* Retry *)
+  T.apply (`filter_bitsum'_bitfield);
+  T.exact_with_ref (`filter_bitsum'_bitstop uint8);
+  T.apply (`filter_bitsum'_bitsum'_nil);
+  T.apply (`append_l_nil);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* short *)
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.exact (`is_fixed_bit);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitfield);
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`are_reserved_bits);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitfield);
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`is_packet_number_length);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`filter_bitsum'_bitstop uint8);
+  T.apply (`filter_bitsum'_bitsum'_nil);
+  T.apply (`append_l_nil)
+  )
 
 inline_for_extraction
 let filter_first_byte
@@ -78,12 +191,68 @@ let filter_first_byte
 : Tot (filter_bitsum'_t first_byte)
 = coerce (filter_bitsum'_t first_byte) filter_first_byte'
 
+(* same here *)
+
+inline_for_extraction
+noextract
+let validate_rrpp
+: LL.validate_bitsum_cases_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.exact (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`LL.validate_bitsum_cases_bitstop uint8)
+)
+
 inline_for_extraction
 noextract
 let mk_validate_header_body_cases'
 : LL.validate_bitsum_cases_t first_byte
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (LL.mk_validate_bitsum_cases_t' first_byte)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`LL.validate_bitsum_cases_bitsum'_intro);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* long *)
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitsum'_intro);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* initial *)
+  T.exact_with_ref (`validate_rrpp);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`validate_rrpp);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* Handshake *)
+  T.exact_with_ref (`validate_rrpp);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* Retry *)
+  T.apply (`LL.validate_bitsum_cases_bitfield);
+  T.exact_with_ref (`LL.validate_bitsum_cases_bitstop uint8);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_nil);
+  T.apply (`append_l_nil);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* short *)
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitfield);
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitfield);
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`LL.validate_bitsum_cases_bitstop uint8);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_nil);
+  T.apply (`append_l_nil)
+  )
 
 inline_for_extraction
 noextract
@@ -112,12 +281,64 @@ let validate_header
 
 module Impl = QUIC.Impl.Base
 
+(* same here *)
+
+inline_for_extraction
+noextract
+let destr_rrpp
+: destr_bitsum'_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.exact (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`destr_bitsum'_bitstop uint8)
+)
+
 inline_for_extraction
 noextract
 let destr_first_byte
-: (destr_bitsum'_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_destr_bitsum'_t first_byte)
+: (destr_bitsum'_t first_byte <: Type u#1)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`destr_bitsum'_bitsum_intro);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* long *)
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitsum_intro);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* initial *)
+  T.exact_with_ref (`destr_rrpp);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`destr_rrpp);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* Handshake *)
+  T.exact_with_ref (`destr_rrpp);
+  T.apply (`destr_bitsum'_bitsum_cons_nil);
+  (* Retry *)
+  T.apply (`destr_bitsum'_bitfield);
+  T.exact_with_ref (`destr_bitsum'_bitstop uint8);
+  T.apply (`destr_bitsum'_bitsum_cons_nil);
+  (* short *)
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitfield);
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitfield);
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`destr_bitsum'_bitstop uint8)
+  )
 
 inline_for_extraction
 noextract
@@ -148,8 +369,6 @@ let read_header_body_t
         Impl.g_header x h' pn == hd
     end
   ))
-
-module BF = LowParse.BitFields
 
 #push-options "--z3rlimit 64 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
@@ -397,13 +616,85 @@ let read_header
 module HS = FStar.HyperStack
 module LW = LowParse.Low.Writers.Instances
 
-[@filter_bitsum'_t_attr]
+(* same as destr_first_byte here *)
+
+inline_for_extraction
+let repr_of_reserved_bits
+  (x: enum_key reserved_bits)
+: Tot (y: enum_repr reserved_bits { y == enum_repr_of_key reserved_bits x })
+= 0uy
+
+(* this is constant-time, no longer branches on pn_len *)
+inline_for_extraction
+let repr_of_packet_number_length
+  (x: enum_key packet_number_length)
+: Tot (y: enum_repr packet_number_length { y == enum_repr_of_key packet_number_length x })
+= assert_norm (pow2 8 == 256);
+//  FStar.Math.Lemmas.small_mod (U32.v (x `U32.sub` 1ul)) (pow2 8);
+  Cast.uint32_to_uint8 ((x <: packet_number_length_t) `U32.sub` 1ul) <: U8.t
+
+inline_for_extraction
+noextract
+let synth_rrpp
+: synth_bitsum'_recip_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.exact (`repr_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.apply (`repr_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8)
+)
+
+inline_for_extraction
+let repr_of_fixed_bit
+  (x: enum_key fixed_bit) 
+: Tot (y: enum_repr fixed_bit { y == enum_repr_of_key fixed_bit x })
+= 1uy
+
 inline_for_extraction
 noextract
 let synth_first_byte
-: synth_bitsum'_recip_t first_byte
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_synth_bitsum'_recip first_byte)
+: (synth_bitsum'_recip_t first_byte)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`synth_bitsum'_recip_BitSum_intro);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* long *)
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.exact (`repr_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitSum_intro);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* initial *)
+  T.exact_with_ref (`synth_rrpp);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`synth_rrpp);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* Handshake *)
+  T.exact_with_ref (`synth_rrpp);
+  T.apply (`synth_bitsum'_recip_BitSum_cons_nil);
+  (* Retry *)
+  T.apply (`synth_bitsum'_recip_BitField);
+  T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8);
+  T.apply (`synth_bitsum'_recip_BitSum_cons_nil);
+  (* short *)
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.exact (`repr_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitField);
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.apply (`repr_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitField);
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.apply (`repr_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8)
+  )
 
 inline_for_extraction
 noextract
