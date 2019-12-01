@@ -3,9 +3,41 @@
 
 #include "EverQuic.h"
 
-QUIC_Impl_index
-QUICTest_idx =
-  { .hash_alg = Spec_Hash_Definitions_SHA2_256, .aead_alg = Spec_Agile_AEAD_CHACHA20_POLY1305 };
+// Test data
+// ---------
+
+QUIC_Impl_index test_idx1 = {
+  .hash_alg = Spec_Hash_Definitions_SHA2_256,
+  .aead_alg = Spec_Agile_AEAD_CHACHA20_POLY1305
+};
+
+QUIC_Impl_index test_idx2 = {
+  .hash_alg = Spec_Hash_Definitions_SHA2_384,
+  .aead_alg = Spec_Agile_AEAD_AES128_GCM
+};
+
+QUIC_Impl_index test_idx3 = {
+  .hash_alg = Spec_Hash_Definitions_SHA2_512,
+  .aead_alg = Spec_Agile_AEAD_AES256_GCM
+};
+
+static uint8_t test_traffic_secret[32U] = {
+  0x48U, 0xc4U, 0x30U, 0x9bU, 0x5fU, 0x27U,
+  0x52U, 0xe8U, 0x12U, 0x7bU, 0x01U, 0x66U,
+  0x05U, 0x5aU, 0x9aU, 0x56U, 0xe5U, 0xf9U,
+  0x06U, 0x31U, 0xe0U, 0x84U, 0x85U, 0xe0U,
+  0xf8U, 0x9eU, 0x9cU, 0xecU, 0x4aU, 0xdeU,
+  0xb6U, 0x50U
+};
+
+static uint8_t test_plain[10U] = {
+  0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 9U
+};
+
+static uint32_t test_plain_len = (uint32_t)10U;
+
+// Helpers
+// -------
 
 void LowStar_Printf_print_string (char * const str) {
   printf("%s", str);
@@ -66,39 +98,22 @@ bool QUICTest_is_equal(char * const b1, char * const b2, uint32_t len) {
   return memcmp(b1, b2, len) == 0;
 }
 
-bool QUICTest_test()
+// Functional test (encrypt-decrypt roundtrip)
+// -------------------------------------------
+
+bool QUICTest_test(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len)
 {
   QUIC_Impl_state_s *st_enc = NULL;
   QUIC_Impl_state_s *st_dec = NULL;
-  uint8_t
-  traffic_secret[32U] =
-    {
-      (uint8_t)0x48U, (uint8_t)0xc4U, (uint8_t)0x30U, (uint8_t)0x9bU, (uint8_t)0x5fU, (uint8_t)0x27U,
-      (uint8_t)0x52U, (uint8_t)0xe8U, (uint8_t)0x12U, (uint8_t)0x7bU, (uint8_t)0x1U, (uint8_t)0x66U,
-      (uint8_t)0x5U, (uint8_t)0x5aU, (uint8_t)0x9aU, (uint8_t)0x56U, (uint8_t)0xe5U, (uint8_t)0xf9U,
-      (uint8_t)0x6U, (uint8_t)0x31U, (uint8_t)0xe0U, (uint8_t)0x84U, (uint8_t)0x85U, (uint8_t)0xe0U,
-      (uint8_t)0xf8U, (uint8_t)0x9eU, (uint8_t)0x9cU, (uint8_t)0xecU, (uint8_t)0x4aU, (uint8_t)0xdeU,
-      (uint8_t)0xb6U, (uint8_t)0x50U
-    };
   uint64_t initial_pn = (uint64_t)0U;
-  uint8_t
-  plain[10U] =
-    {
-      (uint8_t)0U, (uint8_t)1U, (uint8_t)2U, (uint8_t)3U, (uint8_t)4U, (uint8_t)5U, (uint8_t)6U,
-      (uint8_t)7U, (uint8_t)8U, (uint8_t)9U
-    };
-  uint32_t plain_len = (uint32_t)10U;
   uint8_t dcil8 = (uint8_t)20U;
   uint32_t dcil = (uint32_t)dcil8;
-  KRML_CHECK_SIZE(sizeof (uint8_t), dcil);
   uint8_t dcid[dcil];
   memset(dcid, 0U, dcil * sizeof dcid[0U]);
   uint32_t scil = (uint32_t)20U;
-  KRML_CHECK_SIZE(sizeof (uint8_t), scil);
   uint8_t scid[scil];
   memset(scid, 0U, scil * sizeof scid[0U]);
   uint32_t token_len = (uint32_t)16U;
-  KRML_CHECK_SIZE(sizeof (uint8_t), token_len);
   uint8_t token[token_len];
   memset(token, 0U, token_len * sizeof token[0U]);
   uint32_t cipher_len = plain_len + (uint32_t)16U;
@@ -129,7 +144,6 @@ bool QUICTest_test()
   uint32_t hdr_len = QUIC_Impl_header_len(hdr);
   uint32_t cipher_len1 = plain_len + (uint32_t)16U;
   uint32_t enc_dst_len = hdr_len + cipher_len1;
-  KRML_CHECK_SIZE(sizeof (uint8_t), enc_dst_len);
   uint8_t enc_dst[enc_dst_len];
   memset(enc_dst, 0U, enc_dst_len * sizeof enc_dst[0U]);
   uint64_t enc_dst_pn = initial_pn;
@@ -140,7 +154,7 @@ bool QUICTest_test()
       .total_len = (uint32_t)0U
     };
   EverCrypt_Error_error_code
-  r = QUIC_Impl_create_in(QUICTest_idx, &st_enc, initial_pn, traffic_secret);
+  r = QUIC_Impl_create_in(idx, &st_enc, initial_pn, test_traffic_secret);
   LowStar_Printf_print_string("Performing ");
   LowStar_Printf_print_string("create_in st_enc");
   LowStar_Printf_print_string(": ");
@@ -156,7 +170,7 @@ bool QUICTest_test()
     return false;
   uint64_t pn = enc_dst_pn;
   EverCrypt_Error_error_code
-    r2 = QUIC_Impl_create_in(QUICTest_idx, &st_dec, initial_pn, traffic_secret);
+    r2 = QUIC_Impl_create_in(idx, &st_dec, initial_pn, test_traffic_secret);
   LowStar_Printf_print_string("Performing ");
   LowStar_Printf_print_string("create_in st_dec");
   LowStar_Printf_print_string(": ");
@@ -200,7 +214,7 @@ bool QUICTest_test()
 }
 
 int main () {
-  if (QUICTest_test ()) {
+  if (QUICTest_test(test_idx1, test_plain, test_plain_len)) {
     printf("SUCCESS\n");
     return EXIT_SUCCESS;
   } else {

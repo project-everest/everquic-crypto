@@ -77,5 +77,5 @@ export CFLAGS
 
 test/main.o: dist/Makefile.basic
 
-dist/test.exe: test/main.o dist/libeverquic.a $(HACL_HOME)/dist/compact-gcc/libevercrypt.a $(KREMLIN_HOME)/kremlib/dist/generic/libkremlib.a
+dist/test.exe: test/main.o test/timing.o dist/libeverquic.a $(HACL_HOME)/dist/compact-gcc/libevercrypt.a $(KREMLIN_HOME)/kremlib/dist/generic/libkremlib.a
 	$(CC) $^ -o $@
