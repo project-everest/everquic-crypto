@@ -5,6 +5,7 @@
 
 #include "timing.h"
 
+#define EVERCRYPT_TARGETCONFIG_X64 1
 #include "EverQuic.h"
 
 // Timing infrastructure
@@ -55,12 +56,12 @@ QUIC_Impl_index test_idx1 = {
 };
 
 QUIC_Impl_index test_idx2 = {
-  .hash_alg = Spec_Hash_Definitions_SHA2_384,
+  .hash_alg = Spec_Hash_Definitions_SHA2_256,
   .aead_alg = Spec_Agile_AEAD_AES128_GCM
 };
 
 QUIC_Impl_index test_idx3 = {
-  .hash_alg = Spec_Hash_Definitions_SHA2_512,
+  .hash_alg = Spec_Hash_Definitions_SHA2_384,
   .aead_alg = Spec_Agile_AEAD_AES256_GCM
 };
 
@@ -157,7 +158,7 @@ bool QUICTest_test_core(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len,
     {
       .case_BInitial = {
         .payload_length = (uint64_t)cipher_len,
-        .packet_number_length = (uint32_t)3U,
+        .packet_number_length = (uint32_t)4U,
         .token = token,
         .token_length = token_len
       }
@@ -249,20 +250,42 @@ static uint32_t fragment_sizes[] = {
   16, 32, 64, 128, 256, 512, 1024, 1300, 0
 };
 
-void QUICTest_benchmark0(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len,
+void QUICTest_benchmark0(QUIC_Impl_state_s *st_enc, uint8_t *plain, uint32_t plain_len,
   uint64_t initial_pn, uint8_t *dcid, uint32_t dcil, uint8_t *scid, uint32_t scil,
   uint8_t *token, uint32_t token_len, uint32_t fragment)
 {
   uint32_t rem = plain_len;
+  uint8_t out[1400];
+ 
+  QUIC_Impl_Base_long_header_specifics hdr_spec = {
+    .tag = QUIC_Impl_Base_BInitial,
+    {
+      .case_BInitial = {
+        .payload_length = (uint64_t)fragment,
+        .packet_number_length = (uint32_t)4U,
+        .token = token,
+        .token_length = token_len
+      }
+    }
+  };
+  QUIC_Impl_Base_header hdr = {
+    .tag = QUIC_Impl_Base_BLong,
+    {
+      .case_BLong = {
+        .version = (uint32_t)0xff000017U, .dcid = dcid, .dcil = dcil, .scid = scid, .scil = scil,
+        .spec = hdr_spec
+      }
+    }
+  };
+
+
   while (rem > 0) {
     uint32_t sz = rem >= fragment ? fragment : rem;
-    bool ret = QUICTest_test_core(idx, plain, sz, initial_pn, dcid, dcil, scid,
-      scil, token, token_len, false);
-    if (!ret)
+    EverCrypt_Error_error_code ret = QUIC_Impl_encrypt(st_enc, out, &initial_pn, hdr, plain, sz);
+    if (!QUICTest_is_success_body(ret))
       exit(4);
     rem -= sz;
     plain += sz;
-    initial_pn++;
   }
 }
 
@@ -279,36 +302,50 @@ void QUICTest_benchmark() {
   uint32_t plain_len = 1*1024*1024;
   uint8_t *plain = malloc(plain_len);
 
+  /*
   printf("Reading 1M of random data...\n");
-  int fd = open("/dev/urandom", O_RDONLY);
-  if (fd == -1)
+  int fd = open("./random", O_RDONLY);
+  if (fd == -1){
+	 printf("Can't read file");
     exit(1);
+  }
   uint64_t res = read(fd, plain, plain_len);
   if (res != plain_len)
+  {
+	  printf("Read failed: %d\n", res);
     exit(2);
+  }
   close(fd);
   printf("...read 1M of random data\n");
+  */
 
+  /*
   for (uint32_t i = 0; fragment_sizes[i] != 0; ++i) {
     uint32_t f = fragment_sizes[i];
     TIME_AND_TSC("1M encrypt/decrypt CHACHAPOLY_SHA256", f, plain_len,
       QUICTest_benchmark0(test_idx1, plain, plain_len, initial_pn, dcid, dcil,
         scid, scil, token, token_len, f));
   }
-
+  */
   for (uint32_t i = 0; fragment_sizes[i] != 0; ++i) {
     uint32_t f = fragment_sizes[i];
-    TIME_AND_TSC("1M encrypt/decrypt AES128_SHA384", f, plain_len,
-      QUICTest_benchmark0(test_idx2, plain, plain_len, initial_pn, dcid, dcil,
+    QUIC_Impl_state_s *st_enc = NULL;
+
+    QUIC_Impl_create_in(test_idx2, &st_enc, initial_pn, test_traffic_secret);
+    TIME_AND_TSC("1M encrypt/decrypt AES128_SHA256", f, plain_len,
+      QUICTest_benchmark0(st_enc, plain, plain_len, initial_pn, dcid, dcil,
         scid, scil, token, token_len, f));
   }
 
+  /*
   for (uint32_t i = 0; fragment_sizes[i] != 0; ++i) {
     uint32_t f = fragment_sizes[i];
-    TIME_AND_TSC("1M encrypt/decrypt AES256_SHA512", f, plain_len,
+    TIME_AND_TSC("1M encrypt/decrypt AES256_SHA384", f, plain_len,
       QUICTest_benchmark0(test_idx3, plain, plain_len, initial_pn, dcid, dcil,
         scid, scil, token, token_len, f));
   }
+  */
+
 }
 
 int main () {
