@@ -1,7 +1,50 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "timing.h"
 
 #include "EverQuic.h"
+
+// Timing infrastructure
+// ---------------------
+//
+// This code runs a given benchmark twice. First, for a set duration, to measure
+// throughput. Second, for a given number of iterations, to measure cycles per
+// byte.
+
+// How long to measure for KB/s figures
+#define MEASUREMENT_TIME 2
+// How many iterations to run for cycles/byte figures
+#define ITERATIONS(bsize) 1
+#define HEADER_FORMAT   "  %s, fragment size=%"PRIu32":  "
+
+#define TIME_AND_TSC( TITLE, FRAG, BUFSIZE, CODE )                      \
+do {                                                                    \
+    uint64_t ii, jj, tsc;                                               \
+    uint64_t cnt = ITERATIONS(BUFSIZE);                                 \
+                                                                        \
+    printf( HEADER_FORMAT, TITLE, FRAG );                               \
+    fflush( stdout );                                                   \
+                                                                        \
+    set_alarm( MEASUREMENT_TIME );                                      \
+    for( ii = 1; ! timing_alarmed; ii++ )                               \
+    {                                                                   \
+        CODE;                                                           \
+    }                                                                   \
+                                                                        \
+    tsc = timing_hardclock();                                           \
+    for( jj = 0; jj < cnt; jj++ )                                       \
+    {                                                                   \
+        CODE;                                                           \
+    }                                                                   \
+                                                                        \
+    printf( "%9lu KiB/s,  %9f cycles/byte\n",                           \
+                     (ii * BUFSIZE) / (MEASUREMENT_TIME * 1024),        \
+                     (double)(timing_hardclock() - tsc ) /(double)( jj * BUFSIZE ) ); \
+} while( 0 )
+
 
 // Test data
 // ---------
@@ -94,126 +137,165 @@ bool QUICTest_check_is_true_body(bool e)
   return e;
 }
 
-bool QUICTest_is_equal(char * const b1, char * const b2, uint32_t len) {
+bool QUICTest_is_equal(uint8_t *b1, uint8_t *b2, uint32_t len) {
   return memcmp(b1, b2, len) == 0;
 }
 
 // Functional test (encrypt-decrypt roundtrip)
 // -------------------------------------------
 
-bool QUICTest_test(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len)
+bool QUICTest_test_core(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len,
+  uint64_t initial_pn, uint8_t *dcid, uint32_t dcil, uint8_t *scid, uint32_t scil,
+  uint8_t *token, uint32_t token_len, bool debug)
 {
+  uint8_t dcil8 = dcil;
+  uint32_t cipher_len = plain_len + 16;
   QUIC_Impl_state_s *st_enc = NULL;
   QUIC_Impl_state_s *st_dec = NULL;
-  uint64_t initial_pn = (uint64_t)0U;
-  uint8_t dcil8 = (uint8_t)20U;
-  uint32_t dcil = (uint32_t)dcil8;
-  uint8_t dcid[dcil];
-  memset(dcid, 0U, dcil * sizeof dcid[0U]);
-  uint32_t scil = (uint32_t)20U;
-  uint8_t scid[scil];
-  memset(scid, 0U, scil * sizeof scid[0U]);
-  uint32_t token_len = (uint32_t)16U;
-  uint8_t token[token_len];
-  memset(token, 0U, token_len * sizeof token[0U]);
-  uint32_t cipher_len = plain_len + (uint32_t)16U;
-  QUIC_Impl_Base_long_header_specifics
-  hdr_spec =
+  QUIC_Impl_Base_long_header_specifics hdr_spec = {
+    .tag = QUIC_Impl_Base_BInitial,
     {
-      .tag = QUIC_Impl_Base_BInitial,
-      {
-        .case_BInitial = {
-          .payload_length = (uint64_t)cipher_len,
-          .packet_number_length = (uint32_t)3U,
-          .token = token,
-          .token_length = token_len
-        }
+      .case_BInitial = {
+        .payload_length = (uint64_t)cipher_len,
+        .packet_number_length = (uint32_t)3U,
+        .token = token,
+        .token_length = token_len
       }
-    };
-  QUIC_Impl_Base_header
-  hdr =
+    }
+  };
+  QUIC_Impl_Base_header hdr = {
+    .tag = QUIC_Impl_Base_BLong,
     {
-      .tag = QUIC_Impl_Base_BLong,
-      {
-        .case_BLong = {
-          .version = (uint32_t)0xff000017U, .dcid = dcid, .dcil = dcil, .scid = scid, .scil = scil,
-          .spec = hdr_spec
-        }
+      .case_BLong = {
+        .version = (uint32_t)0xff000017U, .dcid = dcid, .dcil = dcil, .scid = scid, .scil = scil,
+        .spec = hdr_spec
       }
-    };
+    }
+  };
   uint32_t hdr_len = QUIC_Impl_header_len(hdr);
   uint32_t cipher_len1 = plain_len + (uint32_t)16U;
   uint32_t enc_dst_len = hdr_len + cipher_len1;
   uint8_t enc_dst[enc_dst_len];
   memset(enc_dst, 0U, enc_dst_len * sizeof enc_dst[0U]);
   uint64_t enc_dst_pn = initial_pn;
-  QUIC_Impl_result
-  dec_dst =
-    {
-      .pn = (uint64_t)0U, .header = hdr, .header_len = (uint32_t)0U, .plain_len = (uint32_t)0U,
-      .total_len = (uint32_t)0U
-    };
-  EverCrypt_Error_error_code
-  r = QUIC_Impl_create_in(idx, &st_enc, initial_pn, test_traffic_secret);
-  LowStar_Printf_print_string("Performing ");
-  LowStar_Printf_print_string("create_in st_enc");
-  LowStar_Printf_print_string(": ");
+  QUIC_Impl_result dec_dst = {
+    .pn = (uint64_t)0U, .header = hdr, .header_len = (uint32_t)0U, .plain_len = (uint32_t)0U,
+    .total_len = (uint32_t)0U
+  };
+  EverCrypt_Error_error_code r =
+    QUIC_Impl_create_in(idx, &st_enc, initial_pn, test_traffic_secret);
+  if (debug)
+    LowStar_Printf_print_string("Performing create_in st_enc : ");
   if (!QUICTest_is_success_body(r))
     return false;
   QUIC_Impl_state_s *st_enc1 = st_enc;
-  EverCrypt_Error_error_code
-    r1 = QUIC_Impl_encrypt(st_enc1, enc_dst, &enc_dst_pn, hdr, plain, plain_len);
-  LowStar_Printf_print_string("Performing ");
-  LowStar_Printf_print_string("encrypt");
-  LowStar_Printf_print_string(": ");
+  EverCrypt_Error_error_code r1 =
+    QUIC_Impl_encrypt(st_enc1, enc_dst, &enc_dst_pn, hdr, plain, plain_len);
+  if (debug)
+    LowStar_Printf_print_string("Performing encrypt : ");
   if (!QUICTest_is_success_body(r1))
     return false;
   uint64_t pn = enc_dst_pn;
   EverCrypt_Error_error_code
     r2 = QUIC_Impl_create_in(idx, &st_dec, initial_pn, test_traffic_secret);
-  LowStar_Printf_print_string("Performing ");
-  LowStar_Printf_print_string("create_in st_dec");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Performing create_in st_dec : ");
   if (!QUICTest_is_success_body(r2))
     return false;
   QUIC_Impl_state_s *st_dec1 = st_dec;
   EverCrypt_Error_error_code
     r3 = QUIC_Impl_decrypt(st_dec1, &dec_dst, enc_dst, enc_dst_len, dcil8);
-  LowStar_Printf_print_string("Performing ");
-  LowStar_Printf_print_string("decrypt");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Performing decrypt : ");
   if (!QUICTest_is_success_body(r3))
     return false;
   QUIC_Impl_result res = dec_dst;
-  LowStar_Printf_print_string("Checking ");
-  LowStar_Printf_print_string("pn");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Checking pn : ");
   if (!QUICTest_check_is_true_body(res.pn == pn))
     return false;
-  LowStar_Printf_print_string("Checking ");
-  LowStar_Printf_print_string("header_len");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Checking header_len : ");
   if (!QUICTest_check_is_true_body(res.header_len == hdr_len))
     return false;
-  LowStar_Printf_print_string("Checking ");
-  LowStar_Printf_print_string("plain_len");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Checking plain_len : ");
   if (!QUICTest_check_is_true_body(res.plain_len == plain_len))
     return false;
-  LowStar_Printf_print_string("Checking ");
-  LowStar_Printf_print_string("total_len");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Checking total_len : ");
   if (!QUICTest_check_is_true_body(res.total_len == enc_dst_len))
     return false;
   uint8_t *plain_ = enc_dst + hdr_len;
   bool chk = QUICTest_is_equal(plain_, plain, plain_len);
-  LowStar_Printf_print_string("Checking ");
-  LowStar_Printf_print_string("plain");
-  LowStar_Printf_print_string(": ");
+  if (debug)
+    LowStar_Printf_print_string("Checking plain : ");
   return QUICTest_check_is_true_body(chk);
 }
 
+bool QUICTest_test(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len) {
+  uint64_t initial_pn = 0U;
+  uint32_t dcil = 20;
+  uint8_t dcid[20] = { 0 };
+  uint32_t scil = 20;
+  uint8_t scid[20] = { 0 };
+  uint32_t token_len = 16;
+  uint8_t token[16] = { 0 };
+  return QUICTest_test_core(idx, plain, plain_len, initial_pn, dcid, dcil, scid, scil,
+    token, token_len, true);
+}
+
+static uint32_t fragment_sizes[] = {
+  16, 32, 64, 128, 256, 512, 1024, 1300, 0
+};
+
+void QUICTest_benchmark0(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len,
+  uint64_t initial_pn, uint8_t *dcid, uint32_t dcil, uint8_t *scid, uint32_t scil,
+  uint8_t *token, uint32_t token_len, uint32_t fragment)
+{
+  uint32_t rem = plain_len;
+  while (rem > 0) {
+    uint32_t sz = rem >= fragment ? fragment : rem;
+    bool ret = QUICTest_test_core(idx, plain, sz, initial_pn, dcid, dcil, scid,
+      scil, token, token_len, false);
+    if (!ret)
+      exit(4);
+    rem -= sz;
+    plain += sz;
+    initial_pn++;
+  }
+}
+
+void QUICTest_benchmark() {
+  // Dummies.
+  uint64_t initial_pn = 0U;
+  uint32_t dcil = 20;
+  uint8_t dcid[20] = { 0 };
+  uint32_t scil = 20;
+  uint8_t scid[20] = { 0 };
+  uint32_t token_len = 16;
+  uint8_t token[16] = { 0 };
+
+  uint32_t plain_len = 1*1024*1024*1024;
+  uint8_t *plain = malloc(plain_len);
+
+  int fd = open("/dev/urandom", O_RDONLY);
+  if (fd == -1)
+    exit(1);
+  uint64_t res = read(fd, plain, plain_len);
+  if (res != plain_len)
+    exit(2);
+  close(fd);
+
+  for (uint32_t i = 0, f = fragment_sizes[i]; f != 0; ++i) {
+    TIME_AND_TSC("1M encrypt/decrypt CHACHAPOLY_SHA256", f, plain_len,
+      QUICTest_benchmark0(test_idx1, plain, plain_len, initial_pn, dcid, dcil,
+        scid, scil, token, token_len, f));
+  }
+}
+
 int main () {
+  QUICTest_benchmark();
   if (QUICTest_test(test_idx1, test_plain, test_plain_len)) {
     printf("SUCCESS\n");
     return EXIT_SUCCESS;
