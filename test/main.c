@@ -18,7 +18,7 @@
 #define MEASUREMENT_TIME 2
 // How many iterations to run for cycles/byte figures
 #define ITERATIONS(bsize) 1
-#define HEADER_FORMAT   "  %s, fragment size=%"PRIu32":  "
+#define HEADER_FORMAT   "  %s, fragment size=%d:  "
 
 #define TIME_AND_TSC( TITLE, FRAG, BUFSIZE, CODE )                      \
 do {                                                                    \
@@ -117,7 +117,7 @@ bool QUICTest_is_success_body(EverCrypt_Error_error_code e)
       }
     case EverCrypt_Error_Success:
       {
-        LowStar_Printf_print_string("success\n");
+        //LowStar_Printf_print_string("success\n");
         return true;
       }
     default:
@@ -212,25 +212,25 @@ bool QUICTest_test_core(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len,
   QUIC_Impl_result res = dec_dst;
   if (debug)
     LowStar_Printf_print_string("Checking pn : ");
-  if (!QUICTest_check_is_true_body(res.pn == pn))
+  if (!(res.pn == pn))
     return false;
   if (debug)
     LowStar_Printf_print_string("Checking header_len : ");
-  if (!QUICTest_check_is_true_body(res.header_len == hdr_len))
+  if (!(res.header_len == hdr_len))
     return false;
   if (debug)
     LowStar_Printf_print_string("Checking plain_len : ");
-  if (!QUICTest_check_is_true_body(res.plain_len == plain_len))
+  if (!(res.plain_len == plain_len))
     return false;
   if (debug)
     LowStar_Printf_print_string("Checking total_len : ");
-  if (!QUICTest_check_is_true_body(res.total_len == enc_dst_len))
+  if (!(res.total_len == enc_dst_len))
     return false;
   uint8_t *plain_ = enc_dst + hdr_len;
   bool chk = QUICTest_is_equal(plain_, plain, plain_len);
   if (debug)
     LowStar_Printf_print_string("Checking plain : ");
-  return QUICTest_check_is_true_body(chk);
+  return chk;
 }
 
 bool QUICTest_test(QUIC_Impl_index idx, uint8_t *plain, uint32_t plain_len) {
@@ -276,9 +276,10 @@ void QUICTest_benchmark() {
   uint32_t token_len = 16;
   uint8_t token[16] = { 0 };
 
-  uint32_t plain_len = 1*1024*1024*1024;
+  uint32_t plain_len = 1*1024*1024;
   uint8_t *plain = malloc(plain_len);
 
+  printf("Reading 1M of random data...\n");
   int fd = open("/dev/urandom", O_RDONLY);
   if (fd == -1)
     exit(1);
@@ -286,10 +287,26 @@ void QUICTest_benchmark() {
   if (res != plain_len)
     exit(2);
   close(fd);
+  printf("...read 1M of random data\n");
 
-  for (uint32_t i = 0, f = fragment_sizes[i]; f != 0; ++i) {
+  for (uint32_t i = 0; fragment_sizes[i] != 0; ++i) {
+    uint32_t f = fragment_sizes[i];
     TIME_AND_TSC("1M encrypt/decrypt CHACHAPOLY_SHA256", f, plain_len,
       QUICTest_benchmark0(test_idx1, plain, plain_len, initial_pn, dcid, dcil,
+        scid, scil, token, token_len, f));
+  }
+
+  for (uint32_t i = 0; fragment_sizes[i] != 0; ++i) {
+    uint32_t f = fragment_sizes[i];
+    TIME_AND_TSC("1M encrypt/decrypt AES128_SHA384", f, plain_len,
+      QUICTest_benchmark0(test_idx2, plain, plain_len, initial_pn, dcid, dcil,
+        scid, scil, token, token_len, f));
+  }
+
+  for (uint32_t i = 0; fragment_sizes[i] != 0; ++i) {
+    uint32_t f = fragment_sizes[i];
+    TIME_AND_TSC("1M encrypt/decrypt AES256_SHA512", f, plain_len,
+      QUICTest_benchmark0(test_idx3, plain, plain_len, initial_pn, dcid, dcil,
         scid, scil, token, token_len, f));
   }
 }
