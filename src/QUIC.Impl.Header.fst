@@ -1173,26 +1173,23 @@ let write_header'
 let header_len_correct
   h m pn
 = let hs = g_header h m pn in
-  let _ : squash (U32.v (Impl.header_len h) == Spec.header_len' hs) =
+  let f () : Lemma (U32.v (Impl.header_len h) == Spec.header_len' hs) =
     match h with
     | BLong version dcid dcil scid scil spec ->
       begin match spec with
       | BInitial payload_length packet_number_length token token_length ->
         bounded_varint_len_correct 0 token_max_len token_length;
-        varint_len_correct payload_length
+        varint_len_correct (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
       | BZeroRTT payload_length packet_number_length ->
-        varint_len_correct payload_length
+        varint_len_correct (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
       | BHandshake payload_length packet_number_length ->
-        varint_len_correct payload_length
+        varint_len_correct (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
       | BRetry unused odcid odcil -> ()
     end
     | _ -> ()
   in
+  f ();
   header_len'_correct hs
-
-#pop-options
-
-#push-options "--z3rlimit 64"
 
 #restart-solver
 
@@ -1279,16 +1276,16 @@ let pn_offset'
     7ul `U32.add` dcil `U32.add` scil `U32.add`
     begin match spec with
     | BInitial payload_length packet_number_length token token_length ->
-      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len payload_length
+      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
     | BZeroRTT payload_length packet_number_length ->
-      varint_len payload_length
+      varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
     | BHandshake payload_length packet_number_length ->
-      varint_len payload_length
+      varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
     | BRetry unused odcid odcil ->
       1ul `U32.add` odcil
     end
 
-#push-options "--z3rlimit 128 --max_ifuel 2 --initial_ifuel 2"
+#push-options "--z3rlimit 64 --max_ifuel 2 --initial_ifuel 2"
 
 #restart-solver
 

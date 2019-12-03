@@ -219,11 +219,11 @@ let header_len
     7ul `U32.add` dcil `U32.add` scil `U32.add`
     begin match spec with
     | BInitial payload_length packet_number_length token token_length ->
-      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len payload_length `U32.add` packet_number_length
+      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) `U32.add` packet_number_length
     | BZeroRTT payload_length packet_number_length ->
-      varint_len payload_length `U32.add` packet_number_length
+      varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) `U32.add` packet_number_length
     | BHandshake payload_length packet_number_length ->
-      varint_len payload_length `U32.add` packet_number_length
+      varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) `U32.add` packet_number_length
     | BRetry unused odcid odcil ->
       1ul `U32.add` odcil
     end

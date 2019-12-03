@@ -654,7 +654,7 @@ val header_encrypt: i:G.erased index -> (
 
 module BF = LowParse.BitFields
 
-#push-options "--z3rlimit 1024 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2' --max_ifuel 0 --initial_ifuel 0"
+#push-options "--z3rlimit 2048 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2' --max_ifuel 0 --initial_ifuel 0"
 let header_encrypt i dst dst_len s h cipher pn =
   let State _ aead_alg _ _ aead_state _ k _ ctr_state = !*s in
   [@inline_let]
