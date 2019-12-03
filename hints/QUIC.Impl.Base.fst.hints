@@ -1,5 +1,5 @@
 [
-  "—KRûÑ|wÌ”uÃ¸”\nmw",
+  "é\u0013ÜÄ…\f/#£ç?meeΩú",
   [
     [
       "QUIC.Impl.Base.long_header_specifics",
@@ -661,6 +661,7 @@
         "equation_QUIC.Impl.Base.varint_len",
         "equation_QUIC.Spec.Base.packet_number_length_t",
         "equation_QUIC.Spec.Base.token_max_len",
+        "equation_QUIC.Spec.Base.uint62_bound",
         "equation_QUIC.Spec.Base.uint62_t",
         "fuel_guarded_inversion_QUIC.Impl.Base.header",
         "fuel_guarded_inversion_QUIC.Impl.Base.long_header_specifics",
@@ -675,17 +676,20 @@
         "refinement_interpretation_Tm_refine_21e94d81ba30d97ef8ce075f9a843f09",
         "refinement_interpretation_Tm_refine_2db4ff42bec8cc5c09cffc47e0d80f6f",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_5bbb8b03b6fd53e5fa3fdaee7efdcca0",
         "refinement_interpretation_Tm_refine_9c0e0a01a3e5e319981a08939ba3c73c",
         "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88",
         "refinement_interpretation_Tm_refine_ebd33c4f8daed8b12d67bfecc5777ea9",
         "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
         "typing_FStar.Int.Cast.uint32_to_uint64", "typing_FStar.UInt.fits",
-        "typing_FStar.UInt32.v", "typing_LowStar.Buffer.trivial_preorder",
+        "typing_FStar.UInt32.v", "typing_FStar.UInt64.v",
+        "typing_LowStar.Buffer.trivial_preorder",
         "typing_LowStar.Monotonic.Buffer.length",
-        "typing_QUIC.Impl.Base.varint_len"
+        "typing_QUIC.Impl.Base.varint_len",
+        "typing_QUIC.Spec.Base.uint62_bound"
       ],
       0,
-      "f3128348fe3bf92e5281c9148e6df8f9"
+      "16a5c5a65acff8df0977adc03b8bbeae"
     ]
   ]
 ]
