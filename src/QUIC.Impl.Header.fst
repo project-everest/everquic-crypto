@@ -613,6 +613,8 @@ let read_header
     | Some (res, pn) -> Some (res, pn, len)
   end
 
+#pop-options
+
 module HS = FStar.HyperStack
 module LW = LowParse.Low.Writers.Instances
 
@@ -696,6 +698,8 @@ let synth_first_byte
   T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8)
   )
 
+#push-options "--z3rlimit 64 --max_fuel 4 --initial_fuel 4"
+
 inline_for_extraction
 noextract
 let swrite_header_short
@@ -759,6 +763,8 @@ let swrite_header_short
     tg
     s
 
+#pop-options
+
 inline_for_extraction
 noextract
 let swrite_common_long
@@ -802,6 +808,8 @@ let swrite_payload_length_pn
     LW.swvalue w == (payload_and_pn_length, pn)
   })
 = (payload_and_pn_length_prop pn_length `LW.swrite_filter` LW.swrite_leaf (LC.leaf_writer_strong_of_serializer32 serialize_varint ()) h0 out 0ul payload_and_pn_length) `LW.swrite_nondep_then` swrite_packet_number last pn_length pn h0 out 0ul
+
+#push-options "--z3rlimit 128 --max_fuel 4 --initial_fuel 4"
 
 inline_for_extraction
 noextract
@@ -1106,7 +1114,11 @@ let swrite_header_long_retry
     tg
     s
 
+#pop-options
+
 #restart-solver
+
+#push-options "--z3rlimit 32"
 
 let write_header'
   (short_dcid_len: short_dcid_len_t)
@@ -1156,9 +1168,33 @@ let write_header'
   LL.valid_exact_serialize (serialize_header short_dcid_len last) h1 sl 0ul len;
   len
 
+#restart-solver
+
 let header_len_correct
   h m pn
-= admit ()
+= let hs = g_header h m pn in
+  let _ : squash (U32.v (Impl.header_len h) == Spec.header_len' hs) =
+    match h with
+    | BLong version dcid dcil scid scil spec ->
+      begin match spec with
+      | BInitial payload_length packet_number_length token token_length ->
+        bounded_varint_len_correct 0 token_max_len token_length;
+        varint_len_correct payload_length
+      | BZeroRTT payload_length packet_number_length ->
+        varint_len_correct payload_length
+      | BHandshake payload_length packet_number_length ->
+        varint_len_correct payload_length
+      | BRetry unused odcid odcil -> ()
+    end
+    | _ -> ()
+  in
+  header_len'_correct hs
+
+#pop-options
+
+#push-options "--z3rlimit 64"
+
+#restart-solver
 
 let write_header
   dst x pn
@@ -1171,6 +1207,10 @@ let write_header
   let len' = write_header' short_dcid_len last x pn dst dst_len in
   let h1 = HST.get () in
   ()
+
+#pop-options
+
+#push-options "--z3rlimit 32"
 
 let putative_pn_offset
   cid_len b len
@@ -1227,6 +1267,8 @@ let putative_pn_offset
               then 0ul
               else pos4
 
+#pop-options
+
 let pn_offset'
   (h: Impl.header)
 : Tot U32.t
@@ -1246,8 +1288,17 @@ let pn_offset'
       1ul `U32.add` odcil
     end
 
+#push-options "--z3rlimit 128 --max_ifuel 2 --initial_ifuel 2"
+
+#restart-solver
+
 let pn_offset
   h pn
 = let h0 = HST.get () in
+  assert (Impl.is_retry h == Spec.is_retry (g_header h h0 (Ghost.reveal pn)));
   header_len_correct h h0 (Ghost.reveal pn);
+  assert (Impl.pn_length h == Spec.pn_length (g_header h h0 (Ghost.reveal pn)));
+  assert (U32.v (pn_offset' h) == U32.v (Impl.header_len h) - U32.v (Impl.pn_length h));
   pn_offset' h
+
+#pop-options
