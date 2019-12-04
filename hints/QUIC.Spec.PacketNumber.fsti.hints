@@ -1,5 +1,5 @@
 [
-  "a(à∏Ò¿ìB˚2ÿÖ5jãÔ",
+  "A\tè`»\u000bQ6]Ú\u0004ìúd\u0007@",
   [
     [
       "QUIC.Spec.PacketNumber.parse_packet_number_kind",
@@ -41,6 +41,33 @@
       ],
       0,
       "b57e6baaffb9a392625480679c609cba"
+    ],
+    [
+      "QUIC.Spec.PacketNumber.serialize_packet_number_ext",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_Prims.squash",
+        "equation_QUIC.Spec.Base.last_packet_number_t",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "equation_QUIC.Spec.Base.uint62_t", "int_inversion", "l_and-interp",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Subtraction",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88",
+        "refinement_interpretation_Tm_refine_bf7e95c656eec610252d6e11aa35dd2d",
+        "refinement_interpretation_Tm_refine_ebd33c4f8daed8b12d67bfecc5777ea9",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_FStar.UInt64.v"
+      ],
+      0,
+      "3a307688bed4c7e94b63088de0d43130"
     ]
   ]
 ]

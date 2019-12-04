@@ -1,5 +1,5 @@
 [
-  "Ïó³˜\u0001Ô«ÓˆO{\rê‹Y¸",
+  "‰=-$RÄ 3U’õ«7DØ€",
   [
     [
       "QUIC.Spec.PacketNumber.parse_packet_number_kind",
@@ -107,7 +107,7 @@
         "typing_FStar.UInt32.v", "typing_QUIC.Spec.Base.bound_npn_"
       ],
       0,
-      "eb7cc2ceb6a6b614b961b7559542439f"
+      "95059749aa170be710d13212bea617bf"
     ],
     [
       "QUIC.Spec.PacketNumber.reduce_pn'",
@@ -175,7 +175,7 @@
         "typing_QUIC.Spec.Base.bound_npn_"
       ],
       0,
-      "5db8f104150c5abb4a77593edf70ea47"
+      "e2df768d8c15ebe3e8e556e9599f08db"
     ],
     [
       "QUIC.Spec.PacketNumber.in_window_self",
@@ -692,10 +692,39 @@
       2,
       1,
       [
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.min_int",
+        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
+        "equation_Prims.squash",
+        "equation_QUIC.Spec.Base.last_packet_number_t",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "equation_QUIC.Spec.Base.uint62_t", "int_inversion", "l_and-interp",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Subtraction",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88",
+        "refinement_interpretation_Tm_refine_bf7e95c656eec610252d6e11aa35dd2d",
+        "refinement_interpretation_Tm_refine_ebd33c4f8daed8b12d67bfecc5777ea9",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_FStar.UInt64.v"
+      ],
+      0,
+      "10b574c8105b89e8b9d3fa3138c79d44"
+    ],
+    [
+      "QUIC.Spec.PacketNumber.serialize_packet_number_ext",
+      2,
+      2,
+      1,
+      [
         "@MaxIFuel_assumption", "@query",
+        "FStar.UInt64_pretyping_c8c563e063e4f547ecc8aacae59a7475",
         "LowParse.Spec.Base_pretyping_753dfb8f8ba156874c914a94190399fd",
+        "Prims_pretyping_ae567c2fb75be05905677af440075565",
         "QUIC.Spec.PacketNumber_interpretation_Tm_arrow_0c347119f3273a63f2aa733f7a1f0833",
-        "b2t_def", "bool_inversion", "bool_typing",
+        "b2t_def", "bool_inversion",
         "constructor_distinct_FStar.Pervasives.Native.Some",
         "constructor_distinct_Tm_unit",
         "data_typing_intro_LowParse.Spec.Base.ParserKindMetadataFail@tok",
@@ -720,10 +749,13 @@
         "equation_QUIC.Spec.PacketNumber.packet_number_t",
         "equation_QUIC.Spec.PacketNumber.serialize_packet_number",
         "equation_QUIC.Spec.PacketNumber.synth_packet_number_recip",
+        "fuel_guarded_inversion_LowParse.BitFields.uint_t",
+        "function_token_typing_Prims.__cache_version_number__",
         "function_token_typing_QUIC.Spec.PacketNumber.synth_packet_number",
-        "int_inversion", "int_typing", "lemma_FStar.UInt32.uv_inv",
-        "lemma_FStar.UInt32.vu_inv", "primitive_Prims.op_Addition",
+        "int_inversion", "int_typing", "lemma_FStar.UInt.pow2_values",
+        "lemma_FStar.UInt32.uv_inv", "primitive_Prims.op_Addition",
         "primitive_Prims.op_AmpAmp", "primitive_Prims.op_Equality",
+        "primitive_Prims.op_GreaterThanOrEqual",
         "primitive_Prims.op_LessThan", "primitive_Prims.op_LessThanOrEqual",
         "primitive_Prims.op_Multiply", "primitive_Prims.op_Subtraction",
         "proj_equation_FStar.Pervasives.Native.Some_v",
@@ -749,13 +781,14 @@
         "refinement_interpretation_Tm_refine_f6a000ee73dbd175ca071dbb238f2167",
         "typing_FStar.Int.Cast.uint32_to_uint64", "typing_FStar.UInt.fits",
         "typing_FStar.UInt32.v", "typing_FStar.UInt64.v",
+        "typing_LowParse.BitFields.uint64",
         "typing_QUIC.Spec.Base.bound_npn_",
         "typing_QUIC.Spec.Base.uint62_bound",
         "typing_QUIC.Spec.PacketNumber.bound_npn",
         "typing_QUIC.Spec.PacketNumber.expand_pn_"
       ],
       0,
-      "cb5b6a10a0732660bda26823023798f4"
+      "3bd7c6de8384058651feec13ad321a67"
     ]
   ]
 ]
