@@ -166,19 +166,7 @@ let serialize_packet_number
 #push-options "--z3rlimit 16"
 
 let serialize_packet_number_ext
-  (last1 last2: last_packet_number_t)
-  (pn_len: packet_number_length_t)
-  (pn: uint62_t)
-: Lemma
-  (requires (
-    in_window (U32.v pn_len - 1) (U64.v last1) (U64.v pn) /\
-    in_window (U32.v pn_len - 1) (U64.v last2) (U64.v pn)
-  ))
-  (ensures (
-    in_window (U32.v pn_len - 1) (U64.v last1) (U64.v pn) /\
-    in_window (U32.v pn_len - 1) (U64.v last2) (U64.v pn) /\
-    serialize (serialize_packet_number last1 pn_len) pn == serialize (serialize_packet_number last2 pn_len) pn
-  ))
+  last1 last2 pn_len pn
 = synth_packet_number_recip_inverse last1 pn_len;
   synth_packet_number_recip_inverse last2 pn_len;
   serialize_synth_eq 
@@ -195,3 +183,5 @@ let serialize_packet_number_ext
     (synth_packet_number_recip last2 pn_len)
     ()
     pn
+
+#pop-options
