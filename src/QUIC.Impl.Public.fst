@@ -255,6 +255,53 @@ let read_header_body_t
     read_header_body_post sl cid_len tg h x h'
   ))
 
+#push-options "--z3rlimit 64 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+let read_header_body_short
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
+  (spin: LPB.bitfield LPB.uint8 1)
+  (protected_bits: LPB.bitfield LPB.uint8 5)
+: Tot (read_header_body_t sl cid_len (| Short, (| (), (spin, (protected_bits, () ) ) |) |) )
+= fun len ->
+    let h0 = HST.get () in
+    assert_norm (LPB.bitsum'_key_of_t first_byte (| Short, (| (), (spin, (protected_bits, ()) ) |) |) == (| Short, (| (), () |) |) );
+    LP.valid_weaken (LP.strong_parser_kind 0 20 None) (LP.parse_flbytes (U32.v cid_len)) h0 sl 1ul;
+    LP.valid_flbytes_elim h0 (U32.v cid_len) sl 1ul;
+    let pos = LP.jump_flbytes (U32.v cid_len) cid_len sl 1ul in
+    let dcid = B.sub sl.LP.base 1ul (pos `U32.sub` 1ul) in
+    PShort protected_bits (spin = 1uy) dcid cid_len
+
+#pop-options
+
+#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+let read_header_body_long_retry
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
+  (protected_bits: LPB.bitfield LPB.uint8 4)
+: Tot (read_header_body_t sl cid_len (| Long, (| (), (| Retry, (protected_bits, ()) |) |) |) )
+= fun len ->
+    let h0 = HST.get () in
+    assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| Retry, (protected_bits, ()) |) |) |)  == (| Long, (| (), (| Retry, () |) |) |) );
+    LP.valid_nondep_then h0 parse_common_long (LP.parse_bounded_vlbytes 0 20) sl 1ul;
+    LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
+    let version = LP.read_u32 sl 1ul in
+    let pos1 = LP.jump_u32 sl 1ul in
+    LP.valid_nondep_then h0 (LP.parse_bounded_vlbytes 0 20) (LP.parse_bounded_vlbytes 0 20) sl pos1;
+    let dcid = LP.get_vlbytes_contents 0 20 sl pos1 in
+    let dcid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos1 in
+    let pos2 = LP.jump_bounded_vlbytes 0 20 sl pos1 in
+    let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
+    let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
+    let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
+    let odcid = LP.get_vlbytes_contents 0 20 sl pos3 in
+    let odcid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos3 in
+    let spec = PRetry odcid odcid_len in
+    (PLong protected_bits version dcid dcid_len scid scid_len spec)
+
+#pop-options
+
 assume
 val read_header_body
   (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
