@@ -10,12 +10,20 @@ let validate_common_long : LP.validator parse_common_long =
 module VI = QUIC.Impl.VarInt
 
 inline_for_extraction
+let validate_payload_and_pn_length : LP.validator parse_payload_and_pn_length =
+  LP.validate_filter
+    VI.validate_varint
+    VI.read_varint
+    payload_and_pn_length_prop
+    (fun x -> payload_and_pn_length_prop x)
+
+inline_for_extraction
 let validate_long_zero_rtt_body : LP.validator parse_long_zero_rtt_body =
-  validate_common_long `LP.validate_nondep_then` VI.validate_varint
+  validate_common_long `LP.validate_nondep_then` validate_payload_and_pn_length
 
 inline_for_extraction
 let validate_long_handshake_body : LP.validator parse_long_handshake_body =
-  validate_common_long `LP.validate_nondep_then` VI.validate_varint
+  validate_common_long `LP.validate_nondep_then` validate_payload_and_pn_length
 
 inline_for_extraction
 let validate_long_retry_body : LP.validator parse_long_retry_body =
@@ -25,7 +33,7 @@ module U32 = FStar.UInt32
 
 inline_for_extraction
 let validate_long_initial_body : LP.validator parse_long_initial_body =
-  validate_common_long `LP.validate_nondep_then` (LP.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (VI.validate_bounded_varint 0ul (U32.uint_to_t token_max_len)) (VI.read_bounded_varint 0 token_max_len) `LP.validate_nondep_then` VI.validate_varint)
+  validate_common_long `LP.validate_nondep_then` (LP.validate_bounded_vlgenbytes 0 0ul token_max_len (U32.uint_to_t token_max_len) (VI.validate_bounded_varint 0ul (U32.uint_to_t token_max_len)) (VI.read_bounded_varint 0 token_max_len) `LP.validate_nondep_then` validate_payload_and_pn_length)
 
 module LPB = LowParse.Low.BitSum
 
@@ -93,15 +101,15 @@ module U8 = FStar.UInt8
 noeq
 type long_header_specifics =
 | PInitial:
-  (payload_and_pn_length: uint62_t) ->
+  (payload_and_pn_length: payload_and_pn_length_t) ->
   (token: B.buffer U8.t) ->
   (token_length: U32.t { let v = U32.v token_length in v == B.length token /\ 0 <= v /\ v <= token_max_len }) ->
   long_header_specifics
 | PZeroRTT:
-  (payload_and_pn_length: uint62_t) ->
+  (payload_and_pn_length: payload_and_pn_length_t) ->
   long_header_specifics
 | PHandshake:
-  (payload_and_pn_length: uint62_t) ->
+  (payload_and_pn_length: payload_and_pn_length_t) ->
   long_header_specifics
 | PRetry:
   odcid: B.buffer U8.t ->
@@ -311,7 +319,7 @@ let valid_long_initial_body_elim
   (ensures (
     LP.valid parse_long_initial_body h0 sl pos /\
     LP.valid_content_pos
-      (parse_common_long `LP.nondep_then` (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint))
+      (parse_common_long `LP.nondep_then` (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` parse_payload_and_pn_length))
       h0
       sl
       pos
@@ -320,8 +328,12 @@ let valid_long_initial_body_elim
   ))
 = LP.valid_facts parse_long_initial_body h0 sl pos;
   LP.valid_facts
-    (parse_common_long `LP.nondep_then` (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint))
+    (parse_common_long `LP.nondep_then` (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` parse_payload_and_pn_length))
     h0 sl pos
+
+inline_for_extraction
+let read_payload_and_pn_length : LP.leaf_reader parse_payload_and_pn_length =
+  LP.read_filter VI.read_varint payload_and_pn_length_prop
 
 #push-options "--z3rlimit 1024 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
@@ -336,7 +348,7 @@ let read_header_body_long_initial
     let h0 = HST.get () in
     assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| Initial, (protected_bits, () ) |) |) |) == (| Long, (| (), (| Initial, () |) |) |) );
     valid_long_initial_body_elim h0 sl 1ul;
-    LP.valid_nondep_then h0 parse_common_long (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint) sl 1ul;
+    LP.valid_nondep_then h0 parse_common_long (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` parse_payload_and_pn_length) sl 1ul;
     LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
     let version = LP.read_u32 sl 1ul in
     let pos1 = LP.jump_u32 sl 1ul in
@@ -347,11 +359,11 @@ let read_header_body_long_initial
     let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
     let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
     let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
-    LP.valid_nondep_then h0 (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len)) (VI.parse_varint) sl pos3;
+    LP.valid_nondep_then h0 (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len)) (parse_payload_and_pn_length) sl pos3;
     let token = LP.get_bounded_vlgenbytes_contents 0 token_max_len (VI.read_bounded_varint 0 token_max_len) (VI.jump_bounded_varint 0 token_max_len) sl pos3 in
     let token_len = LP.bounded_vlgenbytes_payload_length 0 token_max_len (VI.read_bounded_varint 0 token_max_len) sl pos3 in
     let pos4 = LP.jump_bounded_vlgenbytes 0 token_max_len (VI.jump_bounded_varint 0 token_max_len) (VI.read_bounded_varint 0 token_max_len) sl pos3 in
-    let payload_and_pn_length = VI.read_varint sl pos4 in
+    let payload_and_pn_length = read_payload_and_pn_length sl pos4 in
     let spec = PInitial (payload_and_pn_length) token token_len in
     PLong protected_bits version dcid dcid_len scid scid_len spec
 
@@ -366,7 +378,7 @@ let valid_long_handshake_body_elim
   (ensures (
     LP.valid parse_long_handshake_body h0 sl pos /\
     LP.valid_content_pos
-      (parse_common_long `LP.nondep_then` VI.parse_varint)
+      (parse_common_long `LP.nondep_then` parse_payload_and_pn_length)
       h0
       sl
       pos
@@ -391,7 +403,7 @@ let read_header_body_long_handshake
     let h0 = HST.get () in
     assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| Handshake, (protected_bits, () ) |) |) |) == (| Long, (| (), (| Handshake, () |) |) |) );
     valid_long_handshake_body_elim h0 sl 1ul;
-    LP.valid_nondep_then h0 parse_common_long VI.parse_varint sl 1ul;
+    LP.valid_nondep_then h0 parse_common_long parse_payload_and_pn_length sl 1ul;
     LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
     let version = LP.read_u32 sl 1ul in
     let pos1 = LP.jump_u32 sl 1ul in
@@ -402,7 +414,7 @@ let read_header_body_long_handshake
     let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
     let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
     let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
-    let payload_and_pn_length = VI.read_varint sl pos3 in
+    let payload_and_pn_length = read_payload_and_pn_length sl pos3 in
     let spec = PHandshake payload_and_pn_length in
     PLong protected_bits version dcid dcid_len scid scid_len spec
 
@@ -417,7 +429,7 @@ let valid_long_zero_rtt_body_elim
   (ensures (
     LP.valid parse_long_zero_rtt_body h0 sl pos /\
     LP.valid_content_pos
-      (parse_common_long `LP.nondep_then` VI.parse_varint)
+      (parse_common_long `LP.nondep_then` parse_payload_and_pn_length)
       h0
       sl
       pos
@@ -426,7 +438,7 @@ let valid_long_zero_rtt_body_elim
   ))
 = LP.valid_facts parse_long_zero_rtt_body h0 sl pos;
   LP.valid_facts
-    (parse_common_long `LP.nondep_then` VI.parse_varint)
+    (parse_common_long `LP.nondep_then` parse_payload_and_pn_length)
     h0 sl pos
 
 #push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
@@ -442,7 +454,7 @@ let read_header_body_long_zero_rtt
     let h0 = HST.get () in
     assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| ZeroRTT, (protected_bits, () ) |) |) |) == (| Long, (| (), (| ZeroRTT, () |) |) |) );
     valid_long_zero_rtt_body_elim h0 sl 1ul;
-    LP.valid_nondep_then h0 parse_common_long VI.parse_varint sl 1ul;
+    LP.valid_nondep_then h0 parse_common_long parse_payload_and_pn_length sl 1ul;
     LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
     let version = LP.read_u32 sl 1ul in
     let pos1 = LP.jump_u32 sl 1ul in
@@ -453,7 +465,7 @@ let read_header_body_long_zero_rtt
     let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
     let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
     let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
-    let payload_and_pn_length = VI.read_varint sl pos3 in
+    let payload_and_pn_length = read_payload_and_pn_length sl pos3 in
     let spec = PZeroRTT payload_and_pn_length in
     PLong protected_bits version dcid dcid_len scid scid_len spec
 

@@ -96,17 +96,21 @@ let bitfield
 : Tot eqtype
 = (x: U8.t { U8.v x < pow2 sz })
 
+inline_for_extraction
+let payload_and_pn_length_t : Type0 =
+  (payload_and_pn_length: uint62_t { U64.v payload_and_pn_length >= 20 })
+
 noeq
 type long_header_specifics =
 | PInitial:
   (token: vlbytes 0 token_max_len) -> // arbitrary bound
-  (payload_and_pn_length: uint62_t) ->
+  (payload_and_pn_length: payload_and_pn_length_t) ->
   long_header_specifics
 | PZeroRTT:
-  (payload_and_pn_length: uint62_t) ->
+  (payload_and_pn_length: payload_and_pn_length_t) ->
   long_header_specifics
 | PHandshake:
-  (payload_and_pn_length: uint62_t) ->
+  (payload_and_pn_length: payload_and_pn_length_t) ->
   long_header_specifics
 | PRetry:
   (odcid: vlbytes 0 20) -> // TODO: change bounds to drop instead of rejecting as invalid
@@ -191,12 +195,20 @@ let common_long_t
 : Type0
 = (U32.t & (LP.parse_bounded_vlbytes_t 0 20 & LP.parse_bounded_vlbytes_t 0 20))
 
+inline_for_extraction
+let payload_and_pn_length_prop
+  (x: uint62_t)
+: Tot bool
+= x `U64.gte` 20uL
+
+let payload_and_pn_length_t' = LP.parse_filter_refine payload_and_pn_length_prop
+
 #push-options "--z3rlimit 32 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
 
-let long_zero_rtt_body_t = (common_long_t & uint62_t)
-let long_handshake_body_t = (common_long_t & uint62_t)
+let long_zero_rtt_body_t = (common_long_t & payload_and_pn_length_t')
+let long_handshake_body_t = (common_long_t & payload_and_pn_length_t')
 let long_retry_body_t = (common_long_t & LP.parse_bounded_vlbytes_t 0 20)
-let long_initial_body_t = (common_long_t & (LP.parse_bounded_vlbytes_t 0 token_max_len & uint62_t))
+let long_initial_body_t = (common_long_t & (LP.parse_bounded_vlbytes_t 0 token_max_len & payload_and_pn_length_t'))
 
 [@LPB.filter_bitsum'_t_attr]
 inline_for_extraction
@@ -231,17 +243,17 @@ let mk_header
     let dcid = LP.coerce (FB.lbytes (U32.v short_dcid_len)) pl in
     PShort protected_bits spin dcid
   | (| Long, (| (), (| Initial, (protected_bits, ()) |) |) |) ->
-    begin match LP.coerce (common_long_t & (LP.parse_bounded_vlbytes_t 0 token_max_len & uint62_t)) pl with
+    begin match LP.coerce (common_long_t & (LP.parse_bounded_vlbytes_t 0 token_max_len & payload_and_pn_length_t')) pl with
     | ((version, (dcid, scid)), (token, (payload_and_pn_length))) ->
       PLong protected_bits version dcid scid (PInitial token payload_and_pn_length)
     end
   | (| Long, (| (), (| ZeroRTT, (protected_bits, ()) |) |) |) ->
-    begin match LP.coerce (common_long_t & uint62_t) pl with
+    begin match LP.coerce (common_long_t & payload_and_pn_length_t') pl with
     | ((version, (dcid, scid)), payload_and_pn_length) ->
       PLong protected_bits version dcid scid (PZeroRTT payload_and_pn_length)
     end
   | (| Long, (| (), (| Handshake, (protected_bits, ()) |) |) |) ->
-    begin match LP.coerce (common_long_t & uint62_t) pl with
+    begin match LP.coerce (common_long_t & payload_and_pn_length_t') pl with
     | ((version, (dcid, scid)), (payload_and_pn_length)) ->
       PLong protected_bits version dcid scid (PHandshake (payload_and_pn_length))
     end
@@ -267,17 +279,17 @@ let mk_header_body
   | (| Long, (| (), (| Initial, (protected_bits, ()) |) |) |) ->
     begin match pl with
     | PLong _ version dcid scid (PInitial token payload_and_pn_length) ->
-      LP.coerce (header_body_type short_dcid_len (LPB.bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (token, (payload_and_pn_length))) <: (common_long_t & (LP.parse_bounded_vlbytes_t 0 token_max_len & uint62_t)))
+      LP.coerce (header_body_type short_dcid_len (LPB.bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (token, (payload_and_pn_length))) <: (common_long_t & (LP.parse_bounded_vlbytes_t 0 token_max_len & payload_and_pn_length_t')))
     end
   | (| Long, (| (), (| ZeroRTT, (protected_bits, ()) |) |) |) ->
     begin match pl with
     | PLong _ version dcid scid (PZeroRTT payload_and_pn_length) ->
-      LP.coerce (header_body_type short_dcid_len (LPB.bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_and_pn_length)) <: (common_long_t & uint62_t))
+      LP.coerce (header_body_type short_dcid_len (LPB.bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_and_pn_length)) <: (common_long_t & payload_and_pn_length_t'))
     end
   | (| Long, (| (), (| Handshake, (protected_bits, ()) |) |) |) ->
     begin match pl with
     | PLong _ version dcid scid (PHandshake payload_and_pn_length) ->
-      LP.coerce (header_body_type short_dcid_len (LPB.bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_and_pn_length)) <: (common_long_t & uint62_t))
+      LP.coerce (header_body_type short_dcid_len (LPB.bitsum'_key_of_t first_byte k')) (((version, (dcid, scid)), (payload_and_pn_length)) <: (common_long_t & payload_and_pn_length_t'))
     end
   | (| Long, (| (), (| Retry, (protected_bits, ()) |) |) |) ->
     begin match pl with
@@ -305,11 +317,14 @@ let parse_common_long : LP.parser _ common_long_t =
 
 module VI = QUIC.Spec.VarInt
 
-let parse_long_zero_rtt_body : LP.parser _ long_zero_rtt_body_t = parse_common_long `LP.nondep_then` VI.parse_varint
-let parse_long_handshake_body : LP.parser _ long_handshake_body_t = parse_common_long `LP.nondep_then` VI.parse_varint
+let parse_payload_and_pn_length : LP.parser _ payload_and_pn_length_t' =
+  LP.parse_filter VI.parse_varint payload_and_pn_length_prop
+
+let parse_long_zero_rtt_body : LP.parser _ long_zero_rtt_body_t = parse_common_long `LP.nondep_then` parse_payload_and_pn_length
+let parse_long_handshake_body : LP.parser _ long_handshake_body_t = parse_common_long `LP.nondep_then` parse_payload_and_pn_length
 let parse_long_retry_body : LP.parser _ long_retry_body_t = parse_common_long `LP.nondep_then` LP.parse_bounded_vlbytes 0 20
 let parse_long_initial_body : LP.parser _ long_initial_body_t = parse_common_long `LP.nondep_then` (
-      LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint)
+      LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` parse_payload_and_pn_length)
 
 [@LPB.filter_bitsum'_t_attr]
 inline_for_extraction
@@ -352,11 +367,14 @@ let parse_header
 let serialize_common_long : LP.serializer parse_common_long =
   LP.serialize_u32 `LP.serialize_nondep_then` (LP.serialize_bounded_vlbytes 0 20 `LP.serialize_nondep_then` LP.serialize_bounded_vlbytes 0 20)
 
-let serialize_long_zero_rtt_body : LP.serializer parse_long_zero_rtt_body = serialize_common_long `LP.serialize_nondep_then` VI.serialize_varint
-let serialize_long_handshake_body : LP.serializer parse_long_handshake_body = serialize_common_long `LP.serialize_nondep_then` VI.serialize_varint
+let serialize_payload_and_pn_length : LP.serializer parse_payload_and_pn_length =
+  LP.serialize_filter VI.serialize_varint payload_and_pn_length_prop
+
+let serialize_long_zero_rtt_body : LP.serializer parse_long_zero_rtt_body = serialize_common_long `LP.serialize_nondep_then` serialize_payload_and_pn_length
+let serialize_long_handshake_body : LP.serializer parse_long_handshake_body = serialize_common_long `LP.serialize_nondep_then` serialize_payload_and_pn_length
 let serialize_long_retry_body : LP.serializer parse_long_retry_body = serialize_common_long `LP.serialize_nondep_then` LP.serialize_bounded_vlbytes 0 20
 let serialize_long_initial_body : LP.serializer parse_long_initial_body = serialize_common_long `LP.serialize_nondep_then` (
-      LP.serialize_bounded_vlgenbytes 0 token_max_len (VI.serialize_bounded_varint 0 token_max_len) `LP.serialize_nondep_then` VI.serialize_varint)
+      LP.serialize_bounded_vlgenbytes 0 token_max_len (VI.serialize_bounded_varint 0 token_max_len) `LP.serialize_nondep_then` serialize_payload_and_pn_length)
 
 let serialize_header_body
   (short_dcid_len: short_dcid_len_t)
