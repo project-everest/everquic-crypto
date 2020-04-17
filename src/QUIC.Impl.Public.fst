@@ -302,12 +302,183 @@ let read_header_body_long_retry
 
 #pop-options
 
-assume
-val read_header_body
+let valid_long_initial_body_elim
+  (h0: HS.mem)
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (pos: U32.t)
+: Lemma
+  (requires (LP.valid parse_long_initial_body h0 sl pos))
+  (ensures (
+    LP.valid parse_long_initial_body h0 sl pos /\
+    LP.valid_content_pos
+      (parse_common_long `LP.nondep_then` (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint))
+      h0
+      sl
+      pos
+      (LP.contents parse_long_initial_body h0 sl pos)
+      (LP.get_valid_pos parse_long_initial_body h0 sl pos)
+  ))
+= LP.valid_facts parse_long_initial_body h0 sl pos;
+  LP.valid_facts
+    (parse_common_long `LP.nondep_then` (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint))
+    h0 sl pos
+
+#push-options "--z3rlimit 1024 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+#restart-solver
+
+let read_header_body_long_initial
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
+  (protected_bits: LPB.bitfield LPB.uint8 4)
+: Tot (read_header_body_t sl cid_len (| Long, (| (), (| Initial, (protected_bits, () ) |) |) |) )
+= fun len ->
+    let h0 = HST.get () in
+    assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| Initial, (protected_bits, () ) |) |) |) == (| Long, (| (), (| Initial, () |) |) |) );
+    valid_long_initial_body_elim h0 sl 1ul;
+    LP.valid_nondep_then h0 parse_common_long (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len) `LP.nondep_then` VI.parse_varint) sl 1ul;
+    LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
+    let version = LP.read_u32 sl 1ul in
+    let pos1 = LP.jump_u32 sl 1ul in
+    LP.valid_nondep_then h0 (LP.parse_bounded_vlbytes 0 20) (LP.parse_bounded_vlbytes 0 20) sl pos1;
+    let dcid = LP.get_vlbytes_contents 0 20 sl pos1 in
+    let dcid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos1 in
+    let pos2 = LP.jump_bounded_vlbytes 0 20 sl pos1 in
+    let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
+    let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
+    let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
+    LP.valid_nondep_then h0 (LP.parse_bounded_vlgenbytes 0 token_max_len (VI.parse_bounded_varint 0 token_max_len)) (VI.parse_varint) sl pos3;
+    let token = LP.get_bounded_vlgenbytes_contents 0 token_max_len (VI.read_bounded_varint 0 token_max_len) (VI.jump_bounded_varint 0 token_max_len) sl pos3 in
+    let token_len = LP.bounded_vlgenbytes_payload_length 0 token_max_len (VI.read_bounded_varint 0 token_max_len) sl pos3 in
+    let pos4 = LP.jump_bounded_vlgenbytes 0 token_max_len (VI.jump_bounded_varint 0 token_max_len) (VI.read_bounded_varint 0 token_max_len) sl pos3 in
+    let payload_and_pn_length = VI.read_varint sl pos4 in
+    let spec = PInitial (payload_and_pn_length) token token_len in
+    PLong protected_bits version dcid dcid_len scid scid_len spec
+
+#pop-options
+
+let valid_long_handshake_body_elim
+  (h0: HS.mem)
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (pos: U32.t)
+: Lemma
+  (requires (LP.valid parse_long_handshake_body h0 sl pos))
+  (ensures (
+    LP.valid parse_long_handshake_body h0 sl pos /\
+    LP.valid_content_pos
+      (parse_common_long `LP.nondep_then` VI.parse_varint)
+      h0
+      sl
+      pos
+      (LP.contents parse_long_handshake_body h0 sl pos)
+      (LP.get_valid_pos parse_long_handshake_body h0 sl pos)
+  ))
+= LP.valid_facts parse_long_handshake_body h0 sl pos;
+  LP.valid_facts
+    (parse_common_long `LP.nondep_then` VI.parse_varint)
+    h0 sl pos
+
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+#restart-solver
+
+let read_header_body_long_handshake
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
+  (protected_bits: LPB.bitfield LPB.uint8 4)
+: Tot (read_header_body_t sl cid_len (| Long, (| (), (| Handshake, (protected_bits, () ) |) |) |) )
+= fun len ->
+    let h0 = HST.get () in
+    assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| Handshake, (protected_bits, () ) |) |) |) == (| Long, (| (), (| Handshake, () |) |) |) );
+    valid_long_handshake_body_elim h0 sl 1ul;
+    LP.valid_nondep_then h0 parse_common_long VI.parse_varint sl 1ul;
+    LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
+    let version = LP.read_u32 sl 1ul in
+    let pos1 = LP.jump_u32 sl 1ul in
+    LP.valid_nondep_then h0 (LP.parse_bounded_vlbytes 0 20) (LP.parse_bounded_vlbytes 0 20) sl pos1;
+    let dcid = LP.get_vlbytes_contents 0 20 sl pos1 in
+    let dcid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos1 in
+    let pos2 = LP.jump_bounded_vlbytes 0 20 sl pos1 in
+    let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
+    let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
+    let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
+    let payload_and_pn_length = VI.read_varint sl pos3 in
+    let spec = PHandshake payload_and_pn_length in
+    PLong protected_bits version dcid dcid_len scid scid_len spec
+
+#pop-options
+
+let valid_long_zero_rtt_body_elim
+  (h0: HS.mem)
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (pos: U32.t)
+: Lemma
+  (requires (LP.valid parse_long_zero_rtt_body h0 sl pos))
+  (ensures (
+    LP.valid parse_long_zero_rtt_body h0 sl pos /\
+    LP.valid_content_pos
+      (parse_common_long `LP.nondep_then` VI.parse_varint)
+      h0
+      sl
+      pos
+      (LP.contents parse_long_zero_rtt_body h0 sl pos)
+      (LP.get_valid_pos parse_long_zero_rtt_body h0 sl pos)
+  ))
+= LP.valid_facts parse_long_zero_rtt_body h0 sl pos;
+  LP.valid_facts
+    (parse_common_long `LP.nondep_then` VI.parse_varint)
+    h0 sl pos
+
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+#restart-solver
+
+let read_header_body_long_zero_rtt
+  (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
+  (protected_bits: LPB.bitfield LPB.uint8 4)
+: Tot (read_header_body_t sl cid_len (| Long, (| (), (| ZeroRTT, (protected_bits, () ) |) |) |) )
+= fun len ->
+    let h0 = HST.get () in
+    assert_norm (LPB.bitsum'_key_of_t first_byte (| Long, (| (), (| ZeroRTT, (protected_bits, () ) |) |) |) == (| Long, (| (), (| ZeroRTT, () |) |) |) );
+    valid_long_zero_rtt_body_elim h0 sl 1ul;
+    LP.valid_nondep_then h0 parse_common_long VI.parse_varint sl 1ul;
+    LP.valid_nondep_then h0 LP.parse_u32 (LP.parse_bounded_vlbytes 0 20 `LP.nondep_then` LP.parse_bounded_vlbytes 0 20) sl 1ul;
+    let version = LP.read_u32 sl 1ul in
+    let pos1 = LP.jump_u32 sl 1ul in
+    LP.valid_nondep_then h0 (LP.parse_bounded_vlbytes 0 20) (LP.parse_bounded_vlbytes 0 20) sl pos1;
+    let dcid = LP.get_vlbytes_contents 0 20 sl pos1 in
+    let dcid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos1 in
+    let pos2 = LP.jump_bounded_vlbytes 0 20 sl pos1 in
+    let scid = LP.get_vlbytes_contents 0 20 sl pos2 in
+    let scid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos2 in
+    let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
+    let payload_and_pn_length = VI.read_varint sl pos3 in
+    let spec = PZeroRTT payload_and_pn_length in
+    PLong protected_bits version dcid dcid_len scid scid_len spec
+
+#pop-options
+
+inline_for_extraction
+noextract
+let read_header_body
   (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
   (cid_len: U32.t { U32.v cid_len <= 20 } )
   (tg: LPB.bitsum'_type first_byte)
 : Tot (read_header_body_t sl cid_len tg)
+= fun len ->
+  let h0 = HST.get () in
+  match tg with
+  | (| Short, (| (), (spin, (protected_bits, ())) |) |) ->
+    read_header_body_short sl cid_len spin protected_bits len
+  | (| Long, (| (), (| Retry, (protected_bits, ()) |) |) |) ->
+    read_header_body_long_retry sl cid_len protected_bits len
+  | (| Long, (| (), (| Initial, (protected_bits, ()) |) |) |) ->
+    read_header_body_long_initial sl cid_len protected_bits len
+  | (| Long, (| (), (| Handshake, (protected_bits, ()) |) |) |) ->
+    read_header_body_long_handshake sl cid_len protected_bits len
+  | (| Long, (| (), (| ZeroRTT, (protected_bits, ()) |) |) |) ->
+    read_header_body_long_zero_rtt sl cid_len protected_bits len
 
 val read_header
   (packet: B.buffer U8.t)
