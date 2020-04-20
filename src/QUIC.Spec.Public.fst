@@ -408,3 +408,114 @@ let serialize_header
     LP.serialize_u8
     #(parse_header_body short_dcid_len)
     (serialize_header_body short_dcid_len)
+
+(* Mutating the protected bits *)
+
+let get_protected_bits
+  (h: header)
+: Tot (bitfield (if PShort? h then 5 else 4))
+= match h with
+  | PShort pb spin dcid -> pb
+  | PLong pb version dcid scid spec -> pb
+
+let set_protected_bits
+  (h: header)
+  (new_pb: bitfield (if PShort? h then 5 else 4))
+: Tot header
+= match h with
+  | PShort _ spin dcid -> PShort new_pb spin dcid
+  | PLong _ version dcid scid spec -> PLong new_pb version dcid scid spec
+
+let is_valid_bitfield_intro
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (LPB.is_valid_bitfield first_byte (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h)) 0 (if PShort? h then 5 else 4))
+= ()
+
+let set_valid_bitfield_intro'
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+  (new_pb: bitfield (if PShort? h then 5 else 4))
+: Lemma
+  (
+    LPB.is_valid_bitfield first_byte (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h)) 0 (if PShort? h then 5 else 4) /\
+    first_byte_of_header short_dcid_len (set_protected_bits h new_pb) == LPB.set_valid_bitfield first_byte (first_byte_of_header short_dcid_len h) 0 (if PShort? h then 5 else 4) new_pb
+  )
+= is_valid_bitfield_intro short_dcid_len h
+
+let set_valid_bitfield_intro
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+  (new_pb: bitfield (if PShort? h then 5 else 4))
+: Lemma
+  (
+    LPB.is_valid_bitfield first_byte (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h)) 0 (if PShort? h then 5 else 4) /\
+    first_byte_of_header short_dcid_len (set_protected_bits h new_pb) == LPB.set_valid_bitfield first_byte (first_byte_of_header short_dcid_len h) 0 (if PShort? h then 5 else 4) new_pb /\
+    LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len (set_protected_bits h new_pb)) == LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h)
+  )
+= set_valid_bitfield_intro' short_dcid_len h new_pb;
+  LPB.bitsum'_key_of_t_set_valid_bitfield first_byte (first_byte_of_header short_dcid_len h) 0 (if PShort? h then 5 else 4) new_pb
+
+let mk_header_body_set_valid_bitfield
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+  (new_pb: bitfield (if PShort? h then 5 else 4))
+: Lemma
+  (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len (set_protected_bits h new_pb)) (set_protected_bits h new_pb) ==
+    mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h)
+= ()
+
+let serialize_header_eq
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (LP.serialize (serialize_header short_dcid_len) h ==
+    LP.serialize LP.serialize_u8 (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h)) `Seq.append`
+    LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h))
+= LPB.serialize_bitsum_eq'
+    #LP.parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' short_dcid_len)
+    (first_byte_of_header short_dcid_len)
+    (header_body_type short_dcid_len)
+    (header_synth short_dcid_len)
+    #LP.parse_u8
+    LP.serialize_u8
+    #(parse_header_body short_dcid_len)
+    (serialize_header_body short_dcid_len)
+    h
+
+#push-options "--z3rlimit 64"
+
+#restart-solver
+
+let serialize_set_protected_bits
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+  (new_pb: bitfield (if PShort? h then 5 else 4))
+: Lemma
+  (let sq = LP.serialize (serialize_header short_dcid_len) h in
+  LP.serialize (serialize_header short_dcid_len) (set_protected_bits h new_pb) `Seq.equal`
+    (LPB.uint8.LPB.set_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4) new_pb `Seq.cons` Seq.tail sq))
+= let h' = set_protected_bits h new_pb in
+  let sq = LP.serialize (serialize_header short_dcid_len) h in
+  let sq' = LP.serialize (serialize_header short_dcid_len) h' in
+  set_valid_bitfield_intro short_dcid_len h new_pb;
+  serialize_header_eq
+    short_dcid_len
+    h;
+  serialize_header_eq
+    short_dcid_len
+    h';
+  LP.serialize_u8_spec (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h));
+  LP.serialize_u8_spec (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h'));
+  LPB.set_valid_bitfield_correct first_byte (first_byte_of_header short_dcid_len h) 0 (if PShort? h then 5 else 4) new_pb;
+  mk_header_body_set_valid_bitfield short_dcid_len h new_pb;
+  assert (LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h'))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h') h') == LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h));
+  assert (Seq.tail sq' `Seq.equal` LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h'))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h') h'));
+  assert (Seq.tail sq `Seq.equal` LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h))
+
+#pop-options
