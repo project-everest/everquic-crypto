@@ -1,4 +1,4 @@
-all: verify # test
+all: test
 
 test: dist/test.exe
 	$<
@@ -8,7 +8,7 @@ test: dist/test.exe
 
 include Makefile.include
 
-FST_FILES=src/QUIC.Impl.Public.fst #  $(wildcard src/*.fst) $(wildcard src/*.fsti)
+FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti)
 
 ifndef NODEPEND
 ifndef MAKE_RESTARTS
