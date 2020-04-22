@@ -1,5 +1,4 @@
 module QUIC.Spec.PacketNumber
-open QUIC.Spec.Base
 open QUIC.Spec.PacketNumber.Lemmas
 open LowParse.Spec.Combinators
 open LowParse.Spec.BoundedInt
@@ -12,28 +11,49 @@ module U32 = FStar.UInt32
 module U16 = FStar.UInt16
 module U8 = FStar.UInt8
 
-inline_for_extraction
+module Secret = QUIC.Secret
+
+let secrets_are_equal_2
+  (x: Secret.uint64 { Secret.v x < pow2 2 })
+  (y: Secret.uint64 { Secret.v y < pow2 2 })
+: Tot (z: Secret.uint64 {
+    Secret.v z == (if Secret.v x = Secret.v y then 1 else 0)
+  })
+= Secret.norm (Secret.secrets_are_equal 2 x y)
+
+#push-options "--z3rlimit 16"
+
 let bound_npn
   (pn_len: packet_number_length_t)
-: Tot (x: U64.t { U64.v x == bound_npn' (U32.v pn_len - 1) })
-= FStar.UInt.shift_left_value_lemma #64 1 (8 `op_Multiply` U32.v pn_len);
-  1uL `U64.shift_left` (8ul `U32.mul` pn_len)
+: Tot (x: packet_number_t { Secret.v x == bound_npn' (Secret.v pn_len - 1) })
+= let pn_len_1 = Secret.to_u64 (pn_len `Secret.sub` Secret.to_u32 1ul) in
+  ((pn_len_1 `secrets_are_equal_2` Secret.to_u64 0ul) `Secret.mul` Secret.to_u64 256uL) `Secret.add`
+  ((pn_len_1 `secrets_are_equal_2` Secret.to_u64 1ul) `Secret.mul` Secret.to_u64 65536uL) `Secret.add`
+  ((pn_len_1 `secrets_are_equal_2` Secret.to_u64 2ul) `Secret.mul` Secret.to_u64 16777216uL) `Secret.add`
+  ((pn_len_1 `secrets_are_equal_2` Secret.to_u64 3ul) `Secret.mul` Secret.to_u64 4294967296uL)
 
-let reduce_pn' pn_len pn = pn % (bound_npn' pn_len)
+#pop-options
 
-module BF = LowParse.BitFields
+let reduce_pn'
+  (pn_len: nat { pn_len < 4 })
+  (pn: nat)
+: GTot nat
+= pn % (bound_npn' pn_len)
 
-inline_for_extraction
+module U = FStar.UInt
+
+#push-options "--z3rlimit 32"
+
 let reduce_pn
   (pn_len: packet_number_length_t)
-  (pn: uint62_t)
-: Tot (b: bounded_integer (U32.v pn_len) { U32.v b == reduce_pn' (U32.v pn_len - 1) (U64.v pn) })
-= [@inline_let]
-  let _ =
-    assert_norm (pow2 32 == 4294967296);
-    BF.get_bitfield_eq #64 (U64.v pn) 0 (8 `op_Multiply` U32.v pn_len)
-  in
-  Cast.uint64_to_uint32 (BF.uint64.BF.get_bitfield_gen pn 0ul (8ul `U32.mul` pn_len))
+  (pn: packet_number_t)
+: GTot (b: bounded_integer (Secret.v pn_len) { U32.v b == reduce_pn' (Secret.v pn_len - 1) (Secret.v pn) })
+= let mask = bound_npn pn_len `Secret.sub` Secret.to_u64 1uL in
+  Secret.logand_spec pn mask;
+  logand_mask #64 (Secret.v pn) (8 `Prims.op_Multiply` Secret.v pn_len);
+  (Cast.uint64_to_uint32 (U64.uint_to_t (Secret.v (pn `Secret.logand` mask))) <: U32.t)
+
+#pop-options
 
 let in_window_self (pn_len: nat { pn_len < 4 }) (pn:nat) : Lemma
   (in_window pn_len pn (if pn = 0 then 0 else pn - 1))
@@ -85,60 +105,99 @@ let lemma_uniqueness_in_window (pn_len: nat { pn_len < 4 }) (last: nat { last < 
     let low = max (last+2-h/2) 0 in
     lemma_mod_plus_injective h low (x-low) (y-low)
 
-val lemma_parse_pn_correct : (pn_len: nat { pn_len < 4 }) -> last:nat{last+1 < pow2 62} -> (pn: nat { pn < U64.v uint62_bound }) -> Lemma
+val lemma_parse_pn_correct : (pn_len: nat { pn_len < 4 }) -> last:nat{last+1 < pow2 62} -> (pn: nat { pn < U64.v U62.bound }) -> Lemma
   (requires in_window pn_len last pn)
   (ensures expand_pn' pn_len last (reduce_pn' pn_len pn) = pn)
 
 let lemma_parse_pn_correct pn_len last pn =
   lemma_uniqueness_in_window pn_len last pn (expand_pn' pn_len last (reduce_pn' pn_len pn))
 
-#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 64"
+let secret_is_le_64
+  (x: Secret.uint64)
+  (y: Secret.uint64)
+: Tot (z: Secret.uint64 { Secret.v z == (if Secret.v x <= Secret.v y then 1 else 0) })
+= Secret.norm (Secret.secret_is_le 64 x y)
 
+let secret_is_lt_64
+  (x: Secret.uint64)
+  (y: Secret.uint64)
+: Tot (z: Secret.uint64 { Secret.v z == (if Secret.v x < Secret.v y then 1 else 0) })
+= Secret.norm (Secret.secret_is_lt 64 x y)
+
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 512 --query_stats"
+
+inline_for_extraction
+let expand_pn_aux
+  (pn_len: packet_number_length_t)
+  (last: last_packet_number_t)
+  (npn: bounded_integer (Secret.v pn_len))
+: Tot (pn: Secret.uint64 { Secret.v pn == expand_pn' (Secret.v pn_len - 1) (Secret.v last) (U32.v npn) })
+= let open FStar.Mul in
+  let open FStar.Math.Lemmas in
+  let expected : U62.secret = last `Secret.add` Secret.to_u64 1uL in
+  let bound = bound_npn pn_len in
+  let bound_2 = bound `Secret.shift_right` 1ul in
+  FStar.UInt.shift_right_value_lemma #64 (Secret.v bound) 1;
+  assert (Secret.v bound_2 == Secret.v bound / 2);
+  let candidate = replace_modulo expected (8 `Prims.op_Multiply` Secret.v pn_len) (bound `Secret.sub` Secret.to_u64 1uL) (Secret.to_u64 (Cast.uint32_to_uint64 npn)) in
+  let bound_2_le_expected = bound_2 `secret_is_le_64` expected in
+  let cond_1 =
+    bound_2_le_expected `Secret.logand_one_bit`
+    (candidate `secret_is_le_64` ((bound_2_le_expected `Secret.mul` expected) `Secret.sub` (bound_2_le_expected `Secret.mul` bound_2))) `Secret.logand_one_bit`
+    (candidate `secret_is_lt_64` (Secret.to_u64 U62.bound `Secret.sub` bound))
+  in
+  assert (Secret.v cond_1 == (
+    if
+      Secret.v bound_2 <= Secret.v expected &&
+      Secret.v candidate <= (Secret.v expected - Secret.v bound_2) &&
+      Secret.v candidate < U62.v U62.bound - Secret.v bound
+    then 1
+    else 0
+  ));
+  let cond_2 =
+    Secret.lognot_one_bit cond_1 `Secret.logand_one_bit`
+    ((expected `Secret.add` bound_2) `secret_is_lt_64` candidate) `Secret.logand_one_bit`
+    (bound `secret_is_le_64` candidate)
+  in
+  assert (Secret.v cond_2 == (
+    if
+      Secret.v cond_1 = 0 &&
+      Secret.v expected + Secret.v bound_2 < Secret.v candidate &&
+      Secret.v bound <= Secret.v candidate
+    then 1
+    else 0
+  ));
+  (candidate `Secret.add` (cond_1 `Secret.mul` bound)) `Secret.sub` (cond_2 `Secret.mul` bound)
+
+inline_for_extraction
 let expand_pn
   (pn_len: packet_number_length_t)
   (last: last_packet_number_t)
-  (npn: bounded_integer (U32.v pn_len))
-: Tot (pn: uint62_t { U64.v pn == expand_pn' (U32.v pn_len - 1) (U64.v last) (U32.v npn) })
-= let open FStar.Mul in
-  let open FStar.Math.Lemmas in
-  let expected : uint62_t = last `U64.add` 1uL in
-  let bound = bound_npn pn_len in
-  let bound_2 = bound `U64.shift_right` 1ul in
-  FStar.UInt.shift_right_value_lemma #64 (U64.v bound) 1;
-  assert (U64.v bound_2 == U64.v bound / 2);
-  let candidate = replace_modulo expected bound (Cast.uint32_to_uint64 npn) in
-  if bound_2 `U64.lte` expected
-     && candidate `U64.lte` (expected `U64.sub` bound_2)
-     && candidate `U64.lt` (uint62_bound `U64.sub` bound) then // the test for overflow (candidate < pow2 62 - bound) is not present in draft 22.
-//    let _ = lemma_mod_plus candidate 1 bound in
-    candidate `U64.add` bound
-  else if candidate `U64.gt` (expected `U64.add` bound_2)
-          && candidate `U64.gte` bound then // in draft 22 the test for underflow (candidate >= bound) uses a strict inequality, which makes it impossible to expand npn to 0
-//    let _ = lemma_mod_plus candidate (-1) bound in
-    candidate `U64.sub` bound
-  else candidate
+  (npn: bounded_integer (Secret.v pn_len))
+: Tot (pn: packet_number_t { Secret.v pn == expand_pn' (Secret.v pn_len - 1) (Secret.v last) (U32.v npn) })
+= expand_pn_aux pn_len last npn
+
 #pop-options
 
 inline_for_extraction
 let synth_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-  (npn: bounded_integer (U32.v pn_len))
-: Tot (pn: packet_number_t last pn_len { U64.v pn == expand_pn' (U32.v pn_len - 1) (U64.v last) (U32.v npn) })
+  (npn: bounded_integer (Secret.v pn_len))
+: Tot (pn: packet_number_t' last pn_len { Secret.v pn == expand_pn' (Secret.v pn_len - 1) (Secret.v last) (U32.v npn) })
 = expand_pn pn_len last npn
 
 let parse_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-: Tot (parser (parse_bounded_integer_kind (U32.v pn_len)) (packet_number_t last pn_len) )
-= parse_bounded_integer (U32.v pn_len) `parse_synth` synth_packet_number last pn_len
+: Tot (parser (parse_bounded_integer_kind (Secret.v pn_len)) (packet_number_t' last pn_len) )
+= parse_bounded_integer (Secret.v pn_len) `parse_synth` synth_packet_number last pn_len
 
-inline_for_extraction
 let synth_packet_number_recip
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-  (pn: packet_number_t last pn_len)
-: Tot  (bounded_integer (U32.v pn_len))
+  (pn: packet_number_t' last pn_len)
+: GTot  (bounded_integer (Secret.v pn_len))
 = reduce_pn pn_len pn
 
 let synth_packet_number_recip_inverse
@@ -147,8 +206,8 @@ let synth_packet_number_recip_inverse
 : Lemma
   (synth_inverse (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len))
 //  [SMTPat (synth_inverse (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len))] // TODO: WHY WHY WHY does this pattern not trigger?
-= synth_inverse_intro' #(bounded_integer (U32.v pn_len)) #(packet_number_t last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len) (fun pn ->
-    lemma_parse_pn_correct (U32.v pn_len - 1) (U64.v last) (U64.v pn)
+= synth_inverse_intro' #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len) (fun pn ->
+    lemma_parse_pn_correct (Secret.v pn_len - 1) (Secret.v last) (Secret.v pn)
   )
 
 let serialize_packet_number
@@ -159,7 +218,7 @@ let serialize_packet_number
   serialize_synth
     _
     (synth_packet_number last pn_len)
-    (serialize_bounded_integer (U32.v pn_len))
+    (serialize_bounded_integer (Secret.v pn_len))
     (synth_packet_number_recip last pn_len)
     ()
 
@@ -172,14 +231,14 @@ let serialize_packet_number_ext
   serialize_synth_eq 
     _
     (synth_packet_number last1 pn_len)
-    (serialize_bounded_integer (U32.v pn_len))
+    (serialize_bounded_integer (Secret.v pn_len))
     (synth_packet_number_recip last1 pn_len)
     ()
     pn;
   serialize_synth_eq 
     _
     (synth_packet_number last2 pn_len)
-    (serialize_bounded_integer (U32.v pn_len))
+    (serialize_bounded_integer (Secret.v pn_len))
     (synth_packet_number_recip last2 pn_len)
     ()
     pn

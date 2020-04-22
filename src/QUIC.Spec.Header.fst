@@ -1,5 +1,9 @@
 module QUIC.Spec.Header
 open QUIC.Spec.Base
+
+module PN = QUIC.Spec.PacketNumber
+
+(*
 open QUIC.Spec.PacketNumber
 
 open LowParse.Spec.Int

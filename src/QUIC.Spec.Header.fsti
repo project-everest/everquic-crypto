@@ -6,6 +6,8 @@ module U32 = FStar.UInt32
 module S = FStar.Seq
 module U64 = FStar.UInt64
 
+module PN = QUIC.Spec.PacketNumber
+
 let header_len_bound = 16500 // FIXME: this should be in line with the parser kind
 
 val header_len (h:header) : GTot (n: pos { n <= header_len_bound })
