@@ -16,6 +16,8 @@ let seq_reveal_length #t #sec x = ()
 
 let seq_reveal_index #t #sec x i = ()
 
-let with_buffer_hide #t b lin lout modifies_b pre post f =
-  let h0 = HST.get () in
-  f h0 (Ghost.hide (B.loc_buffer b)) b
+let with_buffer_hide #t b from to h0 lin lout post f =
+  let bl = B.sub b 0ul from in
+  let bs = B.sub b from (to `U32.sub` from) in
+  let br = B.offset b to in
+  f (Ghost.hide (B.loc_buffer b)) bl bs br

@@ -52,38 +52,46 @@ let seq_reveal_inj
   assert (forall (i: nat { i < Seq.length x1 }) . Seq.index (seq_reveal x1) i == Seq.index (seq_reveal x2) i);
   assert (forall (i: nat { i < Seq.length x1 }) . Secret.v (Seq.index x1 i) == Secret.v (Seq.index x2 i))
 
+module U32 = FStar.UInt32
+
 inline_for_extraction
 noextract
 val with_buffer_hide
   (#t: Type)
   (b: B.buffer U8.t)
+  (from: U32.t)
+  (to: U32.t { U32.v from <= U32.v to /\ U32.v to <= B.length b })
+  (h0: HS.mem)
   (lin: Ghost.erased B.loc { B.loc_disjoint (Ghost.reveal lin) (B.loc_buffer b) })
   (lout: Ghost.erased B.loc { B.loc_disjoint (Ghost.reveal lout) (B.loc_buffer b) })
-  (modifies_b: Ghost.erased bool)
-  (pre: (cont: Seq.seq U8.t) -> (h: HS.mem) -> GTot Type0)
-  (post: (res: t) -> (cont: Seq.seq U8.t) -> (h: HS.mem) -> GTot Type0)
+  (post: (res: t) ->  (contl: Seq.lseq U8.t (U32.v from)) ->  (cont: Seq.lseq U8.t (U32.v to - U32.v from)) ->  (contr: Seq.lseq U8.t (B.length b - U32.v to)) -> (h: HS.mem) -> GTot Type0)
   (f: (
-    (h0: HS.mem) ->
     (l: Ghost.erased B.loc) ->
-    (bs: B.buffer Secret.uint8 {B.length bs == B.length b}) ->
+    (bl: B.buffer U8.t { B.length bl == (U32.v from) }) ->
+    (bs: B.buffer Secret.uint8 { B.length bs == (U32.v to - U32.v from) }) ->
+    (br: B.buffer U8.t { B.length br == (B.length b - U32.v to) }) ->
     HST.Stack t
     (requires (fun h ->
-      pre (seq_reveal (B.as_seq h bs)) h0 /\
       B.modifies l h0 h /\
-      B.loc_disjoint (Ghost.reveal lin) (Ghost.reveal l) /\
-      B.live h bs
+      B.loc_disjoint (B.loc_buffer bl `B.loc_union` B.loc_buffer bs) (B.loc_buffer br) /\
+      B.loc_disjoint (B.loc_buffer bl) (B.loc_buffer bs) /\
+      B.loc_disjoint (Ghost.reveal lin `B.loc_union` Ghost.reveal lout) (Ghost.reveal l `B.loc_union` B.loc_buffer bl `B.loc_union` B.loc_buffer bs `B.loc_union` B.loc_buffer br) /\
+      B.live h bl /\ B.live h bs /\ B.live h br /\
+      B.as_seq h bl == B.as_seq h0 (B.gsub b 0ul from) /\
+      seq_reveal (B.as_seq h bs) == B.as_seq h0 (B.gsub b from (to `U32.sub` from)) /\
+      B.as_seq h br == B.as_seq h0 (B.gsub b to (B.len b `U32.sub` to))
     ))
     (ensures (fun h res h' ->
-      B.modifies (Ghost.reveal lout `B.loc_union` (if Ghost.reveal modifies_b then B.loc_buffer bs else B.loc_none)) h h' /\
-      post res (seq_reveal (B.as_seq h' bs)) h'
+      B.modifies (Ghost.reveal lout `B.loc_union` B.loc_buffer bl `B.loc_union` B.loc_buffer bs `B.loc_union` B.loc_buffer br) h h' /\
+      post res (B.as_seq h' bl) (seq_reveal (B.as_seq h' bs)) (B.as_seq h' br) h'
     ))
   ))
 : HST.Stack t
   (requires (fun h ->
     B.live h b /\
-    pre (B.as_seq h b) h
+    h0 == h
   ))
   (ensures (fun h res h' ->
-    B.modifies (Ghost.reveal lout `B.loc_union` (if Ghost.reveal modifies_b then B.loc_buffer b else B.loc_none)) h h' /\
-    post res (B.as_seq h' b) h'
+    B.modifies (Ghost.reveal lout `B.loc_union` B.loc_buffer b) h h' /\
+    post res (B.as_seq h' (B.gsub b 0ul from)) (B.as_seq h' (B.gsub b from (to `U32.sub` from))) (B.as_seq h' (B.gsub b to (B.len b `U32.sub` to))) h'
   ))
