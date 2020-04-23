@@ -19,6 +19,49 @@ let supported_type = function
   | U8 | U16 | U32 | U64 -> true
   | _ -> false
 
+module U = FStar.UInt
+
+
+(* Patterns *)
+
+
+let logand_spec'
+  (#t:inttype)
+  (#l:secrecy_level)
+  (a:int_t t l)
+  (b:int_t t l)
+: Lemma (v (a `logand` b) == v a `logand_v` v b)
+  [SMTPat (v (a `logand` b))]
+= logand_spec a b
+
+let logor_spec'
+  (#t:inttype)
+  (#l:secrecy_level)
+  (a:int_t t l)
+  (b:int_t t l)
+: Lemma (v (a `logor` b) == v a `logor_v` v b)
+  [SMTPat (v (a `logor` b))]
+= logor_spec a b
+
+let logxor_spec'
+  (#t:inttype)
+  (#l:secrecy_level)
+  (a:int_t t l)
+  (b:int_t t l)
+: Lemma (v (a `logxor` b) == v a `logxor_v` v b)
+  [SMTPat (v (a `logxor` b))]
+= logxor_spec a b
+
+inline_for_extraction
+[@"opaque_to_smt"]
+let lognot'
+  (#t:inttype { supported_type t })
+  (#l:secrecy_level)
+  (x: uint_t t l)
+: Tot (y: uint_t t l { v y == U.lognot #(bits t) (v x) })
+= U.nth_lemma #(bits t) (U.lognot (v x)) (v x `U.logxor` v (ones t l));
+  x `logxor` ones t l
+
 (* Logic *)
 
 inline_for_extraction
@@ -194,7 +237,7 @@ let secret_bool
   (#sec: secrecy_level)
   (x: bool)
 : Tot (z: int_t t sec { v z == (if x then 1 else 0) })
-= Secret.cast t sec (if x then 1uy else 0uy)
+= cast t sec (if x then 1uy else 0uy)
 
 inline_for_extraction
 noextract
@@ -208,8 +251,6 @@ let lognot_one_bit
 
 (* Decomposition *)
 
-module U = FStar.UInt
-
 #push-options "--z3rlimit 16"
 
 inline_for_extraction
@@ -221,10 +262,10 @@ let rem2
   (x: int_t t sec)
 : Tot (z: int_t t sec { v z == v x % 2 })
 = 
-  Secret.logand_spec x (Secret.cast t sec 1uy);
+  logand_spec x (cast t sec 1uy);
   assert_norm (pow2 1 == 2);
-  U.logand_mask #(bits t) (Secret.v x) 1;
-  x `logand` Secret.cast t sec 1uy
+  U.logand_mask #(bits t) (v x) 1;
+  x `logand` cast t sec 1uy
 
 inline_for_extraction
 noextract
@@ -234,7 +275,7 @@ let div2
   (#sec: secrecy_level)
   (x: int_t t sec)
 : Tot (z: int_t t sec { v z == v x / 2 })
-= x `Secret.shift_right` 1ul
+= x `shift_right` 1ul
 
 (* Comparisons *)
 
@@ -244,7 +285,7 @@ let rec secret_is_nonzero
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
   (size: nat)
-  (x: int_t t sec { Secret.v x < pow2 size })
+  (x: int_t t sec { v x < pow2 size })
 : Tot (y: int_t t sec {
     v y == (if v x = 0 then 0 else 1)
   })
@@ -262,8 +303,8 @@ let rec secrets_are_different
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
   (size: nat)
-  (x: int_t t sec { Secret.v x < pow2 size })
-  (y: int_t t sec { Secret.v y < pow2 size })
+  (x: int_t t sec { v x < pow2 size })
+  (y: int_t t sec { v y < pow2 size })
 : Tot (z: int_t t sec {
     v z == (if v x <> v y then 1 else 0)
   })
@@ -284,8 +325,8 @@ let secrets_are_equal
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
   (size: nat)
-  (x: int_t t sec { Secret.v x < pow2 size })
-  (y: int_t t sec { Secret.v y < pow2 size })
+  (x: int_t t sec { v x < pow2 size })
+  (y: int_t t sec { v y < pow2 size })
 : Tot (z: int_t t sec {
     v z == (if v x = v y then 1 else 0)
   })
@@ -331,6 +372,8 @@ let rec secret_is_lt
     (secrets_are_equal (size - 1) (div2 x) (div2 y) `logand_one_bit` one_bit_lt (rem2 x) (rem2 y)) 
 *)
 
+#push-options "--z3rlimit 32"
+
 inline_for_extraction
 noextract
 [@"opaque_to_smt"]
@@ -340,7 +383,9 @@ let highest_bit
   (size: nat { size > 0 /\ size <= bits t })
   (x: int_t t sec { v x < pow2 (size) })
 : Tot (z: int_t t sec { v z == v x / pow2 (size - 1) /\ (v z == 0 \/ v z == 1) })
-= x `shift_right` Secret.mk_int (size - 1)
+= x `shift_right` mk_int (size - 1)
+
+#pop-options
 
 inline_for_extraction
 noextract
@@ -352,7 +397,7 @@ let lowest_bits
   (x: int_t t sec { v x < pow2 (size) })
 : Tot (z: int_t t sec { v z == v x % pow2 (size - 1) })
 = FStar.Math.Lemmas.pow2_le_compat (bits t) (size); 
-  x `logand` mod_mask (Secret.mk_int (size - 1))
+  x `logand` mod_mask (mk_int (size - 1))
 
 noextract
 [@must_inline "opaque_to_smt"]

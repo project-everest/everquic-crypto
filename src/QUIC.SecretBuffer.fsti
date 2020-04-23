@@ -41,6 +41,17 @@ let seq_reveal_pub
   (seq_reveal x `Seq.equal` x)
 = ()
 
+let seq_reveal_inj
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x1 x2: Seq.seq (Secret.uint_t t sec))
+: Lemma
+  (requires (seq_reveal x1 `Seq.equal` seq_reveal x2))
+  (ensures (x1 `Seq.equal` x2))
+= assert (Seq.length (seq_reveal x1) == Seq.length (seq_reveal x2));
+  assert (forall (i: nat { i < Seq.length x1 }) . Seq.index (seq_reveal x1) i == Seq.index (seq_reveal x2) i);
+  assert (forall (i: nat { i < Seq.length x1 }) . Secret.v (Seq.index x1 i) == Secret.v (Seq.index x2 i))
+
 inline_for_extraction
 noextract
 val with_buffer_hide

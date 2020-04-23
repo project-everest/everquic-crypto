@@ -23,7 +23,7 @@ let validate_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v uint62_bound);
+    assert (pow2 62 == U64.v U62.bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -94,7 +94,7 @@ let read_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v uint62_bound);
+    assert (pow2 62 == U64.v U62.bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -141,7 +141,7 @@ let jump_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v uint62_bound);
+    assert (pow2 62 == U64.v U62.bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -192,7 +192,7 @@ let serialize_varint
 =
   assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v uint62_bound);
+  assert (pow2 62 == U64.v U62.bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   let fb = get_first_byte x in
@@ -263,6 +263,7 @@ let serialize_bounded_varint
     (fun x -> synth_bounded_varint_recip min max x)
     ()
 
+(*
 let varint_len_correct
   x
 = ()
