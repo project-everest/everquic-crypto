@@ -16,7 +16,7 @@ let seq_reveal_length #t #sec x = ()
 
 let seq_reveal_index #t #sec x i = ()
 
-let with_buffer_hide #t b from to h0 lin lout post f =
+let with_buffer_hide #t b from to h0 lin lout x1 x2 x3 x4 x5 x6 post f =
   let bl = B.sub b 0ul from in
   let bs = B.sub b from (to `U32.sub` from) in
   let br = B.offset b to in
