@@ -62,6 +62,26 @@ let lognot'
 = U.nth_lemma #(bits t) (U.lognot (v x)) (v x `U.logxor` v (ones t l));
   x `logxor` ones t l
 
+(*
+let shift_left_spec'
+  (#t:inttype { supported_type t } )
+  (#l:secrecy_level)
+  (a:int_t t l)
+  (b:shiftval t)
+: Lemma (v (a `shift_left` b) == U.shift_left #(bits t) (v a) (v b))
+  [SMTPat (v (a `shift_left` b))]
+= ()
+
+let shift_right_spec'
+  (#t:inttype { supported_type t } )
+  (#l:secrecy_level)
+  (a:int_t t l)
+  (b:shiftval t)
+: Lemma (v (a `shift_right` b) == U.shift_right #(bits t) (v a) (v b))
+  [SMTPat (v (a `shift_right` b))]
+= ()
+*)
+
 (* Logic *)
 
 inline_for_extraction
@@ -372,7 +392,9 @@ let rec secret_is_lt
     (secrets_are_equal (size - 1) (div2 x) (div2 y) `logand_one_bit` one_bit_lt (rem2 x) (rem2 y)) 
 *)
 
-#push-options "--z3rlimit 32"
+#push-options "--z3rlimit 64"
+
+#restart-solver
 
 inline_for_extraction
 noextract
@@ -438,3 +460,41 @@ let rec secret_is_le
     let yl = lowest_bits size y in
     (xh `one_bit_lt` yh) `logor_one_bit`
     ((xh `one_bit_eq` yh) `logand_one_bit` secret_is_le (size - 1) xl yl)
+
+module BF = LowParse.BitFields
+
+(* Bitfields of secret integers but public bit positions *) 
+
+inline_for_extraction
+noextract
+[@"opaque_to_smt"]
+let get_bitfield
+  (#t: inttype { supported_type t })
+  (#l: secrecy_level)
+  (x: uint_t t l)
+  (lo: U32.t)
+  (hi: U32.t { U32.v lo < U32.v hi /\ U32.v hi <= bits t })
+: Tot (y: uint_t t l { v y == BF.get_bitfield #(bits t) (v x) (U32.v lo) (U32.v hi) })
+= BF.get_bitfield_eq_2 #(bits t) (v x) (U32.v lo) (U32.v hi);
+  (x `shift_left` (U32.uint_to_t (bits t) `U32.sub` hi)) `shift_right` (U32.uint_to_t (bits t) `U32.sub` hi `U32.add` lo)
+
+#push-options "--z3rlimit 64"
+
+#restart-solver
+
+inline_for_extraction
+noextract
+[@"opaque_to_smt"]
+let set_bitfield
+  (#t: inttype { supported_type t })
+  (#l: secrecy_level)
+  (x: uint_t t l)
+  (lo: U32.t)
+  (hi: U32.t { U32.v lo < U32.v hi /\ U32.v hi <= bits t })
+  (w: uint_t t l { v w < pow2 (U32.v hi - U32.v lo) })
+: Tot (y: uint_t t l { v y == BF.set_bitfield #(bits t) (v x) (U32.v lo) (U32.v hi) (v w) })
+= BF.set_bitfield_eq #(bits t) (v x) (U32.v lo) (U32.v hi) (v w);
+  U.lognot_lemma_1 #(bits t);
+  (x `logand` lognot' ((ones t l `shift_right` (U32.uint_to_t (bits t) `U32.sub` (hi `U32.sub` lo))) `shift_left` lo)) `logor` (w `shift_left` lo)
+
+#pop-options

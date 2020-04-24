@@ -73,16 +73,6 @@ let read_u32
 
 module BF = LowParse.BitFields
 
-inline_for_extraction
-[@"opaque_to_smt"]
-let get_bitfield_32
-  (x: Secret.uint32)
-  (lo: U32.t)
-  (hi: U32.t { U32.v lo < U32.v hi /\ U32.v hi <= 32 })
-: Tot (y: Secret.uint32 { Secret.v y == BF.get_bitfield #32 (Secret.v x) (U32.v lo) (U32.v hi) })
-= BF.get_bitfield_eq_2 #32 (Secret.v x) (U32.v lo) (U32.v hi);
-  (x `Secret.shift_left` (32ul `U32.sub` hi)) `Secret.shift_right` (32ul `U32.sub` hi `U32.add` lo)
-
 [@"opaque_to_smt"]
 let secrets_are_equal_32_2
   (x: Secret.uint32 { Secret.v x < pow2 2 })
@@ -119,10 +109,10 @@ let read_bounded_integer
   let x = read_u32 b in
   BF.get_bitfield_full #32 (Secret.v x);
   let pn_len_1 = Secret.to_u32 (pn_len `Secret.sub` Secret.to_u32 1ul) in
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 0ul) `Secret.mul` get_bitfield_32 x 24ul 32ul) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 1ul) `Secret.mul` get_bitfield_32 x 16ul 32ul) `Secret.add`
+  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 0ul) `Secret.mul` Secret.get_bitfield x 24ul 32ul) `Secret.add`
+  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 1ul) `Secret.mul` Secret.get_bitfield x 16ul 32ul) `Secret.add`
   ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 2ul) `Secret.mul`
-get_bitfield_32 x 8ul 32ul) `Secret.add`
+Secret.get_bitfield x 8ul 32ul) `Secret.add`
   ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 3ul) `Secret.mul` x)
 
 #pop-options
@@ -288,21 +278,6 @@ let write_u32
 
 #push-options "--z3rlimit 256"
 
-inline_for_extraction
-[@"opaque_to_smt"]
-let set_bitfield_32
-  (x: Secret.uint32)
-  (lo: U32.t)
-  (hi: U32.t { U32.v lo < U32.v hi /\ U32.v hi <= 32 })
-  (v: Secret.uint32 { Secret.v v < pow2 (U32.v hi - U32.v lo) })
-: Tot (y: Secret.uint32 { Secret.v y == BF.set_bitfield #32 (Secret.v x) (U32.v lo) (U32.v hi) (Secret.v v) })
-= BF.set_bitfield_eq #32 (Secret.v x) (U32.v lo) (U32.v hi) (Secret.v v);
-  (x `Secret.logand` Secret.lognot' ((Secret.lognot' (Secret.to_u32 0ul) `Secret.shift_right` (32ul `U32.sub` (hi `U32.sub` lo))) `Secret.shift_left` lo)) `Secret.logor` (v `Secret.shift_left` lo)
-
-#pop-options
-
-#push-options "--z3rlimit 256"
-
 #restart-solver
 
 inline_for_extraction
@@ -364,7 +339,7 @@ let set_left_bitfield_aux
 = 
   [@inline_let]
   let pn_len_1 = Secret.to_u32 (pn_len `Secret.sub` Secret.to_u32 1ul) in
-  (pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 (pn_len' `U32.sub` 1ul)) `Secret.mul` set_bitfield_32 before (8ul `U32.mul` (4ul `U32.sub` pn_len')) 32ul (set_left_bitfield_arg pn_len pn_len' x mask)
+  (pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 (pn_len' `U32.sub` 1ul)) `Secret.mul` Secret.set_bitfield before (8ul `U32.mul` (4ul `U32.sub` pn_len')) 32ul (set_left_bitfield_arg pn_len pn_len' x mask)
 
 #pop-options
 
