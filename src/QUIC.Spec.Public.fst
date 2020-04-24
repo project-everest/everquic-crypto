@@ -61,99 +61,6 @@ let first_byte : LPB.bitsum' LPB.uint8 8 =
       )
   )
 
-module U32 = FStar.UInt32
-
-inline_for_extraction
-let short_dcid_len_t = (short_dcid_len: U32.t { U32.v short_dcid_len <= 20 })
-
-inline_for_extraction
-noextract
-let token_max_len = 16383 // arbitrary bound
-
-module FB = FStar.Bytes
-
-inline_for_extraction
-let vlbytes (min: nat) (max: nat) =
-  (x: FB.bytes { min <= FB.length x /\ FB.length x <= max })
-
-module U64 = FStar.UInt64
-
-inline_for_extraction
-let uint62_bound : (uint62_bound: U64.t { U64.v uint62_bound == pow2 62 }) =
-  [@inline_let] let v = 4611686018427387904uL in
-  [@inline_let] let _ = assert_norm (U64.v v == pow2 62) in
-  v
-
-inline_for_extraction
-let uint62_t = (x: U64.t { U64.v x < U64.v uint62_bound })
-
-module U8 = FStar.UInt8
-
-inline_for_extraction
-noextract
-let bitfield
-  (sz: nat { sz <= 8 })
-: Tot eqtype
-= (x: U8.t { U8.v x < pow2 sz })
-
-inline_for_extraction
-let payload_and_pn_length_t : Type0 =
-  (payload_and_pn_length: uint62_t { U64.v payload_and_pn_length >= 20 })
-
-noeq
-type long_header_specifics =
-| PInitial:
-  (token: vlbytes 0 token_max_len) -> // arbitrary bound
-  (payload_and_pn_length: payload_and_pn_length_t) ->
-  long_header_specifics
-| PZeroRTT:
-  (payload_and_pn_length: payload_and_pn_length_t) ->
-  long_header_specifics
-| PHandshake:
-  (payload_and_pn_length: payload_and_pn_length_t) ->
-  long_header_specifics
-| PRetry:
-  (odcid: vlbytes 0 20) -> // TODO: change bounds to drop instead of rejecting as invalid
-  long_header_specifics
-
-noeq
-type header =
-| PLong:
-  (protected_bits: bitfield 4) ->
-  (version: U32.t) ->
-  (dcid: vlbytes 0 20) ->
-  (scid: vlbytes 0 20) ->
-  (spec: long_header_specifics) ->
-  header
-| PShort:
-  (protected_bits: bitfield 5) ->
-  (spin: bool) ->
-  (dcid: vlbytes 0 20) ->
-  header
-
-let dcid_len (h: header) : Tot nat =
-  match h with
-  | PLong _ _ dcid _ _ -> FB.length dcid
-  | PShort _ _ dcid -> FB.length dcid
-
-let short_dcid_len_prop
-  (short_dcid_len: short_dcid_len_t)
-  (h: header)
-: GTot Type0
-= (PShort? h ==> dcid_len h == U32.v short_dcid_len)
-
-unfold
-let parse_header_prop
-  (short_dcid_len: short_dcid_len_t)
-  (m: header)
-: GTot Type0
-= short_dcid_len_prop short_dcid_len m
-
-inline_for_extraction
-type header'
-  (short_dcid_len: short_dcid_len_t)
-= (m: header { parse_header_prop short_dcid_len m })
-
 #push-options "--z3rlimit 16"
 
 inline_for_extraction
@@ -197,7 +104,7 @@ let common_long_t
 
 inline_for_extraction
 let payload_and_pn_length_prop
-  (x: uint62_t)
+  (x: U62.t)
 : Tot bool
 = x `U64.gte` 20uL
 
@@ -408,23 +315,6 @@ let serialize_header
     LP.serialize_u8
     #(parse_header_body short_dcid_len)
     (serialize_header_body short_dcid_len)
-
-(* Mutating the protected bits *)
-
-let get_protected_bits
-  (h: header)
-: Tot (bitfield (if PShort? h then 5 else 4))
-= match h with
-  | PShort pb spin dcid -> pb
-  | PLong pb version dcid scid spec -> pb
-
-let set_protected_bits
-  (h: header)
-  (new_pb: bitfield (if PShort? h then 5 else 4))
-: Tot header
-= match h with
-  | PShort _ spin dcid -> PShort new_pb spin dcid
-  | PLong _ version dcid scid spec -> PLong new_pb version dcid scid spec
 
 let is_valid_bitfield_intro
   (short_dcid_len: short_dcid_len_t)
