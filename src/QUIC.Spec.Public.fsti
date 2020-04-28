@@ -110,6 +110,16 @@ val serialize_header
   (short_dcid_len: short_dcid_len_t)
 : Tot (LP.serializer (parse_header short_dcid_len))
 
+val serialize_header_ext
+  (short_dcid_len1 short_dcid_len2: short_dcid_len_t)
+  (h: header)
+: Lemma
+  (requires (short_dcid_len_prop short_dcid_len1 h /\ short_dcid_len_prop short_dcid_len2 h))
+  (ensures (
+    short_dcid_len_prop short_dcid_len1 h /\ short_dcid_len_prop short_dcid_len2 h /\
+    LP.serialize (serialize_header short_dcid_len1) h == LP.serialize (serialize_header short_dcid_len2) h
+  ))
+
 
 (* Mutating the protected bits *)
 

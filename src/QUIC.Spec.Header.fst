@@ -285,6 +285,16 @@ let parse_header_kind
 : Tot LP.parser_kind
 = LP.parse_filter_kind (Public.parse_header_kind short_dcid_len) `LP.and_then_kind` parse_packet_number_opt_kind
 
+let parse_header_dtuple
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+: Tot (LP.parser (parse_header_kind short_dcid_len) (dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)))
+= LP.parse_dtuple2
+    #_ #(Public.header' short_dcid_len)
+    (Public.parse_header short_dcid_len)
+    #_ #(packet_number_opt short_dcid_len last)
+    (parse_packet_number_opt short_dcid_len last)
+
 let parse_header
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
@@ -294,13 +304,20 @@ let parse_header
     #_
     #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
     #(header' short_dcid_len last)
-    (LP.parse_dtuple2
-      #_ #(Public.header' short_dcid_len)
-      (Public.parse_header short_dcid_len)
-      #_ #(packet_number_opt short_dcid_len last)
-      (parse_packet_number_opt short_dcid_len last)
-    )
+    (parse_header_dtuple short_dcid_len last)
     (synth_header short_dcid_len last)
+
+let serialize_header_dtuple
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+: Tot (LP.serializer (parse_header_dtuple short_dcid_len last))
+= 
+  LP.serialize_dtuple2
+    #_ #(Public.header' short_dcid_len)
+    (Public.serialize_header short_dcid_len)
+    #_ #(packet_number_opt short_dcid_len last)
+    #(parse_packet_number_opt short_dcid_len last)
+    (serialize_packet_number_opt short_dcid_len last)
 
 let serialize_header
   (short_dcid_len: Public.short_dcid_len_t)
@@ -313,14 +330,147 @@ let serialize_header
     #(header' short_dcid_len last)
     _
     (synth_header short_dcid_len last)
-    (LP.serialize_dtuple2
+    (serialize_header_dtuple short_dcid_len last)
+    (synth_header_recip short_dcid_len last)
+    ()
+
+let serialize_header_dtuple_eq
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (phpn : dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
+: Lemma (
+    LP.serialize (serialize_header_dtuple short_dcid_len last) phpn ==
+    LP.bare_serialize_dtuple2
       #_ #(Public.header' short_dcid_len)
       (Public.serialize_header short_dcid_len)
       #_ #(packet_number_opt short_dcid_len last)
+      #(parse_packet_number_opt short_dcid_len last)
       (serialize_packet_number_opt short_dcid_len last)
-    )
+      phpn
+  )
+= assert (
+    LP.serialize (serialize_header_dtuple short_dcid_len last) phpn ==
+    LP.serialize
+      #_ #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
+      (LP.serialize_dtuple2
+        #_ #(Public.header' short_dcid_len)
+        (Public.serialize_header short_dcid_len)
+        #_ #(packet_number_opt short_dcid_len last)
+        #(parse_packet_number_opt short_dcid_len last)
+        (serialize_packet_number_opt short_dcid_len last)
+      )
+      phpn
+  );
+  LP.serialize_dtuple2_eq'
+    #_ #(Public.header' short_dcid_len)
+    (Public.serialize_header short_dcid_len)
+    #_ #(packet_number_opt short_dcid_len last)
+    #(parse_packet_number_opt short_dcid_len last)
+    (serialize_packet_number_opt short_dcid_len last)
+    phpn
+
+let serialize_header_eq_1
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (LP.serialize (serialize_header short_dcid_len last) h ==
+    LP.bare_serialize_synth
+    #_
+    #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(header' short_dcid_len last)
+    _
+    (synth_header short_dcid_len last)
+    (serialize_header_dtuple short_dcid_len last)
+    (synth_header_recip short_dcid_len last)
+    h
+  )
+=
+  LP.serialize_synth_eq
+    #_
+    #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(header' short_dcid_len last)
+    _
+    (synth_header short_dcid_len last)
+    (serialize_header_dtuple short_dcid_len last)
     (synth_header_recip short_dcid_len last)
     ()
+    h
+
+let serialize_header_eq_2
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (LP.serialize (serialize_header short_dcid_len last) h == (
+    let phpn : dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last) = synth_header_recip short_dcid_len last h in
+    LP.serialize
+      (serialize_header_dtuple short_dcid_len last)
+      phpn
+  ))
+= serialize_header_eq_1 short_dcid_len last h
+
+let serialize_header_eq_3
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (LP.serialize (serialize_header short_dcid_len last) h == (
+    let phpn : dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last) = synth_header_recip short_dcid_len last h in
+    LP.bare_serialize_dtuple2
+      #_ #(Public.header' short_dcid_len)
+      (Public.serialize_header short_dcid_len)
+      #_ #(packet_number_opt short_dcid_len last)
+      #(parse_packet_number_opt short_dcid_len last)
+      (serialize_packet_number_opt short_dcid_len last)
+      phpn
+  ))
+= serialize_header_eq_2 short_dcid_len last h;
+  let phpn : dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last) = synth_header_recip short_dcid_len last h in
+  serialize_header_dtuple_eq short_dcid_len last phpn
+
+#push-options "--z3rlimit 32"
+
+let serialize_header_eq
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (LP.serialize (serialize_header short_dcid_len last) h == (
+    let (| ph, pn |) = synth_header_recip short_dcid_len last h in
+    LP.serialize (Public.serialize_header short_dcid_len) ph `Seq.append`
+    (if is_retry h
+     then Seq.empty
+     else LP.serialize (PN.serialize_packet_number last (pn_length h)) pn 
+  )))
+= serialize_header_eq_3 short_dcid_len last h
+
+#pop-options
+
+#push-options "--z3rlimit 16"
+
+let serialize_header_ext
+  (short_dcid_len1 short_dcid_len2: Public.short_dcid_len_t)
+  (last1 last2: PN.last_packet_number_t)
+  (h: header)
+: Lemma
+  (requires (
+    parse_header_prop short_dcid_len1 last1 h /\
+    parse_header_prop short_dcid_len2 last2 h
+  ))
+  (ensures (
+    parse_header_prop short_dcid_len1 last1 h /\
+    parse_header_prop short_dcid_len2 last2 h /\
+    LP.serialize (serialize_header short_dcid_len1 last1) h == LP.serialize (serialize_header short_dcid_len2 last2) h
+  ))
+= serialize_header_eq short_dcid_len1 last1 h;
+  serialize_header_eq short_dcid_len2 last2 h;
+  let (| ph, pn |) = synth_header_recip short_dcid_len1 last1 h in
+  Public.serialize_header_ext short_dcid_len1 short_dcid_len2 ph;
+  if not (is_retry h)
+  then PN.serialize_packet_number_ext last1 last2 (pn_length h) pn
+
+#pop-options
 
 (*
 let parse_header_ifthenelse_payload

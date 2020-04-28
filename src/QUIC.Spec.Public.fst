@@ -324,6 +324,41 @@ let serialize_header
     #(parse_header_body short_dcid_len)
     (serialize_header_body short_dcid_len)
 
+let serialize_header_eq
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (LP.serialize (serialize_header short_dcid_len) h ==
+    LP.serialize LP.serialize_u8 (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h)) `Seq.append`
+    LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h))
+= LPB.serialize_bitsum_eq'
+    #LP.parse_u8_kind
+    #8
+    #U8.t
+    first_byte
+    #(header' short_dcid_len)
+    (first_byte_of_header short_dcid_len)
+    (header_body_type short_dcid_len)
+    (header_synth short_dcid_len)
+    #LP.parse_u8
+    LP.serialize_u8
+    #(parse_header_body short_dcid_len)
+    (serialize_header_body short_dcid_len)
+    h
+
+let serialize_header_ext
+  (short_dcid_len1 short_dcid_len2: short_dcid_len_t)
+  (h: header)
+: Lemma
+  (requires (short_dcid_len_prop short_dcid_len1 h /\ short_dcid_len_prop short_dcid_len2 h))
+  (ensures (
+    short_dcid_len_prop short_dcid_len1 h /\ short_dcid_len_prop short_dcid_len2 h /\
+    LP.serialize (serialize_header short_dcid_len1) h == LP.serialize (serialize_header short_dcid_len2) h
+  ))
+= serialize_header_eq short_dcid_len1 h;
+  serialize_header_eq short_dcid_len2 h;
+  ()
+
 let is_valid_bitfield_intro
   (short_dcid_len: short_dcid_len_t)
   (h: header' short_dcid_len)
@@ -363,28 +398,6 @@ let mk_header_body_set_valid_bitfield
   (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len (set_protected_bits h new_pb)) (set_protected_bits h new_pb) ==
     mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h)
 = ()
-
-let serialize_header_eq
-  (short_dcid_len: short_dcid_len_t)
-  (h: header' short_dcid_len)
-: Lemma
-  (LP.serialize (serialize_header short_dcid_len) h ==
-    LP.serialize LP.serialize_u8 (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h)) `Seq.append`
-    LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h))
-= LPB.serialize_bitsum_eq'
-    #LP.parse_u8_kind
-    #8
-    #U8.t
-    first_byte
-    #(header' short_dcid_len)
-    (first_byte_of_header short_dcid_len)
-    (header_body_type short_dcid_len)
-    (header_synth short_dcid_len)
-    #LP.parse_u8
-    LP.serialize_u8
-    #(parse_header_body short_dcid_len)
-    (serialize_header_body short_dcid_len)
-    h
 
 #push-options "--z3rlimit 128"
 
