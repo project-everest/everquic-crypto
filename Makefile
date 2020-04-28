@@ -35,7 +35,7 @@ clean: clean-dist
 # ------------
 
 %.checked:
-	$(FSTAR) --hint_file hints/$(notdir $*).hints $(notdir $*) && touch -c $@
+	$(FSTAR) $(notdir $*) && touch -c $@
 
 %.krml:
 	$(FSTAR) --codegen Kremlin \
