@@ -32,11 +32,11 @@ let bound_npn' (pn_len:nat { pn_len < 4 }) : Tot (y: nat {y == pow2 (8 `op_Multi
   | 2 -> 16777216
   | 3 -> 4294967296
 
-let in_window (pn_len: nat { pn_len < 4 }) (last pn:nat) =
+let in_window (pn_len: nat { pn_len < 4 }) (last pn:nat) : Tot bool =
   let h = bound_npn' pn_len in
-  (last+1 < h/2 /\ pn < h) \/
-  (last+1 >= U62.v U62.bound - h/2 /\ pn >= U62.v U62.bound - h) \/
-  (last+1 - h/2 < pn /\ pn <= last+1 + h/2)
+  (last+1 < h/2 && pn < h) ||
+  (last+1 >= U62.v U62.bound - h/2 && pn >= U62.v U62.bound - h) ||
+  (last+1 - h/2 < pn && pn <= last+1 + h/2)
 
 inline_for_extraction
 let packet_number_t = U62.secret

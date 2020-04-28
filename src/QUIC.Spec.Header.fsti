@@ -1,6 +1,91 @@
 module QUIC.Spec.Header
 include QUIC.Spec.Base
 
+(*
+noeq
+type h_result =
+| H_Success:
+  h: header ->
+  c: bytes ->
+  h_result
+| H_Failure
+
+(*
+val parse_header: cid_len: nat { cid_len <= 20 } -> last: nat { last + 1 < pow2 62 } -> b:bytes -> GTot h_result
+
+val parse_header_post:
+  cid_len: nat { cid_len <= 20 } -> 
+  last: nat { last + 1 < pow2 62 } -> 
+  b:bytes -> 
+  Lemma (
+    match parse_header cid_len last b with
+    | H_Failure -> True
+    | H_Success h c ->
+      is_valid_header h cid_len last /\
+      Seq.length c <= Seq.length b /\
+      c `Seq.equal` Seq.slice b (Seq.length b - Seq.length c) (Seq.length b)
+  )
+
+val format_header (h: header) : GTot bytes
+
+val lemma_header_parsing_correct:
+  h: header ->
+  c: bytes ->
+  cid_len: nat { cid_len <= 20 } ->
+  last: nat { last + 1 < pow2 62 } ->
+  Lemma
+  (requires (
+    is_valid_header h cid_len last
+  ))
+  (ensures (
+    parse_header cid_len last (format_header h `Seq.append` c)
+    == H_Success h c))
+
+// N.B. this is only true for a given DCID len
+val lemma_header_parsing_safe: cid_len: nat -> last: nat -> b1:bytes -> b2:bytes -> Lemma
+  (requires (
+    cid_len <= 20 /\
+    last + 1 < pow2 62 /\
+    parse_header cid_len last b1 == parse_header cid_len last b2
+  ))
+  (ensures parse_header cid_len last b1 == H_Failure \/ b1 = b2)
+*)
+
+val header_decrypt:
+  a:ea ->
+  hpk: lbytes (ae_keysize a) ->
+  cid_len: nat { cid_len <= 20 } ->
+  last: nat { last + 1 < pow2 62 } ->
+  p: packet ->
+  GTot h_result
+
+val header_encrypt: a:ea ->
+  hpk: lbytes (ae_keysize a) ->
+  h: header ->
+  c: cbytes ->
+  GTot packet
+
+module Secret = QUIC.Secret
+module U32 = FStar.UInt32
+module PN = QUIC.Spec.PacketNumber
+
+// This is just functional correctness, but does not guarantee security:
+// decryption can succeed on an input that is not the encryption
+// of the same arguments (see QUIC.Spec.Old.*_malleable)
+val lemma_header_encryption_correct:
+  a:ea ->
+  k:lbytes (ae_keysize a) ->
+  h:header ->
+  cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
+  last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> PN.in_window (Secret.v (pn_length h) - 1) last (Secret.v (packet_number h))) } ->
+  c: cbytes { has_payload_length h ==> Secret.v (payload_length h) == Seq.length c } ->
+  Lemma (
+    header_decrypt a k cid_len last (header_encrypt a k h c)
+    == H_Success h c
+  )
+
+
+(*
 module U8 = FStar.UInt8
 module U32 = FStar.UInt32
 module S = FStar.Seq

@@ -8,17 +8,6 @@ module AEAD = Spec.Agile.AEAD
 // JP: should we allow inversion on either hash algorithm or AEAD algorithm?
 #set-options "--max_fuel 0 --max_ifuel 0"
 
-let supported_hash = function
-  | HD.SHA1 | HD.SHA2_256 | HD.SHA2_384 | HD.SHA2_512 -> true
-  | _ -> false
-
-let supported_aead = function
-  | AEAD.AES128_GCM | AEAD.AES256_GCM | AEAD.CHACHA20_POLY1305 -> true
-  | _ -> false
-
-type ha = a:HD.hash_alg{supported_hash a}
-type ea = a:AEAD.alg{supported_aead a}
-
 // Move from Hashing.Spec to Spec.Hash?
 let keysized (a:ha) (l:nat) =
   l <= HD.max_input_length a /\ l + HD.block_length a < pow2 32
@@ -44,12 +33,6 @@ type pbytes = b:bytes{let l = S.length b in 3 <= l /\ l < max_plain_length}
 type pbytes' (is_retry: bool) = b:bytes{let l = S.length b in if is_retry then l == 0 else (3 <= l /\ l < max_plain_length)}
 type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}
 type cbytes' (is_retry: bool) = b: bytes { let l = S.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
-
-// JP: this is Spec.Agile.Cipher.key_length
-let ae_keysize (a:ea) =
-  match a with
-  | AEAD.AES128_GCM -> 16
-  | _ -> 32
 
 // Static byte sequences to be fed into secret derivation. Marked as inline, so
 // that they can be used as arguments to gcmalloc_of_list for top-level arrays.

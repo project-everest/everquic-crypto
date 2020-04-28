@@ -8,7 +8,7 @@ test: dist/test.exe
 
 include Makefile.include
 
-EXCLUDE_MODULES=Spec.Old Impl.Old Impl.Lemmas Impl.Base Spec Impl Spec.Header Impl.Header
+EXCLUDE_MODULES=Spec.Old Impl.Old Impl.Lemmas Impl.Base Spec Impl Impl.Header
 
 FST_FILES=$(filter-out $(addprefix src/QUIC.,$(addsuffix .fst,$(EXCLUDE_MODULES)) $(addsuffix .fsti,$(EXCLUDE_MODULES))),$(wildcard src/*.fst) $(wildcard src/*.fsti))
 

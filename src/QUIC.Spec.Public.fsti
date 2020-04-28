@@ -61,6 +61,15 @@ type header =
   (dcid: vlbytes 0 20) ->
   header
 
+let is_retry
+  (h: header)
+: Tot bool
+= if PShort? h
+  then false
+  else
+    let spec = PLong?.spec h in
+    PRetry? spec
+
 let dcid_len (h: header) : Tot nat =
   match h with
   | PLong _ _ dcid _ _ -> FB.length dcid
