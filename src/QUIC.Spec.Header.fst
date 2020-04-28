@@ -295,7 +295,7 @@ let parse_header_dtuple
     #_ #(packet_number_opt short_dcid_len last)
     (parse_packet_number_opt short_dcid_len last)
 
-let parse_header
+let lp_parse_header
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Tot (LP.parser (parse_header_kind short_dcid_len) (header' short_dcid_len last))
@@ -322,7 +322,7 @@ let serialize_header_dtuple
 let serialize_header
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
-: Tot (LP.serializer (parse_header short_dcid_len last))
+: Tot (LP.serializer (lp_parse_header short_dcid_len last))
 =
   LP.serialize_synth
     #_
@@ -471,6 +471,68 @@ let serialize_header_ext
   then PN.serialize_packet_number_ext last1 last2 (pn_length h) pn
 
 #pop-options
+
+module U64 = FStar.UInt64
+
+let parse_header
+  cid_len last b
+= match LP.parse (lp_parse_header (U32.uint_to_t cid_len) (Secret.to_u64 (U64.uint_to_t last))) b with
+  | None -> H_Failure
+  | Some (h, consumed) -> H_Success h (Seq.slice b consumed (Seq.length b))
+
+#push-options "--z3rlimit 16"
+
+let parse_header_post
+  cid_len last b
+= ()
+
+#pop-options
+
+let last_packet_number
+  (h: header)
+: GTot PN.last_packet_number_t
+= if is_retry h then Secret.to_u64 0uL else let pn = packet_number h in if Secret.v pn = 0 then Secret.to_u64 0uL else pn `Secret.sub` Secret.to_u64 1uL
+
+#push-options "--z3rlimit 16"
+
+let in_window_last_packet_number
+  (h: header)
+: Lemma
+  ((~ (is_retry h)) ==> PN.in_window (Secret.v (pn_length h) - 1) (Secret.v (last_packet_number h)) (Secret.v (packet_number h)))
+= ()
+
+let format_header
+  h
+= LP.serialize (serialize_header (U32.uint_to_t (dcid_len h)) (last_packet_number h)) h
+
+let lemma_header_parsing_correct
+  h c cid_len last
+=
+  let s = format_header h in
+  in_window_last_packet_number h;
+  FStar.Math.Lemmas.pow2_le_compat 64 62;
+  let cid_len' = (U32.uint_to_t cid_len) in
+  let last' = (Secret.to_u64 (U64.uint_to_t last)) in
+  serialize_header_ext (U32.uint_to_t (dcid_len h)) cid_len' (last_packet_number h) last' h;
+//  assert (s == LP.serialize (serialize_header cid_len' last') h);
+  LP.parse_serialize (serialize_header cid_len' last') h;
+  LP.parse_strong_prefix (lp_parse_header cid_len' last') s (s `Seq.append` c);
+//  assert (LP.parse (lp_parse_header cid_len' last') (s `Seq.append` c) == Some (h, Seq.length s));
+  assert (c `Seq.equal` Seq.slice (s `Seq.append` c) (Seq.length s) (Seq.length (s `Seq.append` c)))
+
+let lemma_header_parsing_safe
+  cid_len last b1 b2
+=
+  let cid_len' = (U32.uint_to_t cid_len) in
+  let last' = (Secret.to_u64 (U64.uint_to_t last)) in
+  match LP.parse (lp_parse_header cid_len' last') b1 with
+  | None -> ()
+  | Some (h, consumed) ->
+    LP.parse_injective (lp_parse_header cid_len' last') b1 b2;
+    Seq.lemma_split b1 consumed;
+    Seq.lemma_split b2 consumed
+
+
 
 (*
 let parse_header_ifthenelse_payload

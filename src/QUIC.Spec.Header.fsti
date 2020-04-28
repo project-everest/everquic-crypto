@@ -1,7 +1,6 @@
 module QUIC.Spec.Header
 include QUIC.Spec.Base
 
-(*
 noeq
 type h_result =
 | H_Success:
@@ -10,7 +9,6 @@ type h_result =
   h_result
 | H_Failure
 
-(*
 val parse_header: cid_len: nat { cid_len <= 20 } -> last: nat { last + 1 < pow2 62 } -> b:bytes -> GTot h_result
 
 val parse_header_post:
@@ -49,8 +47,8 @@ val lemma_header_parsing_safe: cid_len: nat -> last: nat -> b1:bytes -> b2:bytes
     parse_header cid_len last b1 == parse_header cid_len last b2
   ))
   (ensures parse_header cid_len last b1 == H_Failure \/ b1 = b2)
-*)
 
+(*
 val header_decrypt:
   a:ea ->
   hpk: lbytes (ae_keysize a) ->
