@@ -152,3 +152,24 @@ val read_header
       | _ -> False
     end
   ))
+
+val write_header
+  (short_dcid_len: short_dcid_len_t)
+  (h: header)
+  (out: B.buffer U8.t)
+  (out_len: U32.t { U32.v out_len <= B.length out })
+: HST.Stack U32.t
+  (requires (fun h0 ->
+    (PShort? h ==> PShort?.cid_len h == short_dcid_len) /\
+    header_live h h0 /\
+    B.live h0 out /\
+    B.loc_disjoint (header_footprint h) (B.loc_buffer out) /\
+    Seq.length (LP.serialize (serialize_header short_dcid_len) (g_header h h0)) <= U32.v out_len
+  ))
+  (ensures (fun h0 len h1 ->
+    let gh = g_header h h0 in
+    let s = LP.serialize (serialize_header short_dcid_len) gh in
+    B.modifies (B.loc_buffer out) h0 h1 /\
+    U32.v len <= U32.v out_len /\
+    Seq.slice (B.as_seq h1 out) 0 (U32.v len) == s 
+  ))

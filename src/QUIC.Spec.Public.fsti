@@ -95,13 +95,16 @@ type header'
 
 inline_for_extraction
 noextract
-val parse_header_kind'
+val parse_header_kind
   (short_dcid_len: short_dcid_len_t)
-: Tot LP.parser_kind
+: Tot (k: LP.parser_kind {
+    k.LP.parser_kind_subkind == Some LP.ParserStrong /\
+    k.LP.parser_kind_low > 0
+  })
 
 val parse_header
   (short_dcid_len: short_dcid_len_t)
-: Tot (LP.parser (parse_header_kind' short_dcid_len) (header' short_dcid_len))
+: Tot (LP.parser (parse_header_kind short_dcid_len) (header' short_dcid_len))
 
 val serialize_header
   (short_dcid_len: short_dcid_len_t)

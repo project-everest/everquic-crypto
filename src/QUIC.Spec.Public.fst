@@ -252,17 +252,25 @@ let parse_header_body
   | (| Long, (| (), (| Retry, () |) |) |) ->
     (| _, parse_long_retry_body |)
 
+let weaken_parse_bitsum_cases_kind_parse_header_body
+  (short_dcid_len: short_dcid_len_t)
+: Lemma
+  (let k = LPB.weaken_parse_bitsum_cases_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len) in
+   k.LP.parser_kind_subkind == Some LP.ParserStrong)
+  [SMTPat (LPB.weaken_parse_bitsum_cases_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len))]
+= let k = LPB.weaken_parse_bitsum_cases_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len) in
+  assert_norm (k.LP.parser_kind_subkind == Some LP.ParserStrong)
+
 [@LPB.filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
-let parse_header_kind'
-  (short_dcid_len: short_dcid_len_t)
-: Tot LP.parser_kind
+let parse_header_kind
+  short_dcid_len
 = LPB.parse_bitsum_kind LP.parse_u8_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len)
 
 let parse_header
   (short_dcid_len: short_dcid_len_t)
-: Tot (LP.parser (parse_header_kind' short_dcid_len) (header' short_dcid_len))
+: Tot (LP.parser (parse_header_kind short_dcid_len) (header' short_dcid_len))
 = LPB.parse_bitsum
     first_byte
     (first_byte_of_header short_dcid_len)

@@ -283,7 +283,7 @@ let synth_header_inverse
 let parse_header_kind
   (short_dcid_len: Public.short_dcid_len_t)
 : Tot LP.parser_kind
-= LP.parse_filter_kind (Public.parse_header_kind' short_dcid_len) `LP.and_then_kind` parse_packet_number_opt_kind
+= LP.parse_filter_kind (Public.parse_header_kind short_dcid_len) `LP.and_then_kind` parse_packet_number_opt_kind
 
 let parse_header
   (short_dcid_len: Public.short_dcid_len_t)
