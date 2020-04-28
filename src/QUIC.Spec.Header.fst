@@ -32,22 +32,10 @@ let get_reserved_bits
 : Tot (Public.bitfield 2)
 = protected_bits_reserved (Public.PShort? h) (Public.get_protected_bits h)
 
-let check_public_header
-  (cid_len: Public.short_dcid_len_t)
-  (h: Public.header' cid_len)
-: Tot bool
-= if Public.is_retry h
-  then true
-  else get_reserved_bits h = 0uy
-
-let checked_header
-  (cid_len: Public.short_dcid_len_t)
-= LP.parse_filter_refine (check_public_header cid_len)
-
 let packet_number_opt
   (cid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
-  (h: checked_header cid_len)
+  (h: Public.header' cid_len)
 : Tot Type0
 = if Public.is_retry h
   then unit
@@ -58,7 +46,7 @@ let parse_packet_number_opt_kind = LP.strong_parser_kind 0 4 None
 let parse_packet_number_opt
   (cid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
-  (h: checked_header cid_len)
+  (h: Public.header' cid_len)
 : Tot (LP.parser parse_packet_number_opt_kind (packet_number_opt cid_len last h))
 = if Public.is_retry h
   then LP.weaken parse_packet_number_opt_kind LP.parse_empty
@@ -67,7 +55,7 @@ let parse_packet_number_opt
 let serialize_packet_number_opt
   (cid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
-  (h: checked_header cid_len)
+  (h: Public.header' cid_len)
 : Tot (LP.serializer (parse_packet_number_opt cid_len last h))
 = if Public.is_retry h
   then LP.serialize_weaken parse_packet_number_opt_kind LP.serialize_empty
@@ -114,12 +102,14 @@ let protected_bits_key_phase
 = BF.uint8.BF.get_bitfield x 2 3 = 1uy
 
 let mk_short_protected_bits
+  (reserved_bits: bitfield 2)
   (key_phase: bool)
   (pnl: PN.packet_number_length_t)
 : GTot (Public.bitfield 5)
 = BF.set_bitfield_bound #8 0 5 0 2 (Secret.v pnl - 1);
   BF.set_bitfield_bound #8 (BF.set_bitfield #8 0 0 2 (Secret.v pnl - 1)) 5 2 3 (if key_phase then 1 else 0);
-  BF.uint8.BF.set_bitfield (BF.uint8.BF.set_bitfield 0uy 0 2 (U8.uint_to_t (Secret.v pnl - 1))) 2 3 (if key_phase then 1uy else 0uy)
+  BF.set_bitfield_bound #8 (BF.set_bitfield #8 (BF.set_bitfield #8 0 0 2 (Secret.v pnl - 1)) 2 3 (if key_phase then 1 else 0)) 5 3 5 (U8.v reserved_bits);
+  BF.uint8.BF.set_bitfield (BF.uint8.BF.set_bitfield (BF.uint8.BF.set_bitfield 0uy 0 2 (U8.uint_to_t (Secret.v pnl - 1))) 2 3 (if key_phase then 1uy else 0uy)) 3 5 reserved_bits
 
 let protected_bits_pn_length_prop
   (is_short: bool)
@@ -129,30 +119,29 @@ let protected_bits_pn_length_prop
   [SMTPat (protected_bits_pn_length is_short pb)]
 = ()
 
+#push-options "--z3rlimit 16 --max_fuel 2"
+
 let mk_short_protected_bits_correct
+  (reserved_bits: bitfield 2)
   (key_phase: bool)
   (pnl: PN.packet_number_length_t)
 : Lemma
   (
-    let b = mk_short_protected_bits key_phase pnl in
+    let b = mk_short_protected_bits reserved_bits key_phase pnl in
     protected_bits_pn_length true b == pnl /\
-    protected_bits_reserved true b == 0uy /\
+    protected_bits_reserved true b == reserved_bits /\
     protected_bits_key_phase b == key_phase /\
     True
   )
-= 
-  BF.get_bitfield_zero 8 3 5
-
-#push-options "--z3rlimit 16 --max_fuel 2"
+= ()
 
 let mk_short_protected_bits_complete
-  (pb: Public.bitfield 5 { protected_bits_reserved true pb == 0uy } )
+  (pb: Public.bitfield 5)
 : Lemma
   (
-    mk_short_protected_bits (protected_bits_key_phase pb) (protected_bits_pn_length true pb) == pb
+    mk_short_protected_bits (protected_bits_reserved true pb) (protected_bits_key_phase pb) (protected_bits_pn_length true pb) == pb
   )
-= BF.get_bitfield_zero 8 3 5;
-  let pb' = mk_short_protected_bits (protected_bits_key_phase pb) (protected_bits_pn_length true pb) in
+= let pb' = mk_short_protected_bits (protected_bits_reserved true pb) (protected_bits_key_phase pb) (protected_bits_pn_length true pb) in
   BF.get_bitfield_full #5 (U8.v pb');
   BF.get_bitfield_full #5 (U8.v pb);
   BF.get_bitfield_size 5 8 (U8.v pb) 0 5;
@@ -167,30 +156,31 @@ let mk_short_protected_bits_complete
 #pop-options
 
 let mk_long_protected_bits
+  (reserved_bits: bitfield 2)
   (pnl: PN.packet_number_length_t)
 : GTot (Public.bitfield 4)
 = BF.set_bitfield_bound #8 0 4 0 2 (Secret.v pnl - 1);
-  BF.uint8.BF.set_bitfield 0uy 0 2 (U8.uint_to_t (Secret.v pnl - 1))
+  BF.set_bitfield_bound #8 (BF.set_bitfield #8 0 0 2 (Secret.v pnl - 1)) 4 2 4 (U8.v reserved_bits);
+  BF.uint8.BF.set_bitfield (BF.uint8.BF.set_bitfield 0uy 0 2 (U8.uint_to_t (Secret.v pnl - 1))) 2 4 reserved_bits
 
 let mk_long_protected_bits_correct
+  (reserved_bits: bitfield 2)
   (pnl: PN.packet_number_length_t)
 : Lemma
   (
-    let b = mk_long_protected_bits pnl in
+    let b = mk_long_protected_bits reserved_bits pnl in
     protected_bits_pn_length false b == pnl /\
-    protected_bits_reserved false b == 0uy
+    protected_bits_reserved false b == reserved_bits
   )
-=
-  BF.get_bitfield_zero 8 2 4
+= ()
 
 let mk_long_protected_bits_complete
-  (pb: Public.bitfield 4 { protected_bits_reserved false pb == 0uy } )
+  (pb: Public.bitfield 4)
 : Lemma
   (
-    mk_long_protected_bits (protected_bits_pn_length false pb) == pb
+    mk_long_protected_bits (protected_bits_reserved false pb) (protected_bits_pn_length false pb) == pb
   )
-= BF.get_bitfield_zero 8 2 4;
-  let pb' = mk_long_protected_bits (protected_bits_pn_length false pb) in
+= let pb' = mk_long_protected_bits (protected_bits_reserved false pb) (protected_bits_pn_length false pb) in
   BF.get_bitfield_full #4 (U8.v pb');
   BF.get_bitfield_full #4 (U8.v pb);
   BF.get_bitfield_size 4 8 (U8.v pb) 0 4;
@@ -204,57 +194,58 @@ let mk_long_protected_bits_complete
 let synth_header
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
-  (x: dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last))
+  (x: dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
 : GTot (header' short_dcid_len last)
 = let (| h, pn |) = x in
   match h with
   | Public.PShort protected_bits spin dcid ->
-    MShort spin (protected_bits_key_phase protected_bits) dcid (protected_bits_pn_length true protected_bits) pn
+    MShort (protected_bits_reserved true protected_bits) spin (protected_bits_key_phase protected_bits) dcid (protected_bits_pn_length true protected_bits) pn
   | Public.PLong protected_bits version dcid scid spec ->
     let pnl = protected_bits_pn_length false protected_bits in
+    let rb = protected_bits_reserved false protected_bits in
     MLong version dcid scid
       begin match spec with
       | Public.PRetry odcid ->
         MRetry protected_bits odcid
       | Public.PInitial token payload_and_pn_length ->
-        MInitial token payload_and_pn_length pnl pn
+        MInitial rb token payload_and_pn_length pnl pn
       | Public.PHandshake payload_and_pn_length ->
-        MHandshake payload_and_pn_length pnl pn
+        MHandshake rb payload_and_pn_length pnl pn
       | Public.PZeroRTT payload_and_pn_length ->
-        MZeroRTT payload_and_pn_length pnl pn
+        MZeroRTT rb payload_and_pn_length pnl pn
       end
 
 let synth_header_recip
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (x: header' short_dcid_len last)
-: GTot (dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last))
+: GTot (dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
 = match x with
-  | MShort spin key_phase dcid pnl pn ->
-    mk_short_protected_bits_correct key_phase pnl;
-    (| Public.PShort (mk_short_protected_bits key_phase pnl) spin dcid, pn |)
+  | MShort rb spin key_phase dcid pnl pn ->
+    mk_short_protected_bits_correct rb key_phase pnl;
+    (| Public.PShort (mk_short_protected_bits rb key_phase pnl) spin dcid, pn |)
   | MLong version dcid scid spec ->
     begin match spec with
     | MRetry unused odcid ->
       (| Public.PLong unused version dcid scid (Public.PRetry odcid), () |)
-    | MInitial token payload_and_pn_length pnl pn ->
-      mk_long_protected_bits_correct pnl;
-      (| Public.PLong (mk_long_protected_bits pnl) version dcid scid (Public.PInitial token payload_and_pn_length), pn |)
-    | MHandshake payload_and_pn_length pnl pn ->
-      mk_long_protected_bits_correct pnl;
-      (| Public.PLong (mk_long_protected_bits pnl) version dcid scid (Public.PHandshake payload_and_pn_length), pn |)
-    | MZeroRTT payload_and_pn_length pnl pn ->
-      mk_long_protected_bits_correct pnl;
-      (| Public.PLong (mk_long_protected_bits pnl) version dcid scid (Public.PZeroRTT payload_and_pn_length), pn |)
+    | MInitial rb token payload_and_pn_length pnl pn ->
+      mk_long_protected_bits_correct rb pnl;
+      (| Public.PLong (mk_long_protected_bits rb pnl) version dcid scid (Public.PInitial token payload_and_pn_length), pn |)
+    | MHandshake rb payload_and_pn_length pnl pn ->
+      mk_long_protected_bits_correct rb pnl;
+      (| Public.PLong (mk_long_protected_bits rb pnl) version dcid scid (Public.PHandshake payload_and_pn_length), pn |)
+    | MZeroRTT rb payload_and_pn_length pnl pn ->
+      mk_long_protected_bits_correct rb pnl;
+      (| Public.PLong (mk_long_protected_bits rb pnl) version dcid scid (Public.PZeroRTT payload_and_pn_length), pn |)
     end
 
 let synth_header_injective
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Lemma
-  (LP.synth_injective #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last)  (synth_header short_dcid_len last))
-  [SMTPat (LP.synth_injective #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last))]
-= LP.synth_inverse_intro' (synth_header_recip short_dcid_len last) (synth_header short_dcid_len last) (fun (x: dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last)) ->
+  (LP.synth_injective #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last)  (synth_header short_dcid_len last))
+  [SMTPat (LP.synth_injective #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last))]
+= LP.synth_inverse_intro' (synth_header_recip short_dcid_len last) (synth_header short_dcid_len last) (fun (x: dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) ->
     let (| h, pn |) = x in
     match h with
     | Public.PShort protected_bits spin dcid ->
@@ -271,21 +262,21 @@ let synth_header_inverse
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Lemma
-  (LP.synth_inverse #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last))
-  [SMTPat (LP.synth_inverse #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last))]
+  (LP.synth_inverse #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last))
+  [SMTPat (LP.synth_inverse #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last))]
 = LP.synth_inverse_intro' (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last) (fun (x: header' short_dcid_len last) ->
     match x with
-    | MShort spin key_phase dcid pnl pn ->
-      mk_short_protected_bits_correct key_phase pnl
+    | MShort rb spin key_phase dcid pnl pn ->
+      mk_short_protected_bits_correct rb key_phase pnl
     | MLong version dcid scid spec ->
       begin match spec with
       | MRetry unused odcid -> ()
-      | MInitial token payload_and_pn_length pnl pn ->
-        mk_long_protected_bits_correct pnl
-      | MHandshake payload_and_pn_length pnl pn ->
-        mk_long_protected_bits_correct pnl
-      | MZeroRTT payload_and_pn_length pnl pn ->
-        mk_long_protected_bits_correct pnl
+      | MInitial rb token payload_and_pn_length pnl pn ->
+        mk_long_protected_bits_correct rb pnl
+      | MHandshake rb payload_and_pn_length pnl pn ->
+        mk_long_protected_bits_correct rb pnl
+      | MZeroRTT rb payload_and_pn_length pnl pn ->
+        mk_long_protected_bits_correct rb pnl
       end
   )
 
@@ -301,11 +292,11 @@ let parse_header
 =
   LP.parse_synth
     #_
-    #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
     #(header' short_dcid_len last)
     (LP.parse_dtuple2
-      #_ #(checked_header short_dcid_len)
-      (LP.parse_filter (Public.parse_header short_dcid_len) (check_public_header short_dcid_len))
+      #_ #(Public.header' short_dcid_len)
+      (Public.parse_header short_dcid_len)
       #_ #(packet_number_opt short_dcid_len last)
       (parse_packet_number_opt short_dcid_len last)
     )
@@ -318,13 +309,13 @@ let serialize_header
 =
   LP.serialize_synth
     #_
-    #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
     #(header' short_dcid_len last)
     _
     (synth_header short_dcid_len last)
     (LP.serialize_dtuple2
-      #_ #(checked_header short_dcid_len)
-      (LP.serialize_filter (Public.serialize_header short_dcid_len) (check_public_header short_dcid_len))
+      #_ #(Public.header' short_dcid_len)
+      (Public.serialize_header short_dcid_len)
       #_ #(packet_number_opt short_dcid_len last)
       (serialize_packet_number_opt short_dcid_len last)
     )

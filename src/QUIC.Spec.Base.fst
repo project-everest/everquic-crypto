@@ -32,17 +32,20 @@ type payload_and_pn_length_t = (payload_and_pn_length: U62.t { U64.v payload_and
 noeq
 type long_header_specifics =
 | MInitial:
+  (reserved_bits: bitfield 2) ->
   (token: vlbytes 0 token_max_len) -> // arbitrary bound
   (payload_and_pn_length: payload_and_pn_length_t) ->
   (packet_number_length: PN.packet_number_length_t) ->
   (packet_number: PN.packet_number_t) ->
   long_header_specifics
 | MZeroRTT:
+  (reserved_bits: bitfield 2) ->
   (payload_and_pn_length: payload_and_pn_length_t) ->
   (packet_number_length: PN.packet_number_length_t) ->
   (packet_number: PN.packet_number_t) ->
   long_header_specifics
 | MHandshake:
+  (reserved_bits: bitfield 2) ->
   (payload_and_pn_length: payload_and_pn_length_t) ->
   (packet_number_length: PN.packet_number_length_t) ->
   (packet_number: PN.packet_number_t) ->
@@ -61,6 +64,7 @@ type header =
   (spec: long_header_specifics) ->
   header
 | MShort:
+  (reserved_bits: bitfield 2) ->
   (spin: bool) ->
   (key_phase: bool) ->
   (dcid: vlbytes 0 20) ->
@@ -80,30 +84,40 @@ let is_handshake (h: header) : Tot bool =
 let is_retry (h: header) : Tot bool =
   if MLong? h then MRetry? (MLong?.spec h) else false
 
+let reserved_bits (h: header { ~ (is_retry h) }) : Tot (bitfield 2) =
+  match h with
+  | MLong _ _ _ spec ->
+    begin match spec with
+    | MInitial pb _ _ _ _ -> pb
+    | MZeroRTT pb _ _ _ -> pb
+    | MHandshake pb _ _ _ -> pb
+    end
+  | MShort pb _ _ _ _ _ -> pb
+
 let pn_length (h: header { ~ (is_retry h) }) : Tot PN.packet_number_length_t =
   match h with
   | MLong _ _ _ spec ->
     begin match spec with
-    | MInitial _ _ pnl _ -> pnl
-    | MZeroRTT _ pnl _ -> pnl
-    | MHandshake _ pnl _ -> pnl
+    | MInitial _ _ _ pnl _ -> pnl
+    | MZeroRTT _ _ pnl _ -> pnl
+    | MHandshake _ _ pnl _ -> pnl
     end
-  | MShort _ _ _ pnl _ -> pnl
+  | MShort _ _ _ _ pnl _ -> pnl
 
 let packet_number (h: header {~ (is_retry h)}) : Tot PN.packet_number_t =
   match h with
   | MLong _ _ _ spec ->
     begin match spec with
-    | MInitial _ _ _ pn -> pn
-    | MZeroRTT _ _ pn -> pn
-    | MHandshake _ _ pn -> pn
+    | MInitial _ _ _ _ pn -> pn
+    | MZeroRTT _ _ _ pn -> pn
+    | MHandshake _ _ _ pn -> pn
     end
-  | MShort _ _ _ _ pn -> pn
+  | MShort _ _ _ _ _ pn -> pn
 
 let dcid_len (h: header) : Tot nat =
   match h with
   | MLong _ dcid _ _ -> FB.length dcid
-  | MShort _ _ dcid _ _ -> FB.length dcid
+  | MShort _ _ _ dcid _ _ -> FB.length dcid
 
 type packet = b:bytes{let l = S.length b in (* 21 <= l /\ *) l < pow2 32}
 
@@ -119,9 +133,9 @@ let payload_and_pn_length
   (h: header { has_payload_length h })
 : Tot U62.t
 = match MLong?.spec h with
-  | MInitial _ pl _ _ -> pl
-  | MZeroRTT pl _ _ -> pl
-  | MHandshake pl _ _ -> pl
+  | MInitial _ _ pl _ _ -> pl
+  | MZeroRTT _ pl _ _ -> pl
+  | MHandshake _ pl _ _ -> pl
 
 module Secret = QUIC.Secret
 
@@ -129,9 +143,9 @@ let payload_length
   (h: header { has_payload_length h })
 : Tot U62.secret
 = match MLong?.spec h with
-  | MInitial _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
-  | MZeroRTT pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
-  | MHandshake pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
+  | MInitial _ _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
+  | MZeroRTT _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
+  | MHandshake _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
 
 (* Correctness of a packet wrt. parsing parameters (cid_len, window) *)
 
