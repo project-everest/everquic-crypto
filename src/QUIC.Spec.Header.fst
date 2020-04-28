@@ -64,6 +64,15 @@ let parse_packet_number_opt
   then LP.weaken parse_packet_number_opt_kind LP.parse_empty
   else LP.weaken parse_packet_number_opt_kind (PN.parse_packet_number last (get_pn_length h))
 
+let serialize_packet_number_opt
+  (cid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (h: checked_header cid_len)
+: Tot (LP.serializer (parse_packet_number_opt cid_len last h))
+= if Public.is_retry h
+  then LP.serialize_weaken parse_packet_number_opt_kind LP.serialize_empty
+  else LP.serialize_weaken parse_packet_number_opt_kind (PN.serialize_packet_number last (get_pn_length h))
+
 let packet_number_prop
   (last: PN.last_packet_number_t)
   (h: header)
@@ -290,14 +299,37 @@ let parse_header
   (last: PN.last_packet_number_t)
 : Tot (LP.parser (parse_header_kind short_dcid_len) (header' short_dcid_len last))
 =
-  LP.parse_dtuple2
-    #_ #(checked_header short_dcid_len)
-    (LP.parse_filter (Public.parse_header short_dcid_len) (check_public_header short_dcid_len))
-    #_ #(packet_number_opt short_dcid_len last)
-    (parse_packet_number_opt short_dcid_len last)
-  `LP.parse_synth`
+  LP.parse_synth
+    #_
+    #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(header' short_dcid_len last)
+    (LP.parse_dtuple2
+      #_ #(checked_header short_dcid_len)
+      (LP.parse_filter (Public.parse_header short_dcid_len) (check_public_header short_dcid_len))
+      #_ #(packet_number_opt short_dcid_len last)
+      (parse_packet_number_opt short_dcid_len last)
+    )
     (synth_header short_dcid_len last)
 
+let serialize_header
+  (short_dcid_len: Public.short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+: Tot (LP.serializer (parse_header short_dcid_len last))
+=
+  LP.serialize_synth
+    #_
+    #(dtuple2 (checked_header short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(header' short_dcid_len last)
+    _
+    (synth_header short_dcid_len last)
+    (LP.serialize_dtuple2
+      #_ #(checked_header short_dcid_len)
+      (LP.serialize_filter (Public.serialize_header short_dcid_len) (check_public_header short_dcid_len))
+      #_ #(packet_number_opt short_dcid_len last)
+      (serialize_packet_number_opt short_dcid_len last)
+    )
+    (synth_header_recip short_dcid_len last)
+    ()
 
 (*
 let parse_header_ifthenelse_payload
