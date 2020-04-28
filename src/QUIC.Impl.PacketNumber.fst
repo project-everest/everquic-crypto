@@ -159,7 +159,7 @@ let bound_npn
 inline_for_extraction
 let secret_bounded_integer (i: LP.integer_size) = (x: Secret.uint32 { LP.bounded_integer_prop i (U32.uint_to_t (Secret.v x)) })
 
-#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 1024 --query_stats"
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 2048 --query_stats"
 
 module U62 = QUIC.UInt62
 module Lemmas = QUIC.Spec.PacketNumber.Lemmas

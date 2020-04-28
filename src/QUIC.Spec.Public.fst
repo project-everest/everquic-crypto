@@ -378,7 +378,7 @@ let serialize_header_eq
     (serialize_header_body short_dcid_len)
     h
 
-#push-options "--z3rlimit 64"
+#push-options "--z3rlimit 128"
 
 #restart-solver
 
