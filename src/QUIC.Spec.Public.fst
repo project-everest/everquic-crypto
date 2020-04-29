@@ -399,7 +399,7 @@ let mk_header_body_set_valid_bitfield
     mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h)
 = ()
 
-#push-options "--z3rlimit 128"
+#push-options "--z3rlimit 256"
 
 #restart-solver
 

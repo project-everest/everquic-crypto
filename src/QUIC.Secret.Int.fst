@@ -502,3 +502,37 @@ let set_bitfield
   (x `logand` lognot' ((ones t l `shift_right` (U32.uint_to_t (bits t) `U32.sub` (hi `U32.sub` lo))) `shift_left` lo)) `logor` (w `shift_left` lo)
 
 #pop-options
+
+(* Instances *)
+
+[@"opaque_to_smt"]
+let secrets_are_equal_32_2
+  (x: uint32 { v x < pow2 2 })
+  (y: uint32 { v y < pow2 2 })
+: Tot (z: uint32 {
+    v z == (if v x = v y then 1 else 0)
+  })
+= norm (secrets_are_equal 2 x y)
+
+[@"opaque_to_smt"]
+let secret_is_le_64
+  (x: uint64)
+  (y: uint64)
+: Tot (z: uint64 { v z == (if v x <= v y then 1 else 0) })
+= norm (secret_is_le 64 x y)
+
+[@"opaque_to_smt"]
+let secret_is_lt_64
+  (x: uint64)
+  (y: uint64)
+: Tot (z: uint64 { v z == (if v x < v y then 1 else 0) })
+= norm (secret_is_lt 64 x y)
+
+[@"opaque_to_smt"]
+let secrets_are_equal_64_2
+  (x: uint64 { v x < pow2 2 })
+  (y: uint64 { v y < pow2 2 })
+: Tot (z: uint64 {
+    v z == (if v x = v y then 1 else 0)
+  })
+= norm (secrets_are_equal 2 x y)

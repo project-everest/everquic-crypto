@@ -74,15 +74,6 @@ let read_u32
 
 module BF = LowParse.BitFields
 
-[@"opaque_to_smt"]
-let secrets_are_equal_32_2
-  (x: Secret.uint32 { Secret.v x < pow2 2 })
-  (y: Secret.uint32 { Secret.v y < pow2 2 })
-: Tot (z: Secret.uint32 {
-    Secret.v z == (if Secret.v x = Secret.v y then 1 else 0)
-  })
-= Secret.norm (Secret.secrets_are_equal 2 x y)
-
 #push-options "--z3rlimit 16"
 
 inline_for_extraction
@@ -110,38 +101,15 @@ let read_bounded_integer
   let x = read_u32 b in
   BF.get_bitfield_full #32 (Secret.v x);
   let pn_len_1 = Secret.to_u32 (pn_len `Secret.sub` Secret.to_u32 1ul) in
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 0ul) `Secret.mul` Secret.get_bitfield x 24ul 32ul) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 1ul) `Secret.mul` Secret.get_bitfield x 16ul 32ul) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 2ul) `Secret.mul`
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 0ul) `Secret.mul` Secret.get_bitfield x 24ul 32ul) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 1ul) `Secret.mul` Secret.get_bitfield x 16ul 32ul) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 2ul) `Secret.mul`
 Secret.get_bitfield x 8ul 32ul) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 3ul) `Secret.mul` x)
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 3ul) `Secret.mul` x)
 
 #pop-options
 
-[@"opaque_to_smt"]
-let secret_is_le_64
-  (x: Secret.uint64)
-  (y: Secret.uint64)
-: Tot (z: Secret.uint64 { Secret.v z == (if Secret.v x <= Secret.v y then 1 else 0) })
-= Secret.norm (Secret.secret_is_le 64 x y)
-
-[@"opaque_to_smt"]
-let secret_is_lt_64
-  (x: Secret.uint64)
-  (y: Secret.uint64)
-: Tot (z: Secret.uint64 { Secret.v z == (if Secret.v x < Secret.v y then 1 else 0) })
-= Secret.norm (Secret.secret_is_lt 64 x y)
-
 module U = FStar.UInt
-
-[@"opaque_to_smt"]
-let secrets_are_equal_64_2
-  (x: Secret.uint64 { Secret.v x < pow2 2 })
-  (y: Secret.uint64 { Secret.v y < pow2 2 })
-: Tot (z: Secret.uint64 {
-    Secret.v z == (if Secret.v x = Secret.v y then 1 else 0)
-  })
-= Secret.norm (Secret.secrets_are_equal 2 x y)
 
 #push-options "--z3rlimit 16"
 
@@ -150,10 +118,10 @@ let bound_npn
   (pn_len: packet_number_length_t)
 : Tot (x: packet_number_t { Secret.v x == bound_npn' (Secret.v pn_len - 1) })
 = let pn_len_1 = Secret.to_u64 (pn_len `Secret.sub` Secret.to_u32 1ul) in
-  ((pn_len_1 `secrets_are_equal_64_2` Secret.to_u64 0ul) `Secret.mul` Secret.to_u64 256uL) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_64_2` Secret.to_u64 1ul) `Secret.mul` Secret.to_u64 65536uL) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_64_2` Secret.to_u64 2ul) `Secret.mul` Secret.to_u64 16777216uL) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_64_2` Secret.to_u64 3ul) `Secret.mul` Secret.to_u64 4294967296uL)
+  ((pn_len_1 `Secret.secrets_are_equal_64_2` Secret.to_u64 0ul) `Secret.mul` Secret.to_u64 256uL) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_64_2` Secret.to_u64 1ul) `Secret.mul` Secret.to_u64 65536uL) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_64_2` Secret.to_u64 2ul) `Secret.mul` Secret.to_u64 16777216uL) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_64_2` Secret.to_u64 3ul) `Secret.mul` Secret.to_u64 4294967296uL)
 
 #pop-options
 
@@ -182,11 +150,11 @@ let expand_pn_aux
   FStar.UInt.shift_right_value_lemma #64 (Secret.v bound) 1;
   assert (Secret.v bound_2 == Secret.v bound / 2);
   let candidate = Lemmas.replace_modulo expected (8 `Prims.op_Multiply` Secret.v pn_len) (bound `Secret.sub` Secret.to_u64 1uL) (Secret.to_u64 npn) in
-  let bound_2_le_expected = bound_2 `secret_is_le_64` expected in
+  let bound_2_le_expected = bound_2 `Secret.secret_is_le_64` expected in
   let cond_1 =
     bound_2_le_expected `Secret.logand_one_bit`
-    (candidate `secret_is_le_64` ((bound_2_le_expected `Secret.mul` expected) `Secret.sub` (bound_2_le_expected `Secret.mul` bound_2))) `Secret.logand_one_bit`
-    (candidate `secret_is_lt_64` (Secret.to_u64 U62.bound `Secret.sub` bound))
+    (candidate `Secret.secret_is_le_64` ((bound_2_le_expected `Secret.mul` expected) `Secret.sub` (bound_2_le_expected `Secret.mul` bound_2))) `Secret.logand_one_bit`
+    (candidate `Secret.secret_is_lt_64` (Secret.to_u64 U62.bound `Secret.sub` bound))
   in
   assert (Secret.v cond_1 == (
     if
@@ -198,8 +166,8 @@ let expand_pn_aux
   ));
   let cond_2 =
     Secret.lognot_one_bit cond_1 `Secret.logand_one_bit`
-    ((expected `Secret.add` bound_2) `secret_is_lt_64` candidate) `Secret.logand_one_bit`
-    (bound `secret_is_le_64` candidate)
+    ((expected `Secret.add` bound_2) `Secret.secret_is_lt_64` candidate) `Secret.logand_one_bit`
+    (bound `Secret.secret_is_le_64` candidate)
   in
   assert (Secret.v cond_2 == (
     if
@@ -342,7 +310,7 @@ let set_left_bitfield_aux
 = 
   [@inline_let]
   let pn_len_1 = Secret.to_u32 (pn_len `Secret.sub` Secret.to_u32 1ul) in
-  (pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 (pn_len' `U32.sub` 1ul)) `Secret.mul` Secret.set_bitfield before (8ul `U32.mul` (4ul `U32.sub` pn_len')) 32ul (set_left_bitfield_arg pn_len pn_len' x mask)
+  (pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 (pn_len' `U32.sub` 1ul)) `Secret.mul` Secret.set_bitfield before (8ul `U32.mul` (4ul `U32.sub` pn_len')) 32ul (set_left_bitfield_arg pn_len pn_len' x mask)
 
 #pop-options
 
@@ -366,7 +334,7 @@ let set_left_bitfield
   set_left_bitfield_aux pn_len 1ul before x (Secret.to_u32 255ul) `Secret.add`
   set_left_bitfield_aux pn_len 2ul before x (Secret.to_u32 65535ul) `Secret.add`
   set_left_bitfield_aux pn_len 3ul before x (Secret.to_u32 16777215ul) `Secret.add`
-  ((pn_len_1 `secrets_are_equal_32_2` Secret.to_u32 3ul) `Secret.mul` x)
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 3ul) `Secret.mul` x)
 
 #pop-options
 
