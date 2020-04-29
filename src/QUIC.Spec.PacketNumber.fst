@@ -120,43 +120,68 @@ let synth_packet_number_recip_inverse
 
 #pop-options
 
+
+let parse_reduced_pn
+  (pn_len: packet_number_length_t)
+  ()
+: GTot (parser parse_packet_number_kind (bounded_integer (Secret.v pn_len)))
+= weaken parse_packet_number_kind (parse_bounded_integer (Secret.v pn_len))
+
 let parse_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-: Tot (parser (parse_bounded_integer_kind (Secret.v pn_len)) (packet_number_t' last pn_len) )
-= parse_bounded_integer (Secret.v pn_len) `parse_synth` synth_packet_number last pn_len
+: Tot (parser parse_packet_number_kind (packet_number_t' last pn_len) )
+= lift_parser (parse_reduced_pn pn_len) `parse_synth` synth_packet_number last pn_len
+
+let parse_packet_number_kind'_correct
+  last pn_len
+= let p = parse_bounded_integer (Secret.v pn_len) `parse_synth` synth_packet_number last pn_len in
+  let f
+    (input: bytes)
+  : Lemma
+    (parse (parse_packet_number last pn_len) input == parse p input)
+  = parse_synth_eq
+      (lift_parser (parse_reduced_pn pn_len))
+      (synth_packet_number last pn_len)
+      input;
+    parse_synth_eq
+      (parse_bounded_integer (Secret.v pn_len))
+      (synth_packet_number last pn_len)
+      input
+  in
+  Classical.forall_intro f;
+  parser_kind_prop_ext (total_constant_size_parser_kind (Secret.v pn_len)) (parse_packet_number last pn_len) p
+
+let serialize_reduced_pn
+  (pn_len: packet_number_length_t)
+  (x: unit)
+: GTot (serializer (parse_reduced_pn pn_len ()))
+= serialize_weaken parse_packet_number_kind (serialize_bounded_integer (Secret.v pn_len))
 
 let serialize_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
 : Tot (serializer (parse_packet_number last pn_len))
-= // synth_packet_number_recip_inverse last pn_len;
-  serialize_synth
-    _
+= serialize_synth
+    (lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last pn_len)
-    (serialize_bounded_integer (Secret.v pn_len))
+    (lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last pn_len)
     ()
 
-#push-options "--z3rlimit 16"
-
 let serialize_packet_number_ext
   last1 last2 pn_len pn
-= synth_packet_number_recip_inverse last1 pn_len;
-  synth_packet_number_recip_inverse last2 pn_len;
-  serialize_synth_eq 
-    _
+= serialize_synth_eq 
+    (lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last1 pn_len)
-    (serialize_bounded_integer (Secret.v pn_len))
+    (lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last1 pn_len)
     ()
     pn;
   serialize_synth_eq 
-    _
+    (lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last2 pn_len)
-    (serialize_bounded_integer (Secret.v pn_len))
+    (lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last2 pn_len)
     ()
     pn
-
-#pop-options

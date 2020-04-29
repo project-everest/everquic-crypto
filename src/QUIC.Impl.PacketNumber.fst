@@ -224,11 +224,13 @@ let expand_pn
 let read_packet_number
   last pn_len b
 = let h = HST.get () in
-  LP.parse_synth_eq (LP.parse_bounded_integer (Secret.v pn_len)) (synth_packet_number last pn_len) (Seq.seq_reveal (B.as_seq h b));
+  LP.parse_synth_eq (LP.lift_parser (parse_reduced_pn pn_len)) (synth_packet_number last pn_len) (Seq.seq_reveal (B.as_seq h b));
   let npn = read_bounded_integer pn_len b in
   expand_pn pn_len last npn
 
 #push-options "--z3rlimit 32"
+
+#restart-solver
 
 [@"opaque_to_smt"]
 let reduce_pn
@@ -368,6 +370,10 @@ let set_left_bitfield
 
 #pop-options
 
+#push-options "--z3rlimit 16"
+
+#restart-solver
+
 let set_left_bitfield_left
   (pn_len: packet_number_length_t)
   (before: Secret.uint32)
@@ -377,8 +383,6 @@ let set_left_bitfield_left
 =
   E.slice_n_to_be_bitfield 4 (Secret.v (set_left_bitfield pn_len before x)) 0 (Secret.v pn_len);
   BF.get_bitfield_set_bitfield_same #32 (Secret.v before) (8 `op_Multiply` (4 - Secret.v pn_len)) 32 (Secret.v x)
-
-#push-options "--z3rlimit 16"
 
 let set_left_bitfield_right
   (pn_len: packet_number_length_t)
@@ -435,9 +439,9 @@ let write_packet_number
   last pn_len pn b
 = let h = HST.get () in
   LP.serialize_synth_eq
-    (LP.parse_bounded_integer (Secret.v pn_len))
+    (LP.lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last pn_len)
-    (LP.serialize_bounded_integer (Secret.v pn_len))
+    (LP.lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last pn_len)
     ()
     pn;

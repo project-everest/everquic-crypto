@@ -13,7 +13,7 @@ let t = (x: U64.t { U64.v x < U64.v bound })
 noextract
 let v = U64.v
 
-module Secret = Lib.IntTypes
+module Secret = QUIC.Secret.Int
 
 inline_for_extraction
 let secret = (x: Secret.uint64 { Secret.v x < U64.v bound })

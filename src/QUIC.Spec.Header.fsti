@@ -72,7 +72,8 @@ val header_decrypt:
 
 (*
 val header_encrypt: a:ea ->
-  hpk: lbytes (ae_keysize a) ->
+  a:ea ->
+  hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   h: header ->
   c: cbytes ->
   GTot packet

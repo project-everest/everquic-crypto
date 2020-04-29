@@ -6,6 +6,10 @@ module U16 = FStar.UInt16
 module U32 = FStar.UInt32
 module U64 = FStar.UInt64
 
+unfold
+let v #t #l (u: int_t t l) : GTot (range_t t) =
+  v u
+
 noextract
 noeq
 type must_inline =

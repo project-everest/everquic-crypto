@@ -60,6 +60,10 @@ let logand_mask (#n:pos) (a:U.uint_t n) (m:nat{m <= n})
   end
   else U.logand_mask a m
 
+#pop-options
+
+#push-options "--z3rlimit 1024"
+
 #restart-solver
 
 inline_for_extraction

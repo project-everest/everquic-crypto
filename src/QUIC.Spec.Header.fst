@@ -65,7 +65,7 @@ let serialize_packet_number_opt
 let packet_number_prop
   (last: PN.last_packet_number_t)
   (h: header)
-: Tot bool
+: GTot bool
 = if not (is_retry h)
   then PN.in_window (Secret.v (pn_length h) - 1) (Secret.v last) (Secret.v (packet_number h))
   else true
@@ -85,7 +85,7 @@ let parse_header_prop
   (short_dcid_len: Public.short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (m: header)
-: Tot bool
+: GTot bool
 = short_dcid_len_prop short_dcid_len m &&
   packet_number_prop last m
 
@@ -639,7 +639,27 @@ let header_decrypt
 
 #pop-options
 
-
+(*
+let header_encrypt
+  a hpk h c
+=
+  assert_norm(max_cipher_length < pow2 62);
+  let r = Seq.(format_header h `append` c) in
+  if is_retry h
+  then
+    r
+  else
+    let pn_offset = pn_offset h in
+    let pn_len = U32.v (pn_length h) - 1 in
+    let sample = Seq.slice c (3-pn_len) (19-pn_len) in
+    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+    let pnmask = and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask_naive pn_len) 0 in
+    let f = Seq.index r 0 in
+    let protected_bits = if MShort? h then 5 else 4 in
+    let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits) in
+    let r = xor_inplace r pnmask pn_offset in
+    let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
+    r
 
 
 (*

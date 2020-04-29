@@ -39,9 +39,13 @@ let seq_hide_length
   #t #sec x
 = ()
 
+#push-options "--z3rlimit 16"
+
 let seq_hide_index
   #t #seq x i
 = ()
+
+#pop-options
 
 noextract
 let rec seq_gmap

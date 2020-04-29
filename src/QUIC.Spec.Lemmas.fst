@@ -21,6 +21,8 @@ let lemma_mod_pow2 (a:nat) (b:nat) : Lemma
   pow2_minus a b;
   pow2_plus b (a-b)
 
+#push-options "--z3rlimit 16"
+
 let lemma_divrem2 (k:nat) (a:nat) (n:nat)
   : Lemma (requires a >= k /\ n < pow2 k)
   (ensures ((pow2 a + n) % pow2 k == n /\ (pow2 a + n) / pow2 k == pow2 (a - k)))
@@ -31,6 +33,8 @@ let lemma_divrem2 (k:nat) (a:nat) (n:nat)
   small_mod n (pow2 k);
   lemma_div_mod (pow2 a + n) (pow2 k);
   pow2_minus a k
+
+#pop-options
 
 // We really should have this pattern already...
 let lemma_mod0 (x:pos) : Lemma (0 % x == 0)
@@ -334,6 +338,8 @@ let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
 
   FStar.Classical.forall_intro step
 
+#push-options "--z3rlimit 16"
+
 let pointwise_op_append_r
   (#t: eqtype)
   (f: t -> t -> t)
@@ -352,6 +358,8 @@ let pointwise_op_append_r
   pointwise_op_dec f (S.slice a 0 (pos + S.length b1)) (S.slice a (pos + S.length b1) (S.length a)) (S.append b1 b2) pos;
   let (b1', b2') = S.split (b1 `S.append` b2) (S.length b1) in
   assert (b1 `S.equal` b1' /\ b2 `S.equal` b2')
+
+#pop-options
 
 let pointwise_op_split
   (#t: eqtype)
