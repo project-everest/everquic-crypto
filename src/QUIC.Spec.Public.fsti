@@ -1,4 +1,5 @@
 module QUIC.Spec.Public
+include QUIC.Spec.Base
 
 module LP = LowParse.Spec.Base
 module U32 = FStar.UInt32
@@ -7,28 +8,6 @@ module U64 = FStar.UInt64
 module U8 = FStar.UInt8
 module LPB = LowParse.BitFields
 module FB = FStar.Bytes
-
-inline_for_extraction
-let short_dcid_len_t = (short_dcid_len: U32.t { U32.v short_dcid_len <= 20 })
-
-inline_for_extraction
-noextract
-let token_max_len = 16383 // arbitrary bound
-
-inline_for_extraction
-let vlbytes (min: nat) (max: nat) =
-  (x: FB.bytes { min <= FB.length x /\ FB.length x <= max })
-
-inline_for_extraction
-noextract
-let bitfield
-  (sz: nat { sz <= 8 })
-: Tot eqtype
-= (x: U8.t { U8.v x < pow2 sz })
-
-inline_for_extraction
-let payload_and_pn_length_t : Type0 =
-  (payload_and_pn_length: U62.t { U64.v payload_and_pn_length >= 20 })
 
 noeq
 type long_header_specifics =
@@ -92,8 +71,6 @@ inline_for_extraction
 type header'
   (short_dcid_len: short_dcid_len_t)
 = (m: header { parse_header_prop short_dcid_len m })
-
-let header_len_bound = 16500 // FIXME: this should be in line with the parser kind
 
 inline_for_extraction
 noextract

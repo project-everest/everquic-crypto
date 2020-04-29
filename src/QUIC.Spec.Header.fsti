@@ -1,5 +1,5 @@
 module QUIC.Spec.Header
-include QUIC.Spec.Base
+include QUIC.Spec.Header.Base
 
 noeq
 type h_result =
