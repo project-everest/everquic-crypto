@@ -48,15 +48,29 @@ val lemma_header_parsing_safe: cid_len: nat -> last: nat -> b1:bytes -> b2:bytes
   ))
   (ensures parse_header cid_len last b1 == H_Failure \/ b1 = b2)
 
-(*
+type cbytes' (is_retry: bool) = b: bytes { let l = Seq.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
+
+noeq
+type hd_result =
+| HD_Success:
+  h: header ->
+  cipher: cbytes' (is_retry h) ->
+  rem: bytes ->
+  hd_result
+| HD_Failure
+
+module AEAD = Spec.Agile.AEAD
+module Cipher = Spec.Agile.Cipher
+
 val header_decrypt:
   a:ea ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   cid_len: nat { cid_len <= 20 } ->
   last: nat { last + 1 < pow2 62 } ->
   p: packet ->
-  GTot h_result
+  GTot hd_result
 
+(*
 val header_encrypt: a:ea ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->

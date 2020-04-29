@@ -10,11 +10,19 @@ module HST = FStar.HyperStack.ST
 module Seq = FStar.Seq
 module Ghost = FStar.Ghost
 
+let seq_hide x = x
+
+let seq_hide_length #t #sec x = ()
+
+let seq_hide_index #t #sec x i = ()
+
 let seq_reveal x = x
 
 let seq_reveal_length #t #sec x = ()
 
 let seq_reveal_index #t #sec x i = ()
+
+#restart-solver
 
 let with_buffer_hide #t b from to h0 lin lout x1 x2 x3 x4 x5 x6 post f =
   let bl = B.sub b 0ul from in

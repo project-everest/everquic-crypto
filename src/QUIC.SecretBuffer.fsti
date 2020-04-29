@@ -8,6 +8,39 @@ module HST = FStar.HyperStack.ST
 module Seq = FStar.Seq
 module Ghost = FStar.Ghost
 
+val seq_hide
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: Seq.seq (Secret.uint_t t sec))
+: GTot (Seq.seq (Secret.uint_t t Secret.SEC))
+
+val seq_hide_length
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: Seq.seq (Secret.uint_t t sec))
+: Lemma
+  (Seq.length (seq_hide x) == Seq.length x)
+  [SMTPat (Seq.length (seq_hide x))]
+
+val seq_hide_index
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: Seq.seq (Secret.uint_t t sec))
+  (i: nat)
+: Lemma
+  (requires (i < Seq.length x))
+  (ensures (
+    Secret.v (Seq.index (seq_hide x) i) == Secret.v (Seq.index x i)
+  ))
+  [SMTPat (Seq.index (seq_hide x) i)]
+
+let seq_hide_sec
+  (#t: Secret.inttype { Secret.unsigned t })
+  (x: Seq.seq (Secret.uint_t t Secret.SEC))
+: Lemma
+  (seq_hide x `Seq.equal` x)
+= ()
+
 val seq_reveal
   (#t: Secret.inttype { Secret.unsigned t })
   (#sec: Secret.secrecy_level)
@@ -41,6 +74,20 @@ let seq_reveal_pub
   (seq_reveal x `Seq.equal` x)
 = ()
 
+let seq_reveal_hide
+  (#t: Secret.inttype { Secret.unsigned t })
+  (x: Seq.seq (Secret.uint_t t Secret.PUB))
+: Lemma
+  (seq_reveal (seq_hide x) `Seq.equal` x)
+= ()
+
+let seq_hide_reveal
+  (#t: Secret.inttype { Secret.unsigned t })
+  (x: Seq.seq (Secret.uint_t t Secret.SEC))
+: Lemma
+  (seq_hide (seq_reveal x) `Seq.equal` x)
+= ()
+
 let seq_reveal_inj
   (#t: Secret.inttype { Secret.unsigned t })
   (#sec: Secret.secrecy_level)
@@ -48,13 +95,24 @@ let seq_reveal_inj
 : Lemma
   (requires (seq_reveal x1 `Seq.equal` seq_reveal x2))
   (ensures (x1 `Seq.equal` x2))
-= assert (Seq.length (seq_reveal x1) == Seq.length (seq_reveal x2));
-  assert (forall (i: nat { i < Seq.length x1 }) . Seq.index (seq_reveal x1) i == Seq.index (seq_reveal x2) i);
-  assert (forall (i: nat { i < Seq.length x1 }) . Secret.v (Seq.index x1 i) == Secret.v (Seq.index x2 i))
+= match sec with
+  | Secret.PUB -> seq_reveal_pub #t x1; seq_reveal_pub #t x2
+  | Secret.SEC -> seq_hide_reveal #t x1; seq_hide_reveal #t x2
+
+let seq_hide_inj
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x1 x2: Seq.seq (Secret.uint_t t sec))
+: Lemma
+  (requires (seq_hide x1 `Seq.equal` seq_hide x2))
+  (ensures (x1 `Seq.equal` x2))
+= match sec with
+  | Secret.SEC -> seq_hide_sec #t x1; seq_hide_sec #t x2
+  | Secret.PUB -> seq_reveal_hide #t x1; seq_reveal_hide #t x2
 
 module U32 = FStar.UInt32
 
-#set-options "--z3rlimit 16"
+#set-options "--z3rlimit 32"
 
 inline_for_extraction
 noextract

@@ -532,6 +532,121 @@ let lemma_header_parsing_safe
     Seq.lemma_split b1 consumed;
     Seq.lemma_split b2 consumed
 
+#pop-options
+
+module SecretBuffer = QUIC.SecretBuffer
+
+let block_of_sample
+  (a: Cipher.cipher_alg)
+  (k: Cipher.key a)
+  (sample: lbytes 16)
+: GTot (lbytes 16) =
+  let open FStar.Mul in
+  let ctr, iv = match a with
+    | Cipher.CHACHA20 ->
+        let ctr_bytes, iv = Seq.split sample 4 in
+        let iv = SecretBuffer.seq_hide #Secret.U8 iv in
+        FStar.Endianness.lemma_le_to_n_is_bounded ctr_bytes;
+        assert_norm (pow2 (8 * 4) = pow2 32);
+        FStar.Endianness.le_to_n ctr_bytes, iv
+    | _ ->
+        let iv, ctr_bytes = Seq.split sample 12 in
+        let iv = SecretBuffer.seq_hide #Secret.U8 iv in
+        FStar.Endianness.lemma_be_to_n_is_bounded ctr_bytes;
+        assert_norm (pow2 (8 * 4) = pow2 32);
+        FStar.Endianness.be_to_n ctr_bytes, iv
+  in
+  SecretBuffer.seq_reveal (Seq.slice (Cipher.ctr_block a k iv ctr) 0 16)
+
+(*
+Decryption of packet number
+packet[pn_offset..pn_offset+4] ^= pn_mask &
+  match pn_len with
+  | 0 -> mask & 0xFF000000
+  | 1 -> mask & 0xFFFF0000
+  | 2 -> mask & 0xFFFFFF00
+  | 3 -> mask & 0xFFFFFFFF
+*)
+inline_for_extraction
+let pn_sizemask' (pn_len: nat { pn_len < 4 }) : lbytes 4 =
+  let open FStar.Endianness in
+  FStar.Math.Lemmas.pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
+  FStar.Endianness.n_to_be 4 (pow2 32 - pow2 (24 - (8 `op_Multiply` pn_len)))
+
+inline_for_extraction
+let pn_sizemask (pn_len: nat { pn_len < 4 }) : lbytes (pn_len + 1) =
+  Seq.slice (pn_sizemask' pn_len) 0 (pn_len + 1)
+
+module Lemmas = QUIC.Spec.Lemmas
+
+#push-options "--z3rlimit 16"
+
+let header_decrypt_only
+  (a:ea)
+  (hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a))
+  (cid_len: nat { cid_len <= 20 })
+  (last: nat { last + 1 < pow2 62 })
+  (p: packet)
+: GTot (option (lbytes (Seq.length p)))
+=
+  let cid_len' = (U32.uint_to_t cid_len) in
+  let last' = (Secret.to_u64 (U64.uint_to_t last)) in
+  match LP.parse (Public.parse_header cid_len') p with
+  | None -> None
+  | Some (ph, consumed) ->
+    if Public.is_retry ph
+    then Some p
+    else
+      let sample_offset = consumed + 4 in
+      if sample_offset + 16 > Seq.length p
+      then (* not enough space for sampling *) None
+      else
+        let sample = Seq.slice p sample_offset (sample_offset + 16) in
+        let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+        let protected_bits = if Public.PShort? ph then 5 else 4 in
+        let f = Seq.index p 0 in
+        let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v (f `U8.logxor` Seq.index mask 0)) 0 protected_bits) in
+        let packet1 = Seq.upd p 0 (U8.uint_to_t f') in
+        (* now the packet number length is available, so mask the packet number *)
+        let pn_len = BF.get_bitfield f' 0 2 in
+        let pnmask = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
+        let packet2 = Lemmas.xor_inplace packet1 pnmask consumed in
+        Some packet2
+
+#pop-options
+
+#push-options "--z3rlimit 16"
+
+let header_decrypt
+  a hpk cid_len last p
+= match header_decrypt_only a hpk cid_len last p with
+  | None -> HD_Failure
+  | Some p' ->
+    begin match parse_header cid_len last p' with
+    | H_Failure -> HD_Failure
+    | H_Success h c ->
+      if is_retry h
+      then HD_Success h Seq.empty c
+      else
+        let clen : nat = if has_payload_length h then Secret.v (payload_length h) else Seq.length c in
+        if 19 <= clen && clen < max_cipher_length && clen <= Seq.length c
+        then
+          let c' : cbytes = Seq.slice c 0 clen in
+          let rem = Seq.slice c clen (Seq.length c) in
+          HD_Success h c' rem
+        else
+          HD_Failure
+    end
+
+#pop-options
+
+
+
+
+(*
+let header_decrypt
+  a hpk cid_len last p
+=
 
 
 (*
