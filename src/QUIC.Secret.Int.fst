@@ -1,4 +1,4 @@
-module QUIC.Secret
+module QUIC.Secret.Int
 include Lib.IntTypes
 
 module U8 = FStar.UInt8

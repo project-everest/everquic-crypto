@@ -46,7 +46,7 @@ module U64 = FStar.UInt64
 
 #restart-solver
 
-module Secret = QUIC.Secret
+module Secret = QUIC.Secret.Int
 module U = FStar.UInt
   
 let logand_mask (#n:pos) (a:U.uint_t n) (m:nat{m <= n})

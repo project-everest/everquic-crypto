@@ -11,7 +11,7 @@ module U32 = FStar.UInt32
 module U16 = FStar.UInt16
 module U8 = FStar.UInt8
 
-module Secret = QUIC.Secret
+module Secret = QUIC.Secret.Int
 
 let reduce_pn'
   (pn_len: nat { pn_len < 4 })

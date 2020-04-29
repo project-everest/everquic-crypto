@@ -137,7 +137,7 @@ let payload_and_pn_length
   | MZeroRTT _ pl _ _ -> pl
   | MHandshake _ pl _ _ -> pl
 
-module Secret = QUIC.Secret
+module Secret = QUIC.Secret.Int
 
 let payload_length 
   (h: header { has_payload_length h })
@@ -148,8 +148,6 @@ let payload_length
   | MHandshake _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
 
 (* Correctness of a packet wrt. parsing parameters (cid_len, window) *)
-
-module Secret = Lib.IntTypes
 
 let is_valid_header (h: header) (cid_len: nat) (last: nat) : Tot Type0 =
   (MShort? h ==> dcid_len h == cid_len) /\

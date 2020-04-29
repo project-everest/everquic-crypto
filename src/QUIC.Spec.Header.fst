@@ -4,9 +4,10 @@ open QUIC.Spec.Base
 module PN = QUIC.Spec.PacketNumber
 module Public = QUIC.Spec.Public
 module LP = LowParse.Spec.Combinators
-module Secret = QUIC.Secret
+module Secret = QUIC.Secret.Int
 module BF = LowParse.BitFields
 module U8 = FStar.UInt8
+module Seq = QUIC.Secret.Seq
 
 let protected_bits_pn_length
   (is_short: bool)
@@ -534,8 +535,6 @@ let lemma_header_parsing_safe
 
 #pop-options
 
-module SecretBuffer = QUIC.SecretBuffer
-
 let block_of_sample
   (a: Cipher.cipher_alg)
   (k: Cipher.key a)
@@ -545,18 +544,18 @@ let block_of_sample
   let ctr, iv = match a with
     | Cipher.CHACHA20 ->
         let ctr_bytes, iv = Seq.split sample 4 in
-        let iv = SecretBuffer.seq_hide #Secret.U8 iv in
+        let iv = Seq.seq_hide #Secret.U8 iv in
         FStar.Endianness.lemma_le_to_n_is_bounded ctr_bytes;
         assert_norm (pow2 (8 * 4) = pow2 32);
         FStar.Endianness.le_to_n ctr_bytes, iv
     | _ ->
         let iv, ctr_bytes = Seq.split sample 12 in
-        let iv = SecretBuffer.seq_hide #Secret.U8 iv in
+        let iv = Seq.seq_hide #Secret.U8 iv in
         FStar.Endianness.lemma_be_to_n_is_bounded ctr_bytes;
         assert_norm (pow2 (8 * 4) = pow2 32);
         FStar.Endianness.be_to_n ctr_bytes, iv
   in
-  SecretBuffer.seq_reveal (Seq.slice (Cipher.ctr_block a k iv ctr) 0 16)
+  Seq.seq_reveal (Seq.slice (Cipher.ctr_block a k iv ctr) 0 16)
 
 (*
 Decryption of packet number

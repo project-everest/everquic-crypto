@@ -6,9 +6,10 @@ module U32 = FStar.UInt32
 module HST = FStar.HyperStack.ST
 module B = LowStar.Buffer
 module HS = FStar.HyperStack
-module Secret = QUIC.Secret
-module SecretBuffer = QUIC.SecretBuffer
+module Secret = QUIC.Secret.Int
+module SecretBuffer = QUIC.Secret.Buffer
 module LP = LowParse.Spec.Base
+module Seq = QUIC.Secret.Seq
 
 val read_packet_number
   (last: last_packet_number_t)
@@ -21,7 +22,7 @@ val read_packet_number
   ))
   (ensures (fun h res h' ->
     B.modifies B.loc_none h h' /\
-    begin match LP.parse (parse_packet_number last pn_len) (SecretBuffer.seq_reveal (B.as_seq h b)) with
+    begin match LP.parse (parse_packet_number last pn_len) (Seq.seq_reveal (B.as_seq h b)) with
     | Some (v, _) -> res == v
     | None -> False
     end
@@ -40,5 +41,5 @@ val write_packet_number
   (ensures (fun h _ h' ->
     let b' = B.gsub b 0ul (U32.uint_to_t (Secret.v pn_len)) in
     B.modifies (B.loc_buffer b') h h' /\
-    SecretBuffer.seq_reveal (B.as_seq h' b') == LP.serialize (serialize_packet_number last pn_len) pn
+    Seq.seq_reveal (B.as_seq h' b') == LP.serialize (serialize_packet_number last pn_len) pn
   ))

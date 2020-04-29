@@ -6,9 +6,10 @@ module U32 = FStar.UInt32
 module HST = FStar.HyperStack.ST
 module B = LowStar.Buffer
 module HS = FStar.HyperStack
-module Secret = QUIC.Secret
-module SecretBuffer = QUIC.SecretBuffer
+module Secret = QUIC.Secret.Int
+module SecretBuffer = QUIC.Secret.Buffer
 module LP = LowParse.Spec
+module Seq = QUIC.Secret.Seq
 
 friend QUIC.Spec.PacketNumber
 module Spec = QUIC.Spec.PacketNumber
@@ -50,15 +51,15 @@ let read_u32
   ))
   (ensures (fun h res h' ->
     B.modifies B.loc_none h h' /\
-    begin match LP.parse LP.parse_u32 (SecretBuffer.seq_reveal (B.as_seq h b)) with
+    begin match LP.parse LP.parse_u32 (Seq.seq_reveal (B.as_seq h b)) with
     | Some (v, _) -> Secret.v res == U32.v v
     | None -> False
     end
   ))
 = 
   let h = HST.get () in
-  LP.parse_u32_spec (SecretBuffer.seq_reveal (B.as_seq h b));
-  be_to_n_4_eq (Seq.slice (SecretBuffer.seq_reveal (B.as_seq h b)) 0 4);
+  LP.parse_u32_spec (Seq.seq_reveal (B.as_seq h b));
+  be_to_n_4_eq (Seq.slice (Seq.seq_reveal (B.as_seq h b)) 0 4);
   let b3 = B.index b 3ul in
   let b2 = B.index b 2ul in
   let b1 = B.index b 1ul in
@@ -96,16 +97,16 @@ let read_bounded_integer
   ))
   (ensures (fun h res h' ->
     B.modifies B.loc_none h h' /\
-    begin match LP.parse (LP.parse_bounded_integer (Secret.v pn_len)) (SecretBuffer.seq_reveal (B.as_seq h b)) with
+    begin match LP.parse (LP.parse_bounded_integer (Secret.v pn_len)) (Seq.seq_reveal (B.as_seq h b)) with
     | Some (v, _) -> Secret.v res == U32.v v
     | None -> False
     end
   ))
 =
   let h = HST.get () in
-  LP.parse_bounded_integer_spec (Secret.v pn_len) (SecretBuffer.seq_reveal (B.as_seq h b));
-  LP.parse_u32_spec (SecretBuffer.seq_reveal (B.as_seq h b));
-  E.bitfield_be_to_n_slice (Seq.slice (SecretBuffer.seq_reveal (B.as_seq h b)) 0 4) 0 (Secret.v pn_len);
+  LP.parse_bounded_integer_spec (Secret.v pn_len) (Seq.seq_reveal (B.as_seq h b));
+  LP.parse_u32_spec (Seq.seq_reveal (B.as_seq h b));
+  E.bitfield_be_to_n_slice (Seq.slice (Seq.seq_reveal (B.as_seq h b)) 0 4) 0 (Secret.v pn_len);
   let x = read_u32 b in
   BF.get_bitfield_full #32 (Secret.v x);
   let pn_len_1 = Secret.to_u32 (pn_len `Secret.sub` Secret.to_u32 1ul) in
@@ -223,7 +224,7 @@ let expand_pn
 let read_packet_number
   last pn_len b
 = let h = HST.get () in
-  LP.parse_synth_eq (LP.parse_bounded_integer (Secret.v pn_len)) (synth_packet_number last pn_len) (SecretBuffer.seq_reveal (B.as_seq h b));
+  LP.parse_synth_eq (LP.parse_bounded_integer (Secret.v pn_len)) (synth_packet_number last pn_len) (Seq.seq_reveal (B.as_seq h b));
   let npn = read_bounded_integer pn_len b in
   expand_pn pn_len last npn
 
@@ -261,7 +262,7 @@ let write_u32
   (ensures (fun h _ h' ->
     let b' = B.gsub b 0ul 4ul in
     B.modifies (B.loc_buffer b') h h' /\
-    SecretBuffer.seq_reveal (B.as_seq h' b') `Seq.equal` LP.serialize (LP.serialize_u32) (U32.uint_to_t (Secret.v x))
+    Seq.seq_reveal (B.as_seq h' b') `Seq.equal` LP.serialize (LP.serialize_u32) (U32.uint_to_t (Secret.v x))
   ))
 = serialize_u32_spec (U32.uint_to_t (Secret.v x));
   E.index_n_to_be 4 (Secret.v x) 0;
@@ -406,13 +407,13 @@ let write_bounded_integer
   (ensures (fun h _ h' ->
     let b' = B.gsub b 0ul (U32.uint_to_t (Secret.v pn_len)) in
     B.modifies (B.loc_buffer b') h h' /\
-    SecretBuffer.seq_reveal (B.as_seq h' b') `Seq.equal` LP.serialize (LP.serialize_bounded_integer (Secret.v pn_len)) (U32.uint_to_t (Secret.v x))
+    Seq.seq_reveal (B.as_seq h' b') `Seq.equal` LP.serialize (LP.serialize_bounded_integer (Secret.v pn_len)) (U32.uint_to_t (Secret.v x))
   ))
 = 
   let h = HST.get () in
   let b' = B.sub b 0ul 4ul in
   let before = read_u32 b' in
-  LP.parse_u32_spec (SecretBuffer.seq_reveal (B.as_seq h b'));
+  LP.parse_u32_spec (Seq.seq_reveal (B.as_seq h b'));
   LP.bounded_integer_prop_equiv (Secret.v pn_len) (U32.uint_to_t (Secret.v x));
   let after = set_left_bitfield pn_len before x in
   write_u32 after b';
@@ -421,10 +422,10 @@ let write_bounded_integer
   set_left_bitfield_left pn_len before x;
   set_left_bitfield_right pn_len before x;
   let h' = HST.get () in
-  assert (Seq.slice (SecretBuffer.seq_reveal (B.as_seq h' b')) (Secret.v pn_len) 4 `Seq.equal` Seq.slice (SecretBuffer.seq_reveal (B.as_seq h b')) (Secret.v pn_len) 4);
-  assert (SecretBuffer.seq_reveal (Seq.slice (B.as_seq h' b') (Secret.v pn_len) 4) `Seq.equal` Seq.slice (SecretBuffer.seq_reveal (B.as_seq h' b')) (Secret.v pn_len) 4);
-  assert (SecretBuffer.seq_reveal (Seq.slice (B.as_seq h b') (Secret.v pn_len) 4) `Seq.equal` Seq.slice (SecretBuffer.seq_reveal (B.as_seq h b')) (Secret.v pn_len) 4);
-  SecretBuffer.seq_reveal_inj (Seq.slice (B.as_seq h' b') (Secret.v pn_len) 4) (Seq.slice (B.as_seq h b') (Secret.v pn_len) 4);
+  assert (Seq.slice (Seq.seq_reveal (B.as_seq h' b')) (Secret.v pn_len) 4 `Seq.equal` Seq.slice (Seq.seq_reveal (B.as_seq h b')) (Secret.v pn_len) 4);
+  assert (Seq.seq_reveal (Seq.slice (B.as_seq h' b') (Secret.v pn_len) 4) `Seq.equal` Seq.slice (Seq.seq_reveal (B.as_seq h' b')) (Secret.v pn_len) 4);
+  assert (Seq.seq_reveal (Seq.slice (B.as_seq h b') (Secret.v pn_len) 4) `Seq.equal` Seq.slice (Seq.seq_reveal (B.as_seq h b')) (Secret.v pn_len) 4);
+  Seq.seq_reveal_inj (Seq.slice (B.as_seq h' b') (Secret.v pn_len) 4) (Seq.slice (B.as_seq h b') (Secret.v pn_len) 4);
   B.modifies_loc_buffer_from_to_intro b' 0ul (U32.uint_to_t (Secret.v pn_len)) B.loc_none h h'
 
 
