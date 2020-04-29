@@ -70,14 +70,14 @@ val header_decrypt:
   p: packet ->
   GTot hd_result
 
-(*
-val header_encrypt: a:ea ->
+val header_encrypt:
   a:ea ->
   hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   h: header ->
   c: cbytes ->
   GTot packet
 
+(*
 module Secret = QUIC.Secret
 module U32 = FStar.UInt32
 module PN = QUIC.Spec.PacketNumber

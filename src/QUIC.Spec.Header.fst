@@ -283,7 +283,14 @@ let synth_header_inverse
 
 let parse_header_kind
   (short_dcid_len: Public.short_dcid_len_t)
-: Tot LP.parser_kind
+: Tot (k: LP.parser_kind {
+    k.LP.parser_kind_subkind == Some LP.ParserStrong /\
+    k.LP.parser_kind_low > 0 /\
+    begin match k.LP.parser_kind_high with
+    | None -> False
+    | Some max -> max < header_len_bound
+    end
+  })
 = LP.parse_filter_kind (Public.parse_header_kind short_dcid_len) `LP.and_then_kind` parse_packet_number_opt_kind
 
 let parse_header_dtuple
@@ -506,6 +513,14 @@ let format_header
   h
 = LP.serialize (serialize_header (U32.uint_to_t (dcid_len h)) (last_packet_number h)) h
 
+let format_header_bound
+  (h: header)
+: Lemma
+  (let len = Seq.length (format_header h) in
+  len > 0 /\
+  len < header_len_bound)
+= LP.serialize_length (serialize_header (U32.uint_to_t (dcid_len h)) (last_packet_number h)) h
+
 let lemma_header_parsing_correct
   h c cid_len last
 =
@@ -637,30 +652,56 @@ let header_decrypt
           HD_Failure
     end
 
-#pop-options
+let pn_offset
+  (h: header)
+: GTot nat
+= let cid_len = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  let (| ph, _ |) = synth_header_recip cid_len last h in
+  Seq.length (LP.serialize (Public.serialize_header cid_len) ph)
 
-(*
+let pn_offset_prop
+  (h: header)
+: Lemma
+  (requires (~ (is_retry h)))
+  (ensures (
+    pn_offset h + Secret.v (pn_length h) == Seq.length (format_header h)
+  ))
+=
+  let cid_len = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq cid_len last h;
+  let pn_len = pn_length h in
+  PN.parse_packet_number_kind'_correct last pn_len;
+  let (| _, pn |) = synth_header_recip cid_len last h in
+  LP.serialize_length #(PN.parse_packet_number_kind' pn_len) #_ #(PN.parse_packet_number last pn_len <: LP.bare_parser (PN.packet_number_t' last pn_len)) (PN.serialize_packet_number last pn_len <: LP.bare_serializer (PN.packet_number_t' last pn_len)) pn
+
 let header_encrypt
   a hpk h c
 =
   assert_norm(max_cipher_length < pow2 62);
-  let r = Seq.(format_header h `append` c) in
+  let r = format_header h `Seq.append` c in
+  let _ = format_header_bound h in
   if is_retry h
   then
     r
   else
     let pn_offset = pn_offset h in
-    let pn_len = U32.v (pn_length h) - 1 in
+    let _ = pn_offset_prop h in
+    let pn_len = Secret.v (pn_length h) - 1 in
     let sample = Seq.slice c (3-pn_len) (19-pn_len) in
     let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
-    let pnmask = and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask_naive pn_len) 0 in
+    let pnmask = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
     let f = Seq.index r 0 in
     let protected_bits = if MShort? h then 5 else 4 in
     let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits) in
-    let r = xor_inplace r pnmask pn_offset in
+    let r = Lemmas.xor_inplace r pnmask pn_offset in
     let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
     r
 
+#pop-options
+
+(*
 
 (*
 let header_decrypt

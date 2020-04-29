@@ -256,10 +256,21 @@ let weaken_parse_bitsum_cases_kind_parse_header_body
   (short_dcid_len: short_dcid_len_t)
 : Lemma
   (let k = LPB.weaken_parse_bitsum_cases_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len) in
-   k.LP.parser_kind_subkind == Some LP.ParserStrong)
+   k.LP.parser_kind_subkind == Some LP.ParserStrong /\
+   begin match k.LP.parser_kind_high with
+   | None -> False
+   | Some max -> max + 5 < header_len_bound
+   end
+   )
   [SMTPat (LPB.weaken_parse_bitsum_cases_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len))]
 = let k = LPB.weaken_parse_bitsum_cases_kind first_byte (header_body_type short_dcid_len) (parse_header_body short_dcid_len) in
-  assert_norm (k.LP.parser_kind_subkind == Some LP.ParserStrong)
+  assert_norm (
+    k.LP.parser_kind_subkind == Some LP.ParserStrong /\
+    begin match k.LP.parser_kind_high with
+    | None -> False
+    | Some max -> max + 5 < header_len_bound
+    end
+  )
 
 [@LPB.filter_bitsum'_t_attr]
 inline_for_extraction

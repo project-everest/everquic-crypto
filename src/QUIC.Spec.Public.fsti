@@ -93,13 +93,19 @@ type header'
   (short_dcid_len: short_dcid_len_t)
 = (m: header { parse_header_prop short_dcid_len m })
 
+let header_len_bound = 16500 // FIXME: this should be in line with the parser kind
+
 inline_for_extraction
 noextract
 val parse_header_kind
   (short_dcid_len: short_dcid_len_t)
 : Tot (k: LP.parser_kind {
     k.LP.parser_kind_subkind == Some LP.ParserStrong /\
-    k.LP.parser_kind_low > 0
+    k.LP.parser_kind_low > 0 /\
+    begin match k.LP.parser_kind_high with
+    | None -> False
+    | Some max -> max + 4 < header_len_bound
+    end
   })
 
 val parse_header
