@@ -1,6 +1,12 @@
 module QUIC.Spec.Header
 include QUIC.Spec.Header.Base
 
+module Secret = QUIC.Secret.Int
+module U32 = FStar.UInt32
+module PN = QUIC.Spec.PacketNumber.Base
+module AEAD = Spec.Agile.AEAD
+module Cipher = Spec.Agile.Cipher
+
 noeq
 type h_result =
 | H_Success:
@@ -59,9 +65,6 @@ type hd_result =
   hd_result
 | HD_Failure
 
-module AEAD = Spec.Agile.AEAD
-module Cipher = Spec.Agile.Cipher
-
 val header_decrypt:
   a:ea ->
   hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
@@ -77,25 +80,27 @@ val header_encrypt:
   c: cbytes ->
   GTot packet
 
-(*
-module Secret = QUIC.Secret
-module U32 = FStar.UInt32
-module PN = QUIC.Spec.PacketNumber
-
 // This is just functional correctness, but does not guarantee security:
 // decryption can succeed on an input that is not the encryption
 // of the same arguments (see QUIC.Spec.Old.*_malleable)
 val lemma_header_encryption_correct:
   a:ea ->
-  k:lbytes (ae_keysize a) ->
+  k: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   h:header ->
   cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> PN.in_window (Secret.v (pn_length h) - 1) last (Secret.v (packet_number h))) } ->
   c: cbytes { has_payload_length h ==> Secret.v (payload_length h) == Seq.length c } ->
+  rem: bytes {
+    Seq.length (format_header h) + Seq.length c + Seq.length rem < pow2 32 /\
+    ((~ (has_payload_length h)) ==> rem == Seq.empty)
+  } ->
   Lemma (
-    header_decrypt a k cid_len last (header_encrypt a k h c)
-    == H_Success h c
+    Seq.length (header_encrypt a k h c) + Seq.length rem < pow2 32 /\
+    header_decrypt a k cid_len last (header_encrypt a k h c `Seq.append` rem)
+    == HD_Success h (if is_retry h then Seq.empty else c) ((if is_retry h then c else Seq.empty) `Seq.append` rem)
   )
+
+(*
 
 
 (*

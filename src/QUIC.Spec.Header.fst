@@ -11,7 +11,7 @@ module Seq = QUIC.Secret.Seq
 
 let protected_bits_pn_length
   (is_short: bool)
-  (pb: Public.bitfield (if is_short then 5 else 4))
+  (pb: bitfield (if is_short then 5 else 4))
 : Tot PN.packet_number_length_t
 = Secret.to_u32 #Secret.U8 (1uy `Secret.add` Secret.get_bitfield #Secret.U8 pb 0ul 2ul)
 
@@ -22,19 +22,19 @@ let get_pn_length
 
 let protected_bits_reserved
   (is_short: bool)
-  (pb: Public.bitfield (if is_short then 5 else 4))
-: Tot (Public.bitfield 2)
+  (pb: bitfield (if is_short then 5 else 4))
+: Tot (bitfield 2)
 = if is_short
   then BF.uint8.BF.get_bitfield pb 3 5
   else BF.uint8.BF.get_bitfield pb 2 4
 
 let get_reserved_bits
   (h: Public.header)
-: Tot (Public.bitfield 2)
+: Tot (bitfield 2)
 = protected_bits_reserved (Public.PShort? h) (Public.get_protected_bits h)
 
 let packet_number_opt
-  (cid_len: Public.short_dcid_len_t)
+  (cid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: Public.header' cid_len)
 : Tot Type0
@@ -45,7 +45,7 @@ let packet_number_opt
 let parse_packet_number_opt_kind = LP.strong_parser_kind 0 4 None
 
 let parse_packet_number_opt
-  (cid_len: Public.short_dcid_len_t)
+  (cid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: Public.header' cid_len)
 : Tot (LP.parser parse_packet_number_opt_kind (packet_number_opt cid_len last h))
@@ -54,7 +54,7 @@ let parse_packet_number_opt
   else LP.weaken parse_packet_number_opt_kind (PN.parse_packet_number last (get_pn_length h))
 
 let serialize_packet_number_opt
-  (cid_len: Public.short_dcid_len_t)
+  (cid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: Public.header' cid_len)
 : Tot (LP.serializer (parse_packet_number_opt cid_len last h))
@@ -73,7 +73,7 @@ let packet_number_prop
 module U32 = FStar.UInt32
 
 let short_dcid_len_prop
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (h: header)
 : Tot bool
 = if MShort? h
@@ -82,7 +82,7 @@ let short_dcid_len_prop
 
 unfold
 let parse_header_prop
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (m: header)
 : GTot bool
@@ -91,14 +91,14 @@ let parse_header_prop
 
 inline_for_extraction
 type header'
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 = LP.parse_filter_refine (parse_header_prop short_dcid_len last)
 
 module Cast = FStar.Int.Cast
 
 let protected_bits_key_phase
-  (x: Public.bitfield 5)
+  (x: bitfield 5)
 : GTot bool
 = BF.uint8.BF.get_bitfield x 2 3 = 1uy
 
@@ -106,7 +106,7 @@ let mk_short_protected_bits
   (reserved_bits: bitfield 2)
   (key_phase: bool)
   (pnl: PN.packet_number_length_t)
-: GTot (Public.bitfield 5)
+: GTot (bitfield 5)
 = BF.set_bitfield_bound #8 0 5 0 2 (Secret.v pnl - 1);
   BF.set_bitfield_bound #8 (BF.set_bitfield #8 0 0 2 (Secret.v pnl - 1)) 5 2 3 (if key_phase then 1 else 0);
   BF.set_bitfield_bound #8 (BF.set_bitfield #8 (BF.set_bitfield #8 0 0 2 (Secret.v pnl - 1)) 2 3 (if key_phase then 1 else 0)) 5 3 5 (U8.v reserved_bits);
@@ -114,7 +114,7 @@ let mk_short_protected_bits
 
 let protected_bits_pn_length_prop
   (is_short: bool)
-  (pb: Public.bitfield (if is_short then 5 else 4))
+  (pb: bitfield (if is_short then 5 else 4))
 : Lemma
   (Secret.v (protected_bits_pn_length is_short pb) == U8.v (BF.uint8.BF.get_bitfield pb 0 2) + 1)
   [SMTPat (protected_bits_pn_length is_short pb)]
@@ -137,7 +137,7 @@ let mk_short_protected_bits_correct
 = ()
 
 let mk_short_protected_bits_complete
-  (pb: Public.bitfield 5)
+  (pb: bitfield 5)
 : Lemma
   (
     mk_short_protected_bits (protected_bits_reserved true pb) (protected_bits_key_phase pb) (protected_bits_pn_length true pb) == pb
@@ -159,7 +159,7 @@ let mk_short_protected_bits_complete
 let mk_long_protected_bits
   (reserved_bits: bitfield 2)
   (pnl: PN.packet_number_length_t)
-: GTot (Public.bitfield 4)
+: GTot (bitfield 4)
 = BF.set_bitfield_bound #8 0 4 0 2 (Secret.v pnl - 1);
   BF.set_bitfield_bound #8 (BF.set_bitfield #8 0 0 2 (Secret.v pnl - 1)) 4 2 4 (U8.v reserved_bits);
   BF.uint8.BF.set_bitfield (BF.uint8.BF.set_bitfield 0uy 0 2 (U8.uint_to_t (Secret.v pnl - 1))) 2 4 reserved_bits
@@ -176,7 +176,7 @@ let mk_long_protected_bits_correct
 = ()
 
 let mk_long_protected_bits_complete
-  (pb: Public.bitfield 4)
+  (pb: bitfield 4)
 : Lemma
   (
     mk_long_protected_bits (protected_bits_reserved false pb) (protected_bits_pn_length false pb) == pb
@@ -193,7 +193,7 @@ let mk_long_protected_bits_complete
   BF.get_bitfield_partition_2_gen #8 0 2 4 (U8.v pb) (U8.v pb')
 
 let synth_header
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (x: dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
 : GTot (header' short_dcid_len last)
@@ -217,7 +217,7 @@ let synth_header
       end
 
 let synth_header_recip
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (x: header' short_dcid_len last)
 : GTot (dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
@@ -241,7 +241,7 @@ let synth_header_recip
     end
 
 let synth_header_injective
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Lemma
   (LP.synth_injective #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last)  (synth_header short_dcid_len last))
@@ -260,7 +260,7 @@ let synth_header_injective
   LP.synth_inverse_synth_injective (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last)
 
 let synth_header_inverse
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Lemma
   (LP.synth_inverse #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)) #(header' short_dcid_len last) (synth_header short_dcid_len last) (synth_header_recip short_dcid_len last))
@@ -282,7 +282,7 @@ let synth_header_inverse
   )
 
 let parse_header_kind
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
 : Tot (k: LP.parser_kind {
     k.LP.parser_kind_subkind == Some LP.ParserStrong /\
     k.LP.parser_kind_low > 0 /\
@@ -294,7 +294,7 @@ let parse_header_kind
 = LP.parse_filter_kind (Public.parse_header_kind short_dcid_len) `LP.and_then_kind` parse_packet_number_opt_kind
 
 let parse_header_dtuple
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Tot (LP.parser (parse_header_kind short_dcid_len) (dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last)))
 = LP.parse_dtuple2
@@ -304,7 +304,7 @@ let parse_header_dtuple
     (parse_packet_number_opt short_dcid_len last)
 
 let lp_parse_header
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Tot (LP.parser (parse_header_kind short_dcid_len) (header' short_dcid_len last))
 =
@@ -316,7 +316,7 @@ let lp_parse_header
     (synth_header short_dcid_len last)
 
 let serialize_header_dtuple
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Tot (LP.serializer (parse_header_dtuple short_dcid_len last))
 = 
@@ -328,7 +328,7 @@ let serialize_header_dtuple
     (serialize_packet_number_opt short_dcid_len last)
 
 let serialize_header
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Tot (LP.serializer (lp_parse_header short_dcid_len last))
 =
@@ -343,7 +343,7 @@ let serialize_header
     ()
 
 let serialize_header_dtuple_eq
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (phpn : dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
 : Lemma (
@@ -378,7 +378,7 @@ let serialize_header_dtuple_eq
     phpn
 
 let serialize_header_eq_1
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: header' short_dcid_len last)
 : Lemma
@@ -406,7 +406,7 @@ let serialize_header_eq_1
     h
 
 let serialize_header_eq_2
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: header' short_dcid_len last)
 : Lemma
@@ -419,7 +419,7 @@ let serialize_header_eq_2
 = serialize_header_eq_1 short_dcid_len last h
 
 let serialize_header_eq_3
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: header' short_dcid_len last)
 : Lemma
@@ -440,7 +440,7 @@ let serialize_header_eq_3
 #push-options "--z3rlimit 32"
 
 let serialize_header_eq
-  (short_dcid_len: Public.short_dcid_len_t)
+  (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (h: header' short_dcid_len last)
 : Lemma
@@ -458,7 +458,7 @@ let serialize_header_eq
 #push-options "--z3rlimit 16"
 
 let serialize_header_ext
-  (short_dcid_len1 short_dcid_len2: Public.short_dcid_len_t)
+  (short_dcid_len1 short_dcid_len2: short_dcid_len_t)
   (last1 last2: PN.last_packet_number_t)
   (h: header)
 : Lemma
@@ -699,6 +699,73 @@ let header_encrypt
     let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
     r
 
+assume
+val header_decrypt_only_correct
+  (a:ea)
+  (k: Cipher.key (AEAD.cipher_alg_of_supported_alg a))
+  (h:header)
+  (cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) })
+  (last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> PN.in_window (Secret.v (pn_length h) - 1) last (Secret.v (packet_number h))) })
+  (c: cbytes)
+  (rem: bytes {
+    Seq.length (format_header h) + Seq.length c + Seq.length rem < pow2 32
+  })
+: Lemma
+  (
+    let from = header_encrypt a k h c `Seq.append` rem in
+    let to = format_header h `Seq.append` (c `Seq.append` rem) in
+    Seq.length from == Seq.length to /\
+    header_decrypt_only a k cid_len last from == Some to
+  )
+
+let seq_slice_append
+  (#t: Type)
+  (c rem: Seq.seq t)
+: Lemma
+  (Seq.slice (c `Seq.append` rem) 0 (Seq.length c) `Seq.equal` c /\
+   Seq.slice (c `Seq.append` rem) (Seq.length c) (Seq.length c + Seq.length rem) `Seq.equal` rem
+  )
+= ()
+
+let seq_slice_full
+  (#t: Type)
+  (c: Seq.seq t)
+: Lemma
+  (Seq.slice c 0 (Seq.length c) `Seq.equal` c)
+= ()
+
+#pop-options
+
+#push-options "--z3rlimit 128"
+
+#restart-solver
+
+let lemma_header_encryption_correct
+  a k h cid_len last c rem
+= header_decrypt_only_correct a k h cid_len last c rem;
+  lemma_header_parsing_correct h (c `Seq.append` rem) cid_len last;
+  if is_retry h
+  then ()
+  else begin
+    let lcrem = Seq.length c + Seq.length rem in
+    let clen : nat = if has_payload_length h then Secret.v (payload_length h) else lcrem in
+    assert (19 <= clen && clen < max_cipher_length && clen <= lcrem);
+    let c' : cbytes = Seq.slice (c `Seq.append` rem) 0 clen in
+    let rem' = Seq.slice (c `Seq.append` rem) clen (lcrem) in
+    Seq.append_empty_l rem;
+    if has_payload_length h
+    then begin
+      assert (Seq.length c == Secret.v (payload_length h));
+      seq_slice_append c rem
+    end else begin
+      assert (rem == Seq.empty);
+      Seq.append_empty_r c;
+      seq_slice_full c;
+      assert (c' == c);
+      assert (rem' `Seq.equal` Seq.empty)
+    end
+  end
+
 #pop-options
 
 (*
@@ -726,7 +793,7 @@ let parse_header_ifthenelse_payload_parser
 
 
 let parse_header_param
-  (cid_len: Public.short_dcid_len_t)
+  (cid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
 : Tot LP.parse_ifthenelse_param
 = {
