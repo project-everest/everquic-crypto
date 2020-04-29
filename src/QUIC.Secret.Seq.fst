@@ -1,114 +1,87 @@
 module QUIC.Secret.Seq
-include FStar.Seq
+open FStar.Seq
 
 module Secret = QUIC.Secret.Int
 module U8 = FStar.UInt8
 module Ghost = FStar.Ghost
 
-assume
-val seq_hide
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
-: Tot (seq (Secret.uint_t t Secret.SEC))
+(* NOTE: abstraction is NOT broken here *)
 
-assume
-val seq_hide_length
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
-: Lemma
-  (length (seq_hide x) == length x)
-  [SMTPat (length (seq_hide x))]
+noextract
+let rec seq_map
+  (#t1 #t2: Type)
+  (f: (t1 -> Tot t2))
+  (x: seq t1)
+: Tot (lseq t2 (length x))
+  (decreases (length x))
+= if length x = 0
+  then empty
+  else cons (f (head x)) (seq_map f (tail x))
 
-assume
-val seq_hide_index
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
-  (i: nat)
+let rec seq_map_index
+  (#t1 #t2: Type)
+  (f: (t1 -> Tot t2))
+  (x: seq t1)
+  (i: nat { i < length x })
 : Lemma
-  (requires (i < length x))
-  (ensures (
-    Secret.v (index (seq_hide x) i) == Secret.v (index x i)
-  ))
-  [SMTPat (index (seq_hide x) i)]
+  (ensures (index (seq_map f x) i == f (index x i)))
+  (decreases (length x))
+  [SMTPat (index (seq_map f x) i)]
+= if i = 0
+  then ()
+  else seq_map_index f (tail x) (i - 1)
 
-let seq_hide_sec
-  (#t: Secret.inttype { Secret.unsigned t })
-  (x: seq (Secret.uint_t t Secret.SEC))
-: Lemma
-  (seq_hide x `equal` x)
+let seq_hide
+  #t #sec x
+= seq_map (Secret.cast t Secret.SEC) x
+
+let seq_hide_length
+  #t #sec x
 = ()
 
-assume
-val seq_reveal
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
-: GTot (seq (Secret.uint_t t Secret.PUB))
-
-assume
-val seq_reveal_length
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
-: Lemma
-  (length (seq_reveal x) == length x)
-  [SMTPat (length (seq_reveal x))]
-
-assume
-val seq_reveal_index
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
-  (i: nat)
-: Lemma
-  (requires (i < length x))
-  (ensures (
-    Secret.v (index (seq_reveal x) i) == Secret.v (index x i)
-  ))
-  [SMTPat (index (seq_reveal x) i)]
-
-let seq_reveal_pub
-  (#t: Secret.inttype { Secret.unsigned t })
-  (x: seq (Secret.uint_t t Secret.PUB))
-: Lemma
-  (seq_reveal x `equal` x)
+let seq_hide_index
+  #t #seq x i
 = ()
 
-let seq_reveal_hide
-  (#t: Secret.inttype { Secret.unsigned t })
-  (x: seq (Secret.uint_t t Secret.PUB))
+noextract
+let rec seq_gmap
+  (#t1 #t2: Type)
+  (f: (t1 -> GTot t2))
+  (x: seq t1)
+: GTot (lseq t2 (length x))
+  (decreases (length x))
+= if length x = 0
+  then empty
+  else cons (f (head x)) (seq_gmap f (tail x))
+
+let rec seq_gmap_index
+  (#t1 #t2: Type)
+  (f: (t1 -> GTot t2))
+  (x: seq t1)
+  (i: nat { i < length x })
 : Lemma
-  (seq_reveal (seq_hide x) `equal` x)
+  (ensures (index (seq_gmap f x) i == f (index x i)))
+  (decreases (length x))
+  [SMTPat (index (seq_gmap f x) i)]
+= if i = 0
+  then ()
+  else seq_gmap_index f (tail x) (i - 1)
+
+let uint_reveal
+  (t: Secret.inttype { Secret.unsigned t })
+  (sec_from sec_to: Secret.secrecy_level)
+  (x: Secret.uint_t t sec_from)
+: GTot (Secret.uint_t t sec_to)
+= Secret.mk_int (Secret.v x)
+
+let seq_reveal
+  #t #sec x
+= seq_gmap (uint_reveal t sec Secret.PUB) x
+
+let seq_reveal_length
+  #t #sec x
 = ()
 
-let seq_hide_reveal
-  (#t: Secret.inttype { Secret.unsigned t })
-  (x: seq (Secret.uint_t t Secret.SEC))
-: Lemma
-  (seq_hide (seq_reveal x) `equal` x)
+let seq_reveal_index
+  #t #sec x i
 = ()
-
-let seq_reveal_inj
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x1 x2: seq (Secret.uint_t t sec))
-: Lemma
-  (requires (seq_reveal x1 `equal` seq_reveal x2))
-  (ensures (x1 `equal` x2))
-= match sec with
-  | Secret.PUB -> seq_reveal_pub #t x1; seq_reveal_pub #t x2
-  | Secret.SEC -> seq_hide_reveal #t x1; seq_hide_reveal #t x2
-
-let seq_hide_inj
-  (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x1 x2: seq (Secret.uint_t t sec))
-: Lemma
-  (requires (seq_hide x1 `equal` seq_hide x2))
-  (ensures (x1 `equal` x2))
-= match sec with
-  | Secret.SEC -> seq_hide_sec #t x1; seq_hide_sec #t x2
-  | Secret.PUB -> seq_reveal_hide #t x1; seq_reveal_hide #t x2
