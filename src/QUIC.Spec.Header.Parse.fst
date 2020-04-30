@@ -604,9 +604,38 @@ let putative_pn_offset_frame
   assert (LP.serialize s ph2 == Seq.slice x2 0 off);
   LP.parse_strong_prefix p (Seq.slice x2 0 off) x2
 
+#push-options "--z3rlimit 32"
+
+let putative_pn_offset_intro
+  (cid_len : short_dcid_len_t)
+  (x: bytes)
+  (ph: Public.header' cid_len)
+  (off: nat { off <= Seq.length x })
+: Lemma
+  (requires (
+    LP.parse (Public.parse_header cid_len) x == Some (ph, off)
+  ))
+  (ensures (putative_pn_offset (U32.v cid_len) x == Some off))
+= ()
+
 let putative_pn_offset_correct
   h cid_len
-= admit ()
+=
+  let cid_len_h = U32.uint_to_t (dcid_len h) in
+  let last_h = last_packet_number h in
+  serialize_header_eq cid_len_h last_h h;
+  let (| ph, _ |) = synth_header_recip cid_len_h last_h h in
+  let off = Seq.length (LP.serialize (Public.serialize_header cid_len_h) ph) in
+  assert (pn_offset h == off);
+  let cid_len' = U32.uint_to_t cid_len in
+  Public.serialize_header_ext cid_len_h cid_len' ph;
+  LP.parse_serialize (Public.serialize_header cid_len') ph;
+  LP.parse_strong_prefix (Public.parse_header cid_len') (LP.serialize (Public.serialize_header cid_len') ph) (format_header h);
+  LP.parse_injective (Public.parse_header cid_len') (LP.serialize (Public.serialize_header cid_len') ph) (format_header h);
+  assert (LP.parse (Public.parse_header cid_len') (format_header h) == Some (ph, off));
+  putative_pn_offset_intro cid_len' (format_header h) ph off
+
+#pop-options
 
 let parse_header
   cid_len last b
