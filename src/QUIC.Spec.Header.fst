@@ -2,7 +2,7 @@ module QUIC.Spec.Header
 open QUIC.Spec.Base
 
 module PN = QUIC.Spec.PacketNumber
-module Public = QUIC.Spec.Public
+module Public = QUIC.Spec.Header.Public
 module LP = LowParse.Spec.Combinators
 module Secret = QUIC.Secret.Int
 module BF = LowParse.BitFields

@@ -1,4 +1,4 @@
-module QUIC.Spec.Public
+module QUIC.Spec.Header.Public
 include QUIC.Spec.Base
 
 module LP = LowParse.Spec.Base

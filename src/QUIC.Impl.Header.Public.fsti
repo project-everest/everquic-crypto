@@ -1,9 +1,9 @@
-module QUIC.Impl.Public
-include QUIC.Spec.Public
+module QUIC.Impl.Header.Public
+include QUIC.Spec.Header.Public
 
 module LP = LowParse.Low.Base
 module U32 = FStar.UInt32
-module S = QUIC.Spec.Public
+module S = QUIC.Spec.Header.Public
 module B = LowStar.Buffer
 module U8 = FStar.UInt8
 module HS = FStar.HyperStack

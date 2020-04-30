@@ -1,4 +1,4 @@
-module QUIC.Spec.Public
+module QUIC.Spec.Header.Public
 
 module LP = LowParse.Spec
 module LPB = LowParse.Spec.BitSum

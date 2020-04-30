@@ -1,6 +1,6 @@
-module QUIC.Impl.Public
-open QUIC.Spec.Public
-friend QUIC.Spec.Public
+module QUIC.Impl.Header.Public
+open QUIC.Spec.Header.Public
+friend QUIC.Spec.Header.Public
 
 module LP = LowParse.Low
 
