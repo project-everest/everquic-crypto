@@ -263,10 +263,13 @@ let serialize_bounded_varint
     (fun x -> synth_bounded_varint_recip min max x)
     ()
 
-(*
+#push-options "--z3rlimit 16"
+
 let varint_len_correct
   x
 = ()
+
+#pop-options
 
 let bounded_varint_len_correct
   min max x

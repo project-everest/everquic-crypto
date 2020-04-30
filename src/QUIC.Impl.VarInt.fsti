@@ -1,5 +1,6 @@
 module QUIC.Impl.VarInt
 include QUIC.Spec.VarInt
+include QUIC.Impl.Base
 
 module Cast = FStar.Int.Cast
 module U64 = FStar.UInt64
@@ -43,7 +44,6 @@ val serialize_bounded_varint
   (max: nat { min <= max /\ max < 4294967296 })
 : Tot (LL.serializer32 (serialize_bounded_varint min max))
 
-(*
 val varint_len_correct
   (x: U62.t)
 : Lemma
