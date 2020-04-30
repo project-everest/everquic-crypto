@@ -103,6 +103,26 @@ val serialize_header_ext
     LP.serialize (serialize_header short_dcid_len1) h == LP.serialize (serialize_header short_dcid_len2) h
   ))
 
+val serialize_header_is_short
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma (
+    let s = LP.serialize (serialize_header short_dcid_len) h in
+    Seq.length s > 0 /\
+    (PShort? h <==> LPB.get_bitfield (U8.v (Seq.index s 0)) 7 8 == 0)
+  )
+
+val serialize_header_is_retry
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma (
+    let s = LP.serialize (serialize_header short_dcid_len) h in
+    Seq.length s > 0 /\ (
+    is_retry h <==> (
+    LPB.get_bitfield (U8.v (Seq.index s 0)) 7 8 == 1 /\
+    LPB.get_bitfield (U8.v (Seq.index s 0)) 4 6 == 3
+  )))
+
 
 (* Mutating the protected bits *)
 

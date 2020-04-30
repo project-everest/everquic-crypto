@@ -503,11 +503,19 @@ let format_header
 
 let format_header_is_short
   h
-= admit ()
+= let cid_len = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq cid_len last h;
+  let (| ph, _ |) = synth_header_recip cid_len last h in
+  Public.serialize_header_is_short cid_len ph
 
 let format_header_is_retry
   h
-= admit ()
+= let cid_len = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq cid_len last h;
+  let (| ph, _ |) = synth_header_recip cid_len last h in
+  Public.serialize_header_is_retry cid_len ph
 
 let format_header_pn_length
   h

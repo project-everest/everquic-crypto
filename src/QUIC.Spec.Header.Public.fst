@@ -370,6 +370,52 @@ let serialize_header_ext
   serialize_header_eq short_dcid_len2 h;
   ()
 
+let serialize_header_is_short
+  dl h
+=
+  serialize_header_eq dl h;
+  let tg = first_byte_of_header dl h in
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_u8_spec x;
+  let s = LP.serialize (serialize_header dl) h in
+  assert (Seq.index s 0 == x);
+  assert (PShort? h <==> LPB.uint8.LPB.get_bitfield (Seq.index s 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Short <: U8.t))
+
+let first_byte_is_retry
+  (k: LPB.bitsum'_type first_byte)
+: GTot bool
+= match k with
+  | (| Long, (| (), (| Retry, (unused, ()) |) |) |) -> true
+  | _ -> false
+
+let first_byte_is_retry_correct
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (is_retry h <==> first_byte_is_retry (first_byte_of_header short_dcid_len h))
+= ()
+
+#push-options "--z3rlimit 128"
+
+let serialize_header_is_retry
+  dl h
+=
+  serialize_header_eq dl h;
+  let tg = first_byte_of_header dl h in
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_u8_spec x;
+  let s = LP.serialize (serialize_header dl) h in  
+  assert (Seq.index s 0 == x);
+  assert (is_retry h <==> (
+    LPB.uint8.LPB.get_bitfield (Seq.index s 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Long <: U8.t) /\
+    LPB.uint8.LPB.get_bitfield (Seq.index s 0) 4 6 == (LowParse.Spec.Enum.enum_repr_of_key long_packet_type Retry <: U8.t)
+  ))
+
+#pop-options
+
+#restart-solver
+
+
 let is_valid_bitfield_intro
   (short_dcid_len: short_dcid_len_t)
   (h: header' short_dcid_len)
@@ -410,8 +456,7 @@ let mk_header_body_set_valid_bitfield
     mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h)
 = ()
 
-#push-options "--z3rlimit 256"
-
+#push-options "--z3rlimit 512"
 
 #restart-solver
 
