@@ -412,6 +412,22 @@ let mk_header_body_set_valid_bitfield
 
 #push-options "--z3rlimit 256"
 
+
+#restart-solver
+
+let serialize_get_protected_bits
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (let sq = LP.serialize (serialize_header short_dcid_len) h in
+   Seq.length sq > 0 /\
+   get_protected_bits h == LPB.uint8.LPB.get_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4))
+= let sq = LP.serialize (serialize_header short_dcid_len) h in
+  serialize_header_eq
+    short_dcid_len
+    h;
+  LP.serialize_u8_spec (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h))
+
 #restart-solver
 
 let serialize_set_protected_bits

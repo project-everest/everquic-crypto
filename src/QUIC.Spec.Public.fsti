@@ -121,6 +121,14 @@ let set_protected_bits
   | PShort _ spin dcid -> PShort new_pb spin dcid
   | PLong _ version dcid scid spec -> PLong new_pb version dcid scid spec
 
+val serialize_get_protected_bits
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (let sq = LP.serialize (serialize_header short_dcid_len) h in
+   Seq.length sq > 0 /\
+   get_protected_bits h == LPB.uint8.LPB.get_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4))
+
 val serialize_set_protected_bits
   (short_dcid_len: short_dcid_len_t)
   (h: header' short_dcid_len)
