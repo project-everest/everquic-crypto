@@ -517,7 +517,7 @@ let format_header_is_retry
   let (| ph, _ |) = synth_header_recip cid_len last h in
   Public.serialize_header_is_retry cid_len ph
 
-#push-options "--z3rlimit 32"
+#push-options "--z3rlimit 64"
 
 let format_header_pn_length
   h
