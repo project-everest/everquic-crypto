@@ -320,7 +320,7 @@ let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
 
   FStar.Classical.forall_intro step
 
-#push-options "--z3rlimit 16"
+#push-options "--z3rlimit 32"
 
 let pointwise_op_append_r
   (#t: eqtype)
