@@ -578,7 +578,31 @@ let putative_pn_offset
 
 let putative_pn_offset_frame
   cid_len x1 x2
-= admit ()
+= let Some off = putative_pn_offset cid_len x1 in
+  let h1 = Seq.index x1 0 in
+  let h2 = Seq.index x2 0 in
+  assert (Seq.slice x2 0 off `Seq.equal` (h2 `Seq.cons` Seq.tail (Seq.slice x1 0 off)));
+  let is_short = BF.get_bitfield (U8.v h1) 7 8 = 0 in
+  let number_of_protected_bits = if is_short then 5 else 4 in
+  let new_pb = BF.uint8.BF.get_bitfield h2 0 number_of_protected_bits in
+  let h1' = BF.uint8.BF.set_bitfield h1 0 number_of_protected_bits new_pb in
+  assert (BF.uint8.BF.v (BF.uint8.BF.get_bitfield h2 0 number_of_protected_bits) == BF.uint8.BF.v (BF.uint8.BF.get_bitfield h1' 0 number_of_protected_bits));
+  assert (BF.uint8.BF.v (BF.uint8.BF.get_bitfield h2 number_of_protected_bits 8) == BF.uint8.BF.v (BF.uint8.BF.get_bitfield h1' number_of_protected_bits 8));
+  BF.get_bitfield_partition_2 #8 number_of_protected_bits (BF.uint8.BF.v h2) (BF.uint8.BF.v h1');
+  let cid_len' = U32.uint_to_t cid_len in
+  let p = Public.parse_header cid_len' in
+  let s = Public.serialize_header cid_len' in
+  let Some (ph, consumed) = LP.parse p x1 in
+  assert (consumed == off);
+  LP.parse_serialize s ph;
+  LP.parse_strong_prefix p x1 (Seq.slice x1 0 off);
+  LP.parse_injective p (Seq.slice x1 0 off) (LP.serialize s ph);
+  assert (LP.serialize s ph == Seq.slice x1 0 off);
+  Public.serialize_header_is_short cid_len' ph;
+  Public.serialize_set_protected_bits cid_len' ph new_pb;
+  let ph2 = Public.set_protected_bits ph new_pb in
+  assert (LP.serialize s ph2 == Seq.slice x2 0 off);
+  LP.parse_strong_prefix p (Seq.slice x2 0 off) x2
 
 let putative_pn_offset_correct
   h cid_len
