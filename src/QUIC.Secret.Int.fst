@@ -572,3 +572,12 @@ let secrets_are_equal_64_2
     v z == (if v x = v y then 1 else 0)
   })
 = norm (secrets_are_equal 2 x y)
+
+[@"opaque_to_smt"]
+let secrets_are_equal_62
+  (x: uint64 { v x < pow2 62 })
+  (y: uint64 { v y < pow2 62 })
+: Tot (z: uint64 {
+    v z == (if v x = v y then 1 else 0)
+  })
+= norm (secrets_are_equal 62 x y)

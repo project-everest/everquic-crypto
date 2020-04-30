@@ -26,7 +26,7 @@ let lemma_replace_modulo_bound_aux (k:nat) (a:nat) (b:nat) (u:nat)
   pow2_plus u (k-u)
 #pop-options
 
-#push-options "--z3rlimit 512"
+#push-options "--z3rlimit 1024"
 
 #restart-solver
 let lemma_replace_modulo_bound (a mod_pow new_mod up_pow:nat) : Lemma
