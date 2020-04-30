@@ -30,7 +30,19 @@ val seq_hide_index
   (ensures (
     Secret.v (index (seq_hide x) i) == Secret.v (index x i)
   ))
+
+let seq_hide_index'
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: seq (Secret.uint_t t sec))
+  (i: nat)
+: Lemma
+  (requires (i < length x))
+  (ensures (
+    index (seq_hide x) i == Secret.hide #t (index x i)
+  ))
   [SMTPat (index (seq_hide x) i)]
+= seq_hide_index x i
 
 let seq_hide_sec
   (#t: Secret.inttype { Secret.unsigned t })
@@ -63,7 +75,19 @@ val seq_reveal_index
   (ensures (
     Secret.v (index (seq_reveal x) i) == Secret.v (index x i)
   ))
+
+let seq_reveal_index'
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: seq (Secret.uint_t t sec))
+  (i: nat)
+: Lemma
+  (requires (i < length x))
+  (ensures (
+    index (seq_reveal x) i == Secret.reveal (index x i)
+  ))
   [SMTPat (index (seq_reveal x) i)]
+= seq_reveal_index x i
 
 let seq_reveal_pub
   (#t: Secret.inttype { Secret.unsigned t })
@@ -77,6 +101,7 @@ let seq_reveal_hide
   (x: seq (Secret.uint_t t Secret.PUB))
 : Lemma
   (seq_reveal (seq_hide x) `equal` x)
+  [SMTPat (seq_reveal (seq_hide x))]
 = ()
 
 let seq_hide_reveal
@@ -84,6 +109,7 @@ let seq_hide_reveal
   (x: seq (Secret.uint_t t Secret.SEC))
 : Lemma
   (seq_hide (seq_reveal x) `equal` x)
+  [SMTPat (seq_hide (seq_reveal x))]
 = ()
 
 let seq_reveal_inj

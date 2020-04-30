@@ -62,7 +62,7 @@ let logand_mask (#n:pos) (a:U.uint_t n) (m:nat{m <= n})
 
 #pop-options
 
-#push-options "--z3rlimit 1024"
+#push-options "--z3rlimit 2048"
 
 #restart-solver
 

@@ -395,7 +395,7 @@ let first_byte_is_retry_correct
   (is_retry h <==> first_byte_is_retry (first_byte_of_header short_dcid_len h))
 = ()
 
-#push-options "--z3rlimit 128"
+#push-options "--z3rlimit 256"
 
 let serialize_header_is_retry
   dl h
@@ -476,13 +476,7 @@ let serialize_get_protected_bits
 #restart-solver
 
 let serialize_set_protected_bits
-  (short_dcid_len: short_dcid_len_t)
-  (h: header' short_dcid_len)
-  (new_pb: bitfield (if PShort? h then 5 else 4))
-: Lemma
-  (let sq = LP.serialize (serialize_header short_dcid_len) h in
-  LP.serialize (serialize_header short_dcid_len) (set_protected_bits h new_pb) `Seq.equal`
-    (LPB.uint8.LPB.set_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4) new_pb `Seq.cons` Seq.tail sq))
+  short_dcid_len h new_pb
 = let h' = set_protected_bits h new_pb in
   let sq = LP.serialize (serialize_header short_dcid_len) h in
   let sq' = LP.serialize (serialize_header short_dcid_len) h' in

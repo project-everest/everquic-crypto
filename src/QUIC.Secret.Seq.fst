@@ -76,7 +76,7 @@ let uint_reveal
   (sec_from sec_to: Secret.secrecy_level)
   (x: Secret.uint_t t sec_from)
 : GTot (Secret.uint_t t sec_to)
-= Secret.mk_int (Secret.v x)
+= Secret.mk_int #t (Secret.v x)
 
 let seq_reveal
   #t #sec x

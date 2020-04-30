@@ -54,24 +54,6 @@ let lemma_pow2_div (a:nat) (b:nat) (k:nat)
 
 #restart-solver
 
-#push-options "--z3rlimit 128"
-
-// FIXME(adl) this proof is very flacky
-// Will be replaced by varint combinator, using bitfield for first 2 bits
-let lemma_divrem3 (k:nat) (a:nat) (b:nat) (n:nat)
-  : Lemma (requires a >= k /\ b >= k /\ n < pow2 k)
-  (ensures (pow2 a + pow2 b + n) % pow2 k == n /\ (pow2 a + pow2 b + n) / pow2 k == pow2 (a - k) + pow2 (b - k))
-  =
-  let open FStar.Math.Lemmas in
-  let open FStar.Mul in
-  modulo_distributivity (pow2 a + pow2 b) n (pow2 k);
-  modulo_distributivity (pow2 a) (pow2 b) (pow2 k);
-  small_mod n (pow2 k);
-  lemma_div_mod (pow2 a + pow2 b + n) (pow2 k);
-  lemma_pow2_div a b k
-
-#pop-options
-
 let lemma_pow2_div2 (a:nat) (b:nat) (c:nat)
   : Lemma ((a / pow2 b) / pow2 c == a / (pow2 (c + b)))
   =
@@ -619,7 +601,7 @@ let lemma_propagate_mul_mod (a b:nat) : Lemma
   modulo_range_lemma a b;
   small_mod r (2*b)
 
-#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 128" // strange that F* has so much trouble completing this induction
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 256" // strange that F* has so much trouble completing this induction
 let recompose_pow2_assoc (n:pos) (a:nat) : Lemma
   (let open FStar.Mul in 2 * (pow2 (n-1) * a) = pow2 n * a) =
   ()

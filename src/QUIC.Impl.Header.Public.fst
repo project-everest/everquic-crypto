@@ -136,7 +136,9 @@ let read_header_body_t
     read_header_body_post sl cid_len tg h x h'
   ))
 
-#push-options "--z3rlimit 64 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+#push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+#restart-solver
 
 let read_header_body_short
   (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
@@ -151,11 +153,13 @@ let read_header_body_short
     LP.valid_flbytes_elim h0 (U32.v cid_len) sl 1ul;
     let pos = LP.jump_flbytes (U32.v cid_len) cid_len sl 1ul in
     let dcid = B.sub sl.LP.base 1ul (pos `U32.sub` 1ul) in
-    PShort protected_bits (spin = 1uy) dcid cid_len
+    PShort (Secret.hide #Secret.U8 protected_bits) (spin = 1uy) dcid cid_len
 
 #pop-options
 
 #push-options "--z3rlimit 128 --z3cliopt smt.arith.nl=false --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
+
+#restart-solver
 
 let read_header_body_long_retry
   (sl: LP.slice (B.trivial_preorder _) (B.trivial_preorder _))
@@ -179,7 +183,7 @@ let read_header_body_long_retry
     let odcid = LP.get_vlbytes_contents 0 20 sl pos3 in
     let odcid_len = LP.bounded_vlbytes_payload_length 0 20 sl pos3 in
     let spec = PRetry odcid odcid_len in
-    (PLong protected_bits version dcid dcid_len scid scid_len spec)
+    (PLong (Secret.hide #Secret.U8 protected_bits) version dcid dcid_len scid scid_len spec)
 
 #pop-options
 
@@ -238,7 +242,7 @@ let read_header_body_long_initial
     let pos4 = LP.jump_bounded_vlgenbytes 0 token_max_len (VI.jump_bounded_varint 0 token_max_len) (VI.read_bounded_varint 0 token_max_len) sl pos3 in
     let payload_and_pn_length = read_payload_and_pn_length sl pos4 in
     let spec = PInitial (payload_and_pn_length) token token_len in
-    PLong protected_bits version dcid dcid_len scid scid_len spec
+    PLong (Secret.hide #Secret.U8 protected_bits) version dcid dcid_len scid scid_len spec
 
 #pop-options
 
@@ -289,7 +293,7 @@ let read_header_body_long_handshake
     let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
     let payload_and_pn_length = read_payload_and_pn_length sl pos3 in
     let spec = PHandshake payload_and_pn_length in
-    PLong protected_bits version dcid dcid_len scid scid_len spec
+    PLong (Secret.hide #Secret.U8 protected_bits) version dcid dcid_len scid scid_len spec
 
 #pop-options
 
@@ -340,7 +344,7 @@ let read_header_body_long_zero_rtt
     let pos3 = LP.jump_bounded_vlbytes 0 20 sl pos2 in
     let payload_and_pn_length = read_payload_and_pn_length sl pos3 in
     let spec = PZeroRTT payload_and_pn_length in
-    PLong protected_bits version dcid dcid_len scid scid_len spec
+    PLong (Secret.hide #Secret.U8 protected_bits) version dcid dcid_len scid scid_len spec
 
 #pop-options
 
@@ -439,9 +443,10 @@ let swrite_header_short
     B.loc_disjoint (B.loc_buffer cid) (LP.loc_slice_from out 0ul)
   })
 : Tot (w: LW.swriter (serialize_header cid_len) h0 0 out 0ul {
-    LW.swvalue w == g_header (PShort protected_bits spin cid cid_len) h0
+    LW.swvalue w == S.PShort protected_bits spin (FB.hide (B.as_seq h0 cid))
   })
-= [@inline_let]
+= 
+  [@inline_let]
   let tg : LPB.bitsum'_type first_byte =
     (| Short, (| (), ((if spin then 1uy else 0uy), (protected_bits, ())) |) |)
   in
@@ -452,7 +457,7 @@ let swrite_header_short
   [@inline_let]
   let _ =
     assert_norm (LPB.bitsum'_key_of_t first_byte tg == k);
-    assert_norm (first_byte_of_header cid_len (g_header (PShort protected_bits spin cid cid_len) h0) == tg)
+    assert_norm (first_byte_of_header cid_len (S.PShort protected_bits spin (FB.hide (B.as_seq h0 cid))) == tg)
   in
   [@inline_let]
   let s : LW.swriter (serialize_header_body cid_len k) h0 _ out 0ul =
@@ -559,7 +564,7 @@ let swrite_header_long_initial
     B.loc_disjoint ((B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) `B.loc_union` B.loc_buffer token) (LW.loc_slice_from out 0ul)
   })
 : Tot (w: LW.swriter (serialize_header short_dcid_len) h0 0 out 0ul {
-    LW.swvalue w == g_header (PLong protected_bits version dcid dcid_len scid scid_len (PInitial payload_and_pn_length token token_length)) h0
+    LW.swvalue w == S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PInitial (FB.hide (B.as_seq h0 token))  payload_and_pn_length)
   })
 = 
   [@inline_let]
@@ -573,7 +578,7 @@ let swrite_header_long_initial
   [@inline_let]
   let _ =
     assert_norm (LPB.bitsum'_key_of_t first_byte tg == k);
-    assert_norm (first_byte_of_header short_dcid_len (g_header (PLong protected_bits version dcid dcid_len scid scid_len (PInitial payload_and_pn_length token token_length)) h0) == tg)
+    assert_norm (first_byte_of_header short_dcid_len (S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PInitial (FB.hide (B.as_seq h0 token))  payload_and_pn_length)) == tg)
   in
   [@inline_let]
   let s : LW.swriter (serialize_header_body short_dcid_len k) h0 _ out 0ul =
@@ -631,9 +636,10 @@ let swrite_header_long_zeroRTT
     B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
   })
 : Tot (w: LW.swriter (serialize_header short_dcid_len) h0 0 out 0ul {
-      LW.swvalue w == g_header (PLong protected_bits version dcid dcid_len scid scid_len (PZeroRTT payload_and_pn_length)) h0
+      LW.swvalue w == S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PZeroRTT payload_and_pn_length)
   })
-= [@inline_let]
+=
+  [@inline_let]
   let tg : LPB.bitsum'_type first_byte =
     (| Long, (| (), (| ZeroRTT, (protected_bits, ()) |) |) |)
   in
@@ -644,7 +650,7 @@ let swrite_header_long_zeroRTT
   [@inline_let]
   let _ =
     assert_norm (LPB.bitsum'_key_of_t first_byte tg == k);
-    assert_norm (first_byte_of_header short_dcid_len (g_header (PLong protected_bits version dcid dcid_len scid scid_len (PZeroRTT payload_and_pn_length)) h0) == tg)
+    assert_norm (first_byte_of_header short_dcid_len (S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PZeroRTT payload_and_pn_length)) == tg)
   in
   [@inline_let]
   let s : LW.swriter (serialize_header_body short_dcid_len k) h0 _ out 0ul =
@@ -700,7 +706,7 @@ let swrite_header_long_handshake
     B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
   })
 : Tot (w: LW.swriter (serialize_header short_dcid_len) h0 0 out 0ul {
-      LW.swvalue w == g_header (PLong protected_bits version dcid dcid_len scid scid_len (PHandshake payload_and_pn_length)) h0
+      LW.swvalue w == S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PHandshake payload_and_pn_length)
   })
 = [@inline_let]
   let tg : LPB.bitsum'_type first_byte =
@@ -713,7 +719,7 @@ let swrite_header_long_handshake
   [@inline_let]
   let _ =
     assert_norm (LPB.bitsum'_key_of_t first_byte tg == k);
-    assert_norm (first_byte_of_header short_dcid_len (g_header (PLong protected_bits version dcid dcid_len scid scid_len (PHandshake payload_and_pn_length)) h0) == tg)
+    assert_norm (first_byte_of_header short_dcid_len (S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PHandshake payload_and_pn_length)) == tg)
   in
   [@inline_let]
   let s : LW.swriter (serialize_header_body short_dcid_len k) h0 _ out 0ul =
@@ -775,7 +781,7 @@ let swrite_header_long_retry
     B.loc_disjoint ((B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) `B.loc_union` B.loc_buffer odcid) (LW.loc_slice_from out 0ul)
   })
 : Tot (w: LW.swriter (serialize_header short_dcid_len) h0 0 out 0ul {
-      LW.swvalue w == g_header (PLong protected_bits version dcid dcid_len scid scid_len (PRetry odcid odcid_len)) h0
+      LW.swvalue w == S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PRetry (FB.hide (B.as_seq h0 odcid)))
   })
 = [@inline_let]
   let tg : LPB.bitsum'_type first_byte =
@@ -788,7 +794,7 @@ let swrite_header_long_retry
   [@inline_let]
   let _ =
     assert_norm (LPB.bitsum'_key_of_t first_byte tg == k);
-    assert_norm (first_byte_of_header short_dcid_len (g_header (PLong protected_bits version dcid dcid_len scid scid_len (PRetry odcid odcid_len)) h0) == tg)
+    assert_norm (first_byte_of_header short_dcid_len (S.PLong protected_bits version (FB.hide (B.as_seq h0 dcid)) (FB.hide (B.as_seq h0 scid)) (S.PRetry (FB.hide (B.as_seq h0 odcid)))) == tg)
   in
   [@inline_let]
   let s : LW.swriter (serialize_header_body short_dcid_len k) h0 0 out 0ul =
@@ -821,31 +827,154 @@ let swrite_header_long_retry
 
 #restart-solver
 
+inline_for_extraction
+val write_header_aux
+  (short_dcid_len: short_dcid_len_t)
+  (h: header)
+  (out: B.buffer U8.t)
+  (out_len: U32.t { U32.v out_len <= B.length out })
+: HST.Stack U32.t
+  (requires (fun h0 ->
+    (PShort? h ==> PShort?.cid_len h == short_dcid_len) /\
+    header_live h h0 /\
+    B.live h0 out /\
+    B.loc_disjoint (header_footprint h) (B.loc_buffer out) /\
+    Seq.length (LP.serialize (serialize_header short_dcid_len) (set_protected_bits (g_header h h0) 0uy)) <= U32.v out_len
+  ))
+  (ensures (fun h0 len h1 ->
+    let gh = set_protected_bits (g_header h h0) 0uy in
+    let s = LP.serialize (serialize_header short_dcid_len) gh in
+    U32.v len <= U32.v out_len /\
+    B.modifies (B.loc_buffer out) h0 h1 /\
+    Seq.slice (B.as_seq h1 out) 0 (U32.v len) == s 
+  ))
+
 #push-options "--z3rlimit 32"
 
-let write_header
+#restart-solver
+
+let write_header_aux
   short_dcid_len h out out_len
 = let h0 = HST.get () in
   let sl = LW.make_slice out out_len in
-  LW.serialized_length_eq (serialize_header short_dcid_len) (g_header h h0);
+  LW.serialized_length_eq (serialize_header short_dcid_len) (set_protected_bits (g_header h h0) 0uy);
   let len = match h with
-  | PShort protected_bits spin cid cid_len ->
-    LW.swrite (swrite_header_short protected_bits spin cid cid_len h0 sl) 0ul
-  | PLong protected_bits version dcid dcil scid scil spec ->
+  | PShort pb spin cid cid_len ->
+    LW.swrite (swrite_header_short 0uy spin cid cid_len h0 sl) 0ul
+  | PLong pb version dcid dcil scid scil spec ->
     begin match spec with
     | PInitial payload_and_pn_length token token_length ->
-      LW.swrite (swrite_header_long_initial protected_bits short_dcid_len version dcid dcil scid scil payload_and_pn_length token token_length h0 sl) 0ul
+      LW.swrite (swrite_header_long_initial 0uy short_dcid_len version dcid dcil scid scil payload_and_pn_length token token_length h0 sl) 0ul
     | PZeroRTT payload_and_pn_length ->
-      LW.swrite (swrite_header_long_zeroRTT protected_bits short_dcid_len version dcid dcil scid scil payload_and_pn_length h0 sl) 0ul
+      LW.swrite (swrite_header_long_zeroRTT 0uy short_dcid_len version dcid dcil scid scil payload_and_pn_length h0 sl) 0ul
     | PHandshake payload_and_pn_length ->
-      LW.swrite (swrite_header_long_handshake protected_bits short_dcid_len version dcid dcil scid scil payload_and_pn_length h0 sl) 0ul
+      LW.swrite (swrite_header_long_handshake 0uy short_dcid_len version dcid dcil scid scil payload_and_pn_length h0 sl) 0ul
     | PRetry odcid odcil ->
-      LW.swrite (swrite_header_long_retry protected_bits short_dcid_len version dcid dcil scid scil odcid odcil h0 sl) 0ul
+      LW.swrite (swrite_header_long_retry 0uy short_dcid_len version dcid dcil scid scil odcid odcil h0 sl) 0ul
     end
   in
   let h1 = HST.get () in
   LP.valid_pos_valid_exact  (parse_header short_dcid_len) h1 sl 0ul len;
   LP.valid_exact_serialize (serialize_header short_dcid_len) h1 sl 0ul len;
+  len
+
+#pop-options
+
+let get_pb
+  (h: header)
+: Tot (secret_bitfield (if PShort? h then 5 else 4))
+= 
+  match h with
+  | PShort pb spin cid cid_len ->
+    pb
+  | PLong pb version dcid dcil scid scil spec ->
+    pb
+
+let get_pb_correct
+  (h: header)
+  (m: HS.mem)
+: Lemma
+  (ensures (Secret.v (get_pb h) == U8.v (get_protected_bits (g_header h m))))
+= ()
+
+let get_pb_complete
+  (h: header)
+  (m: HS.mem)
+: Lemma
+  (set_protected_bits (set_protected_bits (g_header h m) 0uy) (U8.uint_to_t (Secret.v (get_pb h))) == g_header h m)
+= ()
+
+module SecretBuffer = QUIC.Secret.Buffer
+module Seq = QUIC.Secret.Seq
+
+#pop-options
+
+#push-options "--z3rlimit 64 --query_stats"
+
+#restart-solver
+
+let write_header
+  short_dcid_len h out out_len
+=
+  let h0 = HST.get () in
+  let pb = get_pb h in
+  serialize_set_protected_bits short_dcid_len (g_header h h0) 0uy;
+  assert (Seq.length (LP.serialize (serialize_header short_dcid_len) (set_protected_bits (g_header h h0) 0uy)) == Seq.length (LP.serialize (serialize_header short_dcid_len) (g_header h h0)));
+  let len = write_header_aux short_dcid_len h out out_len in
+  let h1 = HST.get () in
+  let f () : Lemma (
+    let s = Seq.slice (B.as_seq h1 out) 0 (U32.v len) in
+    Seq.length s > 0 /\
+    LP.serialize (serialize_header short_dcid_len) (g_header h h0) ==
+      LPB.uint8.LPB.set_bitfield (Seq.head s) 0 (if PShort? h then 5 else 4) (U8.uint_to_t (Secret.v pb) <: U8.t) `Seq.cons` Seq.tail s
+  )
+  =
+    get_pb_complete h h0;
+    serialize_set_protected_bits short_dcid_len (set_protected_bits (g_header h h0) 0uy) (U8.uint_to_t (Secret.v pb) <: U8.t)
+  in
+  f ();
+  let post
+    ()
+    (contl: Seq.lseq U8.t 0)
+    (cont: Seq.lseq U8.t (U32.v len))
+    (contr: Seq.lseq U8.t (B.length out - U32.v len))
+    (m: HS.mem)
+  : GTot Type0
+  =
+      let s = Seq.slice (B.as_seq h1 out) 0 (U32.v len) in
+      Seq.length s > 0 /\
+      cont `Seq.equal` (LPB.uint8.LPB.set_bitfield (Seq.head s) 0 (if PShort? h then 5 else 4) (U8.uint_to_t (Secret.v pb) <: U8.t) `Seq.cons` Seq.tail s)
+  in
+  SecretBuffer.with_buffer_hide
+    #unit
+    out
+    0ul
+    len
+    h1
+    B.loc_none
+    B.loc_none
+    0ul 0ul 0ul 1ul 0ul 0ul
+    post
+    (fun _ bl bs br ->
+      let x = B.index bs 0ul in
+      let y =
+        if PShort? h
+        then Secret.set_bitfield #Secret.U8 x 0ul 5ul pb
+        else Secret.set_bitfield #Secret.U8 x 0ul 4ul pb
+      in
+      assert (
+        let s = Seq.slice (B.as_seq h1 out) 0 (U32.v len) in
+        Secret.reveal #Secret.U8 y == LPB.uint8.LPB.set_bitfield (Seq.head s) 0 (if PShort? h then 5 else 4) (U8.uint_to_t (Secret.v pb) <: U8.t)
+      );
+      SecretBuffer.buffer_update_strong bs 0ul y;
+      let h2 = HST.get () in
+      assert (
+        let s = Seq.slice (B.as_seq h1 out) 0 (U32.v len) in
+        Seq.length s > 0 /\
+        B.as_seq h2 bs `Seq.equal` Seq.cons y (Seq.tail (Seq.seq_hide #Secret.U8 s))
+      )
+    )
+  ;
   len
 
 #pop-options

@@ -23,6 +23,42 @@ let supported_type = function
   | U8 | U16 | U32 | U64 -> true
   | _ -> false
 
+inline_for_extraction
+noextract
+[@"opaque_to_smt"]
+let hide
+  (#t: inttype { unsigned t })
+  (#sec: secrecy_level)
+  (x: uint_t t sec)
+: Tot (y: uint_t t SEC { v y == v x })
+= cast t SEC x
+
+inline_for_extraction
+noextract
+[@"opaque_to_smt"]
+let reveal
+  (#t: inttype { unsigned t })
+  (#sec: secrecy_level)
+  (x: uint_t t sec)
+: GTot (y: uint_t t PUB { v y == v x })
+= mk_int #t (v x)
+
+let hide_reveal
+  (#t: inttype { unsigned t })
+  (x: uint_t t SEC)
+: Lemma
+  (hide (reveal x) == x)
+  [SMTPat (hide (reveal x))]
+= ()
+
+let reveal_hide
+  (#t: inttype { unsigned t })
+  (x: uint_t t PUB)
+: Lemma
+  (reveal (hide x) == x)
+  [SMTPat (reveal (hide x))]
+= ()
+
 module U = FStar.UInt
 
 
@@ -396,7 +432,7 @@ let rec secret_is_lt
     (secrets_are_equal (size - 1) (div2 x) (div2 y) `logand_one_bit` one_bit_lt (rem2 x) (rem2 y)) 
 *)
 
-#push-options "--z3rlimit 64"
+#push-options "--z3rlimit 128"
 
 #restart-solver
 

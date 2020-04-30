@@ -6,6 +6,7 @@ module U64 = FStar.UInt64
 module U32 = FStar.UInt32
 module U8 = FStar.UInt8
 module S = FStar.Seq
+module Secret = QUIC.Secret.Int
 
 type byte = FStar.UInt8.t
 type bytes = S.seq byte
@@ -17,6 +18,13 @@ let bitfield
   (sz: nat { sz <= 8 })
 : Tot eqtype
 = (x: U8.t { U8.v x < pow2 sz })
+
+inline_for_extraction
+noextract
+let secret_bitfield
+  (sz: nat { sz <= 8 })
+: Tot Type0
+= (x: Secret.uint8 { Secret.v x < pow2 sz })
 
 type payload_and_pn_length_t = (payload_and_pn_length: U62.t { U64.v payload_and_pn_length >= 20 })
 

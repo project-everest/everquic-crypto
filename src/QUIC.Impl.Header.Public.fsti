@@ -10,6 +10,7 @@ module HS = FStar.HyperStack
 module FB = FStar.Bytes
 module U64 = FStar.UInt64
 module HST = FStar.HyperStack.ST
+module Secret = QUIC.Secret.Int
 
 val validate_header
   (short_dcid_len: short_dcid_len_t)
@@ -36,7 +37,7 @@ type long_header_specifics =
 noeq
 type header =
 | PLong:
-  (protected_bits: bitfield 4) ->
+  (protected_bits: secret_bitfield 4) ->
   (version: U32.t) ->
   dcid: B.buffer U8.t ->
   dcil: U32.t { let v = U32.v dcil in v == B.length dcid /\ 0 <= v /\ v <= 20 } ->
@@ -45,7 +46,7 @@ type header =
   (spec: long_header_specifics) ->
   header
 | PShort:
-  (protected_bits: bitfield 5) ->
+  (protected_bits: secret_bitfield 5) ->
   (spin: bool) ->
   cid: B.buffer U8.t ->
   cid_len: U32.t{
@@ -91,9 +92,9 @@ let header_live_loc_not_unused_in_footprint (h: header) (m: HS.mem) : Lemma
 let g_header (h: header) (m: HS.mem) : GTot S.header =
   match h with
   | PShort protected_bits spin cid cid_len ->
-    S.PShort protected_bits spin (FB.hide (B.as_seq m cid))
+    S.PShort (U8.uint_to_t (Secret.v protected_bits)) spin (FB.hide (B.as_seq m cid))
   | PLong protected_bits version dcid dcil scid scil spec ->
-    S.PLong protected_bits version (FB.hide (B.as_seq m dcid)) (FB.hide (B.as_seq m scid))
+    S.PLong (U8.uint_to_t (Secret.v protected_bits)) version (FB.hide (B.as_seq m dcid)) (FB.hide (B.as_seq m scid))
     begin match spec with
     | PInitial payload_and_pn_length token token_length ->
       S.PInitial (FB.hide (B.as_seq m token)) payload_and_pn_length 
