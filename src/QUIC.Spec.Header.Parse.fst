@@ -517,9 +517,22 @@ let format_header_is_retry
   let (| ph, _ |) = synth_header_recip cid_len last h in
   Public.serialize_header_is_retry cid_len ph
 
+#push-options "--z3rlimit 32"
+
 let format_header_pn_length
   h
-= admit ()
+= let cid_len = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq cid_len last h;
+  let (| ph, _ |) = synth_header_recip cid_len last h in
+  let x = Seq.index (format_header h) 0 in
+  assert (x == Seq.index (LP.serialize (Public.serialize_header cid_len) ph) 0);
+  assert (Public.PShort? ph == MShort? h);
+  Public.serialize_get_protected_bits cid_len ph;
+  BF.get_bitfield_get_bitfield #8 (U8.v x) 0 (if Public.PShort? ph then 5 else 4) 0 2;
+  assert (BF.uint8.BF.v (BF.uint8.BF.get_bitfield x 0 2) == Secret.v (pn_length h) - 1)
+
+#pop-options
 
 let pn_offset'
   (h: header)
