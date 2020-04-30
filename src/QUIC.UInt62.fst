@@ -1,5 +1,6 @@
 module QUIC.UInt62
 module U64 = FStar.UInt64
+include FStar.UInt64
 
 inline_for_extraction
 let bound : (bound: U64.t { U64.v bound == pow2 62 }) =
@@ -9,9 +10,6 @@ let bound : (bound: U64.t { U64.v bound == pow2 62 }) =
 
 inline_for_extraction
 let t = (x: U64.t { U64.v x < U64.v bound })
-
-noextract
-let v = U64.v
 
 module Secret = QUIC.Secret.Int
 
