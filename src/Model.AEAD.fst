@@ -12,10 +12,7 @@ module Spec = Spec.Agile.AEAD
 open Mem
 
 let log #i (u: info i): Type0 =
-  if is_safe i then
-    Seq.seq (entry i u)
-  else
-    unit
+  Seq.seq (entry i u)
 
 let model_writer i =
   u:info i & B.pointer (log #i u)
@@ -66,3 +63,7 @@ let gen i u =
     ((| u, B.malloc q_ae_region l 1ul |) <: model_writer i)
   else
     (u <: aead_writer i)
+
+let gen_reader #i w =
+  w
+
