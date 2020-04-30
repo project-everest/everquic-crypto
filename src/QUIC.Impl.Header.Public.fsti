@@ -93,9 +93,9 @@ let header_live_loc_not_unused_in_footprint (h: header) (m: HS.mem) : Lemma
 let g_header (h: header) (m: HS.mem) : GTot S.header =
   match h with
   | PShort protected_bits spin cid cid_len ->
-    S.PShort (U8.uint_to_t (Secret.v protected_bits)) spin (FB.hide (B.as_seq m cid))
+    S.PShort (Secret.reveal protected_bits) spin (FB.hide (B.as_seq m cid))
   | PLong protected_bits version dcid dcil scid scil spec ->
-    S.PLong (U8.uint_to_t (Secret.v protected_bits)) version (FB.hide (B.as_seq m dcid)) (FB.hide (B.as_seq m scid))
+    S.PLong (Secret.reveal protected_bits) version (FB.hide (B.as_seq m dcid)) (FB.hide (B.as_seq m scid))
     begin match spec with
     | PInitial payload_and_pn_length token token_length ->
       S.PInitial (FB.hide (B.as_seq m token)) payload_and_pn_length 
