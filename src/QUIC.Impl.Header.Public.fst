@@ -526,7 +526,7 @@ let swrite_payload_and_pn_length
 : Tot (w: LW.swriter (serialize_payload_and_pn_length) h0 0 out 0ul {
     LW.swvalue w == payload_and_pn_length
   })
-= payload_and_pn_length_prop `LW.swrite_filter` LW.swrite_leaf (LP.leaf_writer_strong_of_serializer32 VI.serialize_varint ()) h0 out 0ul payload_and_pn_length
+= payload_and_pn_length_prop `LW.swrite_filter` LW.swrite_leaf (LP.leaf_writer_strong_of_serializer32 VI.write_varint ()) h0 out 0ul payload_and_pn_length
 
 #push-options "--z3rlimit 128 --max_fuel 4 --initial_fuel 4"
 
@@ -583,7 +583,7 @@ let swrite_header_long_initial
   [@inline_let]
   let s : LW.swriter (serialize_header_body short_dcid_len k) h0 _ out 0ul =
     swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then` (
-      LW.swrite_bounded_vlgenbytes h0 out 0ul 0 token_max_len (LP.leaf_writer_strong_of_serializer32 (VI.serialize_bounded_varint 0 token_max_len) ()) token_length token `LW.swrite_nondep_then`
+      LW.swrite_bounded_vlgenbytes h0 out 0ul 0 token_max_len (LP.leaf_writer_strong_of_serializer32 (VI.write_bounded_varint 0 token_max_len) ()) token_length token `LW.swrite_nondep_then`
       swrite_payload_and_pn_length payload_and_pn_length h0 out
     )
   in
@@ -977,4 +977,221 @@ let write_header
   ;
   len
 
-#pop-options
+#restart-solver
+
+let header_len'
+  (h: S.header)
+: GTot nat
+= match h with
+  | S.PShort pb spin cid ->
+    1 + FB.length cid
+  | S.PLong pb version dcid scid spec ->
+    7 + FB.length dcid + FB.length scid +
+    begin match spec with
+    | S.PInitial token payload_and_pn_length ->
+      Seq.length (LP.serialize (VI.serialize_bounded_varint 0 token_max_len) (FB.len token)) + FB.length token + Seq.length (LP.serialize VI.serialize_varint payload_and_pn_length)
+    | S.PZeroRTT payload_and_pn_length ->
+      Seq.length (LP.serialize VI.serialize_varint payload_and_pn_length)
+    | S.PHandshake payload_and_pn_length ->
+      Seq.length (LP.serialize VI.serialize_varint payload_and_pn_length)
+    | S.PRetry odcid ->
+      1 + FB.length odcid
+    end
+
+let header_len'_correct_short
+  (short_dcid_len: short_dcid_len_t)
+  (protected_bits: bitfield 5)
+  (spin: bool)
+  (dcid: vlbytes 0 20)
+: Lemma
+  (requires (let h = S.PShort protected_bits spin dcid in
+    parse_header_prop short_dcid_len h
+  ))
+  (ensures (
+    let h = S.PShort protected_bits spin dcid in
+    header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h)
+  ))
+= 
+  let h = S.PShort protected_bits spin dcid in
+  serialize_header_eq short_dcid_len h;
+  let tg = first_byte_of_header short_dcid_len h in
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_length LP.serialize_u8 x;
+  assert_norm (first_byte_of_header short_dcid_len (S.PShort protected_bits spin dcid) == (| Short, (| (), ((if spin then 1uy else 0uy), (protected_bits, ()) ) |) |) );
+  assert_norm (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len (S.PShort protected_bits spin dcid)) == (| Short, (| (), () |) |) );
+  LP.serialize_length (LP.serialize_flbytes (U32.v short_dcid_len)) dcid
+
+let length_serialize_common_long
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+: Lemma
+  (Seq.length (LP.serialize serialize_common_long (version, (dcid, scid))) == 6 + FB.length dcid + FB.length scid)
+= LP.serialize_nondep_then_eq LP.serialize_u32 (LP.serialize_bounded_vlbytes 0 20 `LP.serialize_nondep_then` LP.serialize_bounded_vlbytes 0 20) (version, (dcid, scid));
+  LP.serialize_length LP.serialize_u32 version;
+  LP.serialize_nondep_then_eq (LP.serialize_bounded_vlbytes 0 20) (LP.serialize_bounded_vlbytes 0 20) (dcid, scid);
+  LP.length_serialize_bounded_vlbytes 0 20 dcid;
+  LP.length_serialize_bounded_vlbytes 0 20 scid
+
+let length_serialize_payload_and_pn_length
+  (payload_and_pn_length: payload_and_pn_length_t)
+: Lemma
+  (Seq.length (LP.serialize serialize_payload_and_pn_length payload_and_pn_length) == Seq.length (LP.serialize VI.serialize_varint payload_and_pn_length))
+= ()
+
+let header_len'_correct_long_initial
+  (short_dcid_len: short_dcid_len_t)
+  (protected_bits: bitfield 4)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (token: vlbytes 0 token_max_len)
+  (payload_and_pn_length: payload_and_pn_length_t)
+: Lemma
+  (requires (
+    let h = S.PLong protected_bits version dcid scid (S.PInitial token payload_and_pn_length) in
+    parse_header_prop short_dcid_len h
+  ))
+  (ensures (
+    let h = S.PLong protected_bits version dcid scid (S.PInitial token payload_and_pn_length) in
+    header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h)
+  ))
+=
+  let h = S.PLong protected_bits version dcid scid (S.PInitial token payload_and_pn_length) in
+  serialize_header_eq short_dcid_len h;
+  let tg : LPB.bitsum'_type first_byte = (| Long, (| (), (| Initial, (protected_bits, ()) |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len h == tg);
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_length LP.serialize_u8 x;
+  let kt : LPB.bitsum'_key_type first_byte = (| Long, (| (), (| Initial, () |) |) |) in
+  assert_norm (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h) == kt );
+  LP.length_serialize_nondep_then serialize_common_long (LP.serialize_bounded_vlgenbytes 0 token_max_len (VI.serialize_bounded_varint 0 token_max_len) `LP.serialize_nondep_then` serialize_payload_and_pn_length) (version, (dcid, scid)) (token, payload_and_pn_length);
+  length_serialize_common_long version dcid scid;
+  LP.length_serialize_nondep_then (LP.serialize_bounded_vlgenbytes 0 token_max_len (VI.serialize_bounded_varint 0 token_max_len)) (serialize_payload_and_pn_length) token payload_and_pn_length;
+  LP.length_serialize_bounded_vlgenbytes 0 token_max_len (VI.serialize_bounded_varint 0 token_max_len) token
+
+let header_len'_correct_long_handshake
+  (short_dcid_len: short_dcid_len_t)
+  (protected_bits: bitfield 4)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (payload_and_pn_length: payload_and_pn_length_t)
+: Lemma
+  (requires (
+    let h = S.PLong protected_bits version dcid scid (S.PHandshake payload_and_pn_length) in
+    parse_header_prop short_dcid_len h
+  ))
+  (ensures (
+    let h = S.PLong protected_bits version dcid scid (S.PHandshake payload_and_pn_length) in
+    header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h)
+  ))
+=
+  let h = S.PLong protected_bits version dcid scid (S.PHandshake payload_and_pn_length) in
+  serialize_header_eq short_dcid_len h;
+  let tg : LPB.bitsum'_type first_byte = (| Long, (| (), (| Handshake, (protected_bits, ()) |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len h == tg);
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_length LP.serialize_u8 x;
+  let kt : LPB.bitsum'_key_type first_byte = (| Long, (| (), (| Handshake, () |) |) |) in
+  assert_norm (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h) == kt );
+  LP.length_serialize_nondep_then serialize_common_long serialize_payload_and_pn_length (version, (dcid, scid)) payload_and_pn_length;
+  length_serialize_common_long version dcid scid
+
+let header_len'_correct_long_zero_rtt
+  (short_dcid_len: short_dcid_len_t)
+  (protected_bits: bitfield 4)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (payload_and_pn_length: payload_and_pn_length_t)
+: Lemma
+  (requires (
+    let h = S.PLong protected_bits version dcid scid (S.PZeroRTT payload_and_pn_length) in
+    parse_header_prop short_dcid_len h
+  ))
+  (ensures (
+    let h = S.PLong protected_bits version dcid scid (S.PZeroRTT payload_and_pn_length) in
+    header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h)
+  ))
+=
+  let h = S.PLong protected_bits version dcid scid (S.PZeroRTT payload_and_pn_length) in
+  serialize_header_eq short_dcid_len h;
+  let tg : LPB.bitsum'_type first_byte = (| Long, (| (), (| ZeroRTT, (protected_bits, ()) |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len h == tg);
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_length LP.serialize_u8 x;
+  let kt : LPB.bitsum'_key_type first_byte = (| Long, (| (), (| ZeroRTT, () |) |) |) in
+  assert_norm (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h) == kt );
+  LP.length_serialize_nondep_then serialize_common_long serialize_payload_and_pn_length (version, (dcid, scid)) payload_and_pn_length;
+  length_serialize_common_long version dcid scid
+
+let header_len'_correct_long_retry
+  (short_dcid_len: short_dcid_len_t)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (unused: bitfield 4)
+  (odcid: vlbytes 0 20)
+: Lemma
+  (requires (
+    let h = S.PLong unused version dcid scid (S.PRetry odcid) in
+    parse_header_prop short_dcid_len h
+  ))
+  (ensures (
+    let h = S.PLong unused version dcid scid (S.PRetry odcid) in
+    header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h)
+  ))
+=
+  let h = S.PLong unused version dcid scid (S.PRetry odcid) in
+  serialize_header_eq short_dcid_len h;
+  let tg = (| Long, (| (), (| Retry, (unused, ()) |) |) |) in
+  let x = LPB.synth_bitsum'_recip first_byte tg in
+  LP.serialize_length LP.serialize_u8 x;
+  let kt : LPB.bitsum'_key_type first_byte = (| Long, (| (), (| Retry, () |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len h == tg );
+  assert_norm (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h) == kt );
+  LP.length_serialize_nondep_then serialize_common_long (LP.serialize_bounded_vlbytes 0 20) (version, (dcid, scid)) odcid;
+  length_serialize_common_long version dcid scid;
+  LP.length_serialize_bounded_vlbytes 0 20 odcid
+
+let header_len'_correct
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h))
+= match h with
+  | S.PShort pb spin dcid ->
+    header_len'_correct_short short_dcid_len pb spin dcid
+  | S.PLong pb version dcid scid spec ->
+    begin match spec with
+    | S.PInitial token payload_and_pn_length ->
+      header_len'_correct_long_initial short_dcid_len pb version dcid scid token payload_and_pn_length
+    | S.PHandshake payload_and_pn_length ->
+      header_len'_correct_long_handshake short_dcid_len pb version dcid scid payload_and_pn_length
+    | S.PZeroRTT payload_and_pn_length ->
+      header_len'_correct_long_zero_rtt short_dcid_len pb version dcid scid payload_and_pn_length
+    | S.PRetry odcid ->
+      header_len'_correct_long_retry short_dcid_len version dcid scid pb odcid
+    end
+
+let header_len_correct
+  dcid_len m h
+= let hs = g_header h m in
+  let f () : Lemma (U32.v (header_len h) == header_len' hs) =
+    match h with
+    | PLong pb version dcid dcil scid scil spec ->
+      begin match spec with
+      | PInitial payload_and_pn_length token token_length ->
+        VI.bounded_varint_len_correct 0 token_max_len token_length;
+        VI.varint_len_correct payload_and_pn_length
+      | PZeroRTT payload_and_pn_length ->
+        VI.varint_len_correct payload_and_pn_length
+      | PHandshake payload_and_pn_length ->
+        VI.varint_len_correct payload_and_pn_length
+      | PRetry odcid odcil -> ()
+    end
+    | _ -> ()
+  in
+  f ();
+  header_len'_correct dcid_len hs

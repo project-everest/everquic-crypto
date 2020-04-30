@@ -1,5 +1,6 @@
 module QUIC.Impl.Header.Public
 include QUIC.Spec.Header.Public
+include QUIC.Impl.Base
 
 module LP = LowParse.Low.Base
 module U32 = FStar.UInt32
@@ -174,3 +175,31 @@ val write_header
     U32.v len <= U32.v out_len /\
     Seq.slice (B.as_seq h1 out) 0 (U32.v len) == s 
   ))
+
+module Cast = FStar.Int.Cast
+
+let header_len
+  (h: header)
+: Tot U32.t
+= match h with
+  | PShort pb spin cid cid_len ->
+    1ul `U32.add` cid_len
+  | PLong pb version dcid dcil scid scil spec ->
+    7ul `U32.add` dcil `U32.add` scil `U32.add`
+    begin match spec with
+    | PInitial payload_and_pn_length token token_length ->
+      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len (payload_and_pn_length)
+    | PZeroRTT payload_and_pn_length ->
+      varint_len (payload_and_pn_length)
+    | PHandshake payload_and_pn_length ->
+      varint_len (payload_and_pn_length)
+    | PRetry odcid odcil ->
+      1ul `U32.add` odcil
+    end
+
+val header_len_correct
+  (dcid_len: short_dcid_len_t)
+  (m: HS.mem)
+  (h: header { parse_header_prop dcid_len (g_header h m) })
+: Lemma
+  (U32.v (header_len h) == Seq.length (LP.serialize (serialize_header dcid_len) (g_header h m)))

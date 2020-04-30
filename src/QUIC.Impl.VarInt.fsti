@@ -14,7 +14,7 @@ val read_varint: LL.leaf_reader parse_varint
 
 val jump_varint: LL.jumper parse_varint
 
-val serialize_varint: LL.serializer32 serialize_varint
+val write_varint: LL.serializer32 serialize_varint
 
 module U32 = FStar.UInt32
 
@@ -39,7 +39,7 @@ val jump_bounded_varint
 
 inline_for_extraction
 noextract
-val serialize_bounded_varint
+val write_bounded_varint
   (min: nat)
   (max: nat { min <= max /\ max < 4294967296 })
 : Tot (LL.serializer32 (serialize_bounded_varint min max))

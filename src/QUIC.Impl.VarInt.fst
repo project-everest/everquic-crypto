@@ -187,7 +187,7 @@ let seq_slice_i_j_k
   (ensures (Seq.slice s i k `Seq.equal` (Seq.slice s i j `Seq.append` Seq.slice s j k)))
 = ()
 
-let serialize_varint
+let write_varint
   x #rrel #rel b pos
 =
   assert_norm (pow2 8 == 256);
@@ -252,11 +252,11 @@ let jump_bounded_varint
     (synth_bounded_varint min max)
     ()
 
-let serialize_bounded_varint
+let write_bounded_varint
   min max
 = LC.serialize32_synth
     (LC.serialize32_filter
-      serialize_varint
+      write_varint
       (varint_in_bounds min max))
     (synth_bounded_varint min max)
     (synth_bounded_varint_recip min max)
