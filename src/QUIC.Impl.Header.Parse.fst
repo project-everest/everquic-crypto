@@ -84,6 +84,10 @@ let public_header_len_correct'
 
 #restart-solver
 
+let public_header_len_is_pn_offset
+  h m pn
+= public_header_len_correct' h m pn
+
 let header_len_correct
   h m pn
 =

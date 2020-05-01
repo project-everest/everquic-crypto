@@ -12,6 +12,13 @@ module U8 = FStar.UInt8
 module B = LowStar.Buffer
 module HST = FStar.HyperStack.ST
 
+val public_header_len_is_pn_offset
+  (h: header { ~ (is_retry h) })
+  (m: HS.mem)
+  (pn: PN.packet_number_t)
+: Lemma
+  (U32.v (public_header_len h) == pn_offset (g_header h m pn))
+
 val header_len_correct
   (h: header)
   (m: HS.mem)
