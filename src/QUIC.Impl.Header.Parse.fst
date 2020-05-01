@@ -162,3 +162,21 @@ let write_header
   end
   
 #pop-options
+
+#push-options "--z3rlimit 64"
+
+#restart-solver
+
+let putative_pn_offset
+  cid_len b b_len
+=
+  let h = HST.get () in
+  let input = LP.make_slice b b_len in
+  assert (LP.bytes_of_slice_from h input 0ul `Seq.equal` B.as_seq h b);
+  LP.valid_facts (Public.parse_header cid_len) h input 0ul;
+  let res = LP.validate_bounded_strong_prefix (Public.validate_header cid_len) input 0ul in
+  if res `U32.gt` LP.validator_max_length
+  then None
+  else Some res
+
+#pop-options

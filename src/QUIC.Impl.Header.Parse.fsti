@@ -39,3 +39,20 @@ val write_header
     Secret.v len <= U32.v out_len /\
     Seq.slice (B.as_seq h1 out) 0 (Secret.v len) `Seq.equal` s 
   ))
+
+val putative_pn_offset
+  (cid_len: short_dcid_len_t)
+  (b: B.buffer U8.t)
+  (b_len: U32.t { U32.v b_len == B.length b })
+: HST.Stack (option U32.t)
+  (requires (fun h ->
+    B.live h b
+  ))
+  (ensures (fun h res h' ->
+    B.modifies B.loc_none h h' /\
+    begin match Spec.putative_pn_offset (U32.v cid_len) (B.as_seq h b), res with
+    | None, None -> True
+    | Some off, Some off' -> U32.v off' == off
+    | _ -> False
+    end
+  ))
