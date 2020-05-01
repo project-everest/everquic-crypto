@@ -769,6 +769,9 @@ let parse_header_exists
   if Public.is_retry ph
   then ()
   else begin
+    LP.parsed_data_is_serialize (Public.serialize_header cid_len') x;
+    assert (Seq.index x 0 == Seq.index (LP.serialize (Public.serialize_header cid_len') ph) 0);
+    Public.serialize_header_is_retry cid_len' ph;
     let pn_len = get_pn_length ph in
     PN.parse_packet_number_kind'_correct last' pn_len;
     LP.parser_kind_prop_equiv (PN.parse_packet_number_kind' pn_len)  (PN.parse_packet_number last' pn_len);

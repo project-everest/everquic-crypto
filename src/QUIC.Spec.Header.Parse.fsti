@@ -119,6 +119,16 @@ let lemma_header_parsing_post
     assert (Seq.slice b 0 (header_len h) `Seq.equal` format_header h);
     assert (c `Seq.equal` Seq.slice b (header_len h) (Seq.length b))
 
+let packet_is_retry
+  (x: bytes)
+: GTot bool
+= if Seq.length x > 0
+  then
+    let f = S.index x 0 in
+    BF.get_bitfield (U8.v f) 7 8 = 1 &&
+    BF.get_bitfield (U8.v f) 4 6 = 3
+  else false
+
 val parse_header_exists
   (cid_len: nat { cid_len <= 20 })
   (last: nat { last + 1 < pow2 62 })
@@ -127,7 +137,7 @@ val parse_header_exists
   (requires (
     match putative_pn_offset cid_len x with
     | None -> False
-    | Some off -> off + 4 <= Seq.length x
+    | Some off -> (~ (packet_is_retry x)) ==> off + 4 <= Seq.length x
   ))
   (ensures (
     H_Success? (parse_header cid_len last x)
