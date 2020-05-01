@@ -1,6 +1,10 @@
 /// An implementation of QUIC.Spec.fst that is concerned only with functional
 /// correctness (no notion of model for now).
 module QUIC.Impl
+
+let read_header = QUIC.Impl.Header.Parse.read_header
+
+(*
 include QUIC.Impl.Base
 
 module QSpec = QUIC.Spec
