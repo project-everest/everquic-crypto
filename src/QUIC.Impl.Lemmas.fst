@@ -1,7 +1,7 @@
 module QUIC.Impl.Lemmas
 
 module G = FStar.Ghost
-module S = FStar.Seq
+module S = QUIC.Secret.Seq
 
 module U64 = FStar.UInt64
 module U32 = FStar.UInt32
@@ -10,7 +10,7 @@ module U8 = FStar.UInt8
 module QS = QUIC.Spec
 module QSL = QUIC.Spec.Lemmas
 
-friend Lib.IntTypes // declassify secret integers
+// friend Lib.IntTypes // declassify secret integers
 
 #set-options "--max_fuel 0 --max_ifuel 0"
 
@@ -203,7 +203,7 @@ let rec seq_map2_xor0 (s1 s2: S.seq U8.t): Lemma
     S.length s1 = S.length s2 /\
     s1 `S.equal` S.create (S.length s2) 0uy)
   (ensures
-    Spec.Loops.seq_map2 EverCrypt.CTR.xor8 s1 s2 `S.equal` s2)
+    Spec.Loops.seq_map2 U8.logxor s1 s2 `S.equal` s2)
   (decreases (S.length s1))
 =
   if S.length s1 = 0 then

@@ -2,13 +2,12 @@
 /// correctness (no notion of model for now).
 module QUIC.Impl
 
-let read_header = QUIC.Impl.Header.Parse.read_header
-
-(*
-include QUIC.Impl.Base
+include QUIC.Impl.Header.Base
 
 module QSpec = QUIC.Spec
-module QImpl = QUIC.Impl.Base
+module QImpl = QUIC.Impl.Header.Base
+module PN = QUIC.Spec.PacketNumber.Base
+module Secret = QUIC.Secret.Int
 
 // This MUST be kept in sync with QUIC.Impl.fst...
 module G = FStar.Ghost
@@ -52,7 +51,7 @@ type index = {
 }
 
 // Reexport this function, which was lost in the bundle
-let header_len = QUIC.Impl.Base.header_len
+let header_len = QUIC.Impl.Header.Base.header_len
 
 /// Low-level types used in this API
 /// --------------------------------
@@ -136,12 +135,12 @@ val invariant_loc_in_footprint
 /// -------------------------------------
 
 val g_last_packet_number: #i:index -> (s: state_s i) -> (h: HS.mem { invariant_s h s }) ->
-  GTot (pn: QSpec.uint62_t{
-    U64.v pn >= g_initial_packet_number s
+  GTot (pn: PN.packet_number_t {
+    Secret.v pn >= g_initial_packet_number s
   })
 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
-  U64.v (g_last_packet_number (B.deref h s) h) + 1 < pow2 62
+  Secret.v (g_last_packet_number (B.deref h s) h) + 1 < pow2 62
 
 /// Preserving all the ghost accessors via a single framing lemma only works
 /// because we don't do stack allocation. See comments in
@@ -182,7 +181,7 @@ val hash_alg_of_state (#i: G.erased index) (s: state (G.reveal i)): Stack hash_a
     a == (G.reveal i).hash_alg /\
     h0 == h1))
 
-val last_packet_number_of_state (#i: G.erased index) (s: state (G.reveal i)): Stack U64.t
+val last_packet_number_of_state (#i: G.erased index) (s: state (G.reveal i)): Stack PN.packet_number_t
   (requires fun h0 -> invariant h0 s)
   (ensures fun h0 ctr h1 ->
     ctr == g_last_packet_number (B.deref h0 s) h0 /\
@@ -235,7 +234,7 @@ val encrypt: #i:G.erased index -> (
   let i = G.reveal i in
   s: state i ->
   dst: B.buffer U8.t ->
-  dst_pn: B.pointer u62 ->
+  dst_pn: B.pointer PN.packet_number_t ->
   h: header ->
   plain: B.buffer U8.t ->
   plain_len: U32.t ->
@@ -250,8 +249,8 @@ val encrypt: #i:G.erased index -> (
       B.length plain == U32.v plain_len /\ (
       let clen = if is_retry h then 0 else U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
       (if is_retry h then U32.v plain_len == 0 else 3 <= U32.v plain_len /\ U32.v plain_len < QSpec.max_plain_length) /\
-      (has_payload_length h ==> U64.v (payload_length h) == clen) /\
-      B.length dst == U32.v (header_len h) + clen
+      (has_payload_length h ==> Secret.v (payload_length h) == clen) /\
+      B.length dst == Secret.v (header_len h) + clen
     ))
     (ensures fun h0 r h1 ->
       match r with
@@ -268,7 +267,7 @@ val encrypt: #i:G.erased index -> (
           let pne = derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg) in
           let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
-          let pn = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
+          let pn = g_last_packet_number (B.deref h0 s) h0 `Secret.add` Secret.to_u64 1uL in
           B.deref h1 dst_pn == pn /\
           packet == encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
           g_last_packet_number (B.deref h1 s) h1 == pn)
@@ -294,7 +293,7 @@ val initial_secrets (dst_client: B.buffer U8.t)
 // meaningful, and plain is only non-null, if the decryption was a success.
 noeq
 type result = {
-  pn: u62;
+  pn: PN.packet_number_t;
   header: header;
   header_len: U32.t;
   plain_len: n:U32.t;
@@ -333,10 +332,10 @@ let decrypt_post (i: index)
     match res with
     | Success ->
       // prev is known to be >= g_initial_packet_number (see lemma invariant_packet_number)
-      U64.v (g_last_packet_number (B.deref h1 s) h1) == max (U64.v prev) (U64.v r.pn) /\ (
+      Secret.v (g_last_packet_number (B.deref h1 s) h1) == max (Secret.v prev) (Secret.v r.pn) /\ (
 
       // Lengths
-      r.header_len == header_len r.header /\
+      r.header_len == Secret.reveal (header_len r.header) /\
       U32.v r.header_len + U32.v r.plain_len <= U32.v r.total_len /\
       U32.v r.total_len <= B.length packet /\
       B.(loc_includes (loc_buffer (B.gsub packet 0ul r.header_len)) (header_footprint r.header)) /\
@@ -349,7 +348,7 @@ let decrypt_post (i: index)
         S.slice (B.as_seq h1 packet) (U32.v r.header_len)
           (U32.v r.header_len + U32.v r.plain_len) in
       let rem = B.as_seq h0 (B.gsub packet r.total_len (B.len packet `U32.sub `r.total_len)) in
-      match QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
+      match QSpec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
       | QSpec.Success h' plain' rem' ->
         h' == g_header r.header h1 r.pn /\
         plain' == plain /\
@@ -357,9 +356,9 @@ let decrypt_post (i: index)
       | _ -> False
     ))
     | DecodeError ->
-      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet))
+      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet))
     | AuthenticationFailure ->
-      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
+      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
       U32.v r.total_len <= B.length packet
     | _ ->
       False

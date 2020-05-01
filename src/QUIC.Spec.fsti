@@ -1,9 +1,8 @@
 module QUIC.Spec
 
-(*
-include QUIC.Spec.Base
+include QUIC.Spec.Header.Base
 
-module S = FStar.Seq
+module Seq = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
 
@@ -31,10 +30,10 @@ let max_cipher_length : n:nat {
 } =
   pow2 32 - header_len_bound
 
-type pbytes = b:bytes{let l = S.length b in 3 <= l /\ l < max_plain_length}
-type pbytes' (is_retry: bool) = b:bytes{let l = S.length b in if is_retry then l == 0 else (3 <= l /\ l < max_plain_length)}
-type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}
-type cbytes' (is_retry: bool) = b: bytes { let l = S.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
+type pbytes = b:bytes{let l = Seq.length b in 3 <= l /\ l < max_plain_length}
+type pbytes' (is_retry: bool) = b:bytes{let l = Seq.length b in if is_retry then l == 0 else (3 <= l /\ l < max_plain_length)}
+type cbytes = b:bytes{let l = Seq.length b in 19 <= l /\ l < max_cipher_length}
+type cbytes' (is_retry: bool) = b: bytes { let l = Seq.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
 
 // Static byte sequences to be fed into secret derivation. Marked as inline, so
 // that they can be used as arguments to gcmalloc_of_list for top-level arrays.
@@ -50,10 +49,10 @@ val derive_secret:
   prk:Spec.Hash.Definitions.bytes_hash a ->
   label: bytes ->
   len: nat ->
-  Pure (lbytes len)
+  Ghost (* Pure *) (lbytes len)
   (requires len <= 255 /\
-    S.length label <= 244 /\
-    keysized a (S.length prk)
+    Seq.length label <= 244 /\
+    keysized a (Seq.length prk)
     )
   (ensures fun out -> True)
 
@@ -69,13 +68,6 @@ type qbytes (n:nat4) = lbytes (add3 n)
 // JP: seems appropriate for this module...?
 let _: squash (inversion header) = allow_inversion header
 
-// Header protection only
-val header_encrypt: a:ea ->
-  hpk: lbytes (ae_keysize a) ->
-  h: header ->
-  c: cbytes' (is_retry h) ->
-  GTot packet
-
 noeq
 type h_result =
 | H_Success:
@@ -85,43 +77,10 @@ type h_result =
   h_result
 | H_Failure
 
-// JP: should we allow inversion on either hash algorithm or AEAD algorithm?
-#push-options "--max_ifuel 1"
-
-// Note that cid_len cannot be parsed from short headers
-val header_decrypt: a:ea ->
-  hpk: lbytes (ae_keysize a) ->
-  cid_len: nat { cid_len <= 20 } ->
-  last: nat { last + 1 < pow2 62 } ->
-  p: packet ->
-  GTot (r: h_result { match r with
-  | H_Failure -> True
-  | H_Success h c rem ->
-    is_valid_header h cid_len last /\
-    S.length rem <= S.length p /\
-    rem `S.equal` S.slice p (S.length p - S.length rem) (S.length p)
-  })
-
-#pop-options
-
 // TODO: add a prefix lemma on header_decrypt, if ever useful
 
 module U32 = FStar.UInt32
 module U64 = FStar.UInt64
-
-// This is just functional correctness, but does not guarantee security:
-// decryption can succeed on an input that is not the encryption
-// of the same arguments (see QUIC.Spec.Old.*_malleable)
-val lemma_header_encryption_correct:
-  a:ea ->
-  k:lbytes (ae_keysize a) ->
-  h:header ->
-  cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
-  last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))) } ->
-  c: cbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length c } ->
-  Lemma (
-    header_decrypt a k cid_len last (header_encrypt a k h c)
-    == H_Success h c S.empty)
 
 
 noeq
@@ -139,7 +98,7 @@ val encrypt:
   static_iv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->
-  plain: pbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length plain + AEAD.tag_length a } ->
+  plain: pbytes' (is_retry h) ->
   GTot packet
 
 /// decryption and correctness
@@ -159,25 +118,6 @@ val decrypt:
     | Failure -> True
     | Success h _ rem ->
       is_valid_header h cid_len last /\
-      S.length rem <= Seq.length packet /\
-      rem `S.equal` S.slice packet (S.length packet - S.length rem) (S.length packet)
+      Seq.length rem <= Seq.length packet /\
+      rem `Seq.equal` Seq.slice packet (Seq.length packet - Seq.length rem) (Seq.length packet)
   })
-
-val lemma_encrypt_correct:
-  a: ea ->
-  k: lbytes (AEAD.key_length a) ->
-  siv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
-  h: header ->
-  cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
-  last: nat{last+1 < pow2 62 } ->
-  p: pbytes' (is_retry h)  { has_payload_length h ==> U64.v (payload_length h) == S.length p + AEAD.tag_length a } -> Lemma
-  (requires (
-    (~ (is_retry h)) ==> (
-      in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))
-  )))
-  (ensures (
-    decrypt a k siv hpk last cid_len
-      (encrypt a k siv hpk h p)
-    == Success h p Seq.empty
-  ))

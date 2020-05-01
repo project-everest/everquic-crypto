@@ -102,23 +102,24 @@ bool QUICTest_test()
   uint8_t token[token_len];
   memset(token, 0U, token_len * sizeof token[0U]);
   uint32_t cipher_len = plain_len + (uint32_t)16U;
-  QUIC_Impl_Base_long_header_specifics
+  QUIC_Impl_Header_Base_long_header_specifics
   hdr_spec =
     {
-      .tag = QUIC_Impl_Base_BInitial,
+      .tag = QUIC_Impl_Header_Base_BInitial,
       {
         .case_BInitial = {
-          .payload_length = (uint64_t)cipher_len,
+          .reserved_bits = 0,
+          .payload_and_pn_length = (uint64_t)cipher_len + 3,
           .packet_number_length = (uint32_t)3U,
           .token = token,
           .token_length = token_len
         }
       }
     };
-  QUIC_Impl_Base_header
+  QUIC_Impl_Header_Base_header
   hdr =
     {
-      .tag = QUIC_Impl_Base_BLong,
+      .tag = QUIC_Impl_Header_Base_BLong,
       {
         .case_BLong = {
           .version = (uint32_t)0xff000017U, .dcid = dcid, .dcil = dcil, .scid = scid, .scil = scil,
