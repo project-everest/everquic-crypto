@@ -1,23 +1,28 @@
 module Model.PNE
 
 open FStar.HyperStack
-open FStar.Seq
-open FStar.Monotonic.Seq
 
-open FStar.Bytes
-open FStar.UInt32
 open Mem
 
-module M = LowStar.Modifies
+module B = LowStar.Buffer
 module HS = FStar.HyperStack
 module I = Model.Indexing
 module U32 = FStar.UInt32
 module U128 = FStar.UInt128
 
+/// Abbreviations for idealization
+/// ------------------------------
+
 type id = I.pne_id
-let is_safe (i:id) = I.is_pne_honest i && I.ideal_PRF
-type safeid = i:id{is_safe i}
-type unsafeid = i:id{not (is_safe i)}
+
+let is_safe (i:id) =
+  I.is_pne_honest i && I.ideal_PRF
+
+type safe_id =
+  i:id{is_safe i}
+
+type unsafe_id =
+  i:id{not (is_safe i)}
 
 let samplelen = 16
 type sample = lbytes samplelen
@@ -68,7 +73,7 @@ let sample_filter (j:id) (u:info) (s:sample) (e:entry j u) : bool =
 let entry_for_sample (#j:id) (#u:info) (s:sample) (st:pne_state j u) (h:mem) :
   GTot (option (entry j u)) =
   Seq.find_l (sample_filter j u s) (table st h)
-  
+
 let fresh_sample (#j:id) (#u:info) (s:sample) (st:pne_state j u) (h:mem) :
   GTot bool =
   None? (entry_for_sample s st h)
@@ -83,7 +88,7 @@ let sample_cipher_filter (j:id) (u:info) (s:sample) (#l:pne_plainlen) (c:pne_cip
 let entry_for_sample_cipher (#j:id) (#u:info) (s:sample) (#l:pne_plainlen) (c:pne_cipher l) (st:pne_state j u) (h:mem) :
   GTot (option (entry j u)) =
   Seq.find_l (sample_cipher_filter j u s #l c) (table st h)
-  
+
 let find_sample_cipher (#j:id) (#u:info) (s:sample) (#l:pne_plainlen) (c:pne_cipher l) (st:pne_state j u) (h:mem) :
   GTot bool =
   Some? (entry_for_sample_cipher s #l c st h)
@@ -94,7 +99,7 @@ let sample_cipherpad_filter (j:id) (u:info) (s:sample) (cp:pne_cipherpad) (e:ent
 let entry_for_sample_cipherpad (#j:id) (#u:info) (s:sample) (cp:pne_cipherpad) (st:pne_state j u) (h:mem) :
   GTot (option (entry j u)) =
   Seq.find_l (sample_cipherpad_filter j u s cp) (table st h)
-  
+
 let find_sample_cipherpad (#j:id) (#u:info) (s:sample) (cp:pne_cipherpad) (st:pne_state j u) (h:mem) :
   GTot bool =
   Some? (entry_for_sample_cipher s cp st h)
@@ -138,4 +143,4 @@ val decrypt :
         (l = l' /\ n = n') <==>
         (l = l' /\ c' = clip_cipherpad cp l))
     )
-  ) 
+  )
