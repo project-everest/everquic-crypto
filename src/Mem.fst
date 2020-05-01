@@ -29,10 +29,6 @@ include FStar.HyperStack.ST
 open LowStar.Buffer
 open LowStar.BufferOps
 
-/// 2019.06.20 SZ TODO: Port these to LowStar.Buffer
-module DM = FStar.DependentMap
-module MDM = FStar.Monotonic.DependentMap
-
 module HS = FStar.HyperStack
 module ST = FStar.HyperStack.ST
 
@@ -41,21 +37,7 @@ module ST = FStar.HyperStack.ST
 inline_for_extraction noextract
 let model = Model.Flags.model
 
-let fresh_loc (l:loc) (h0 h1:mem) = loc_not_in l h0 /\ loc_in l h1
-
-val fresh_is_disjoint (old_loc:loc) (new_loc:loc) (h0 h1:mem) : Lemma
-  (requires fresh_loc new_loc h0 h1 /\ old_loc `loc_in` h0)
-  (ensures  loc_disjoint old_loc new_loc)
-let fresh_is_disjoint old_loc new_loc h0 h1 = ()
-
-(** Used for defining one-shot PRFs and authenticators (could be moved to FStar.Preorder) *)
-val ssa: #a:Type0 -> Preorder.preorder (option a)
-let ssa #a = fun x y ->
-  match x,y with
-  | None, _  -> True
-  | Some v, Some v' -> v == v'
-  | _ -> False
-
+// START quic-specific stuff that doesn't use the rest of the infrastructure
 let rgn = r:erid{r =!= root}
 
 type fresh_subregion child parent h0 h1 =
@@ -65,12 +47,13 @@ type subrgn p = r:rgn{parent r == p}
 
 let quic_region: rgn = new_region root
 type subq = r:subrgn quic_region
+// END quic-specific stuff
 
 /// Top-level disjointness
+/// ----------------------
 ///
-/// This is awkward; we could instead maintain a private mutable set of
-/// regions known to be pairwise-distinct.
-/// 2019.06.21 SZ: How?
+/// We define an infrastructure for allocating a set of regions that are know
+/// automatically to be disjoint from each other.
 
 #push-options "--max_ifuel 1"
 

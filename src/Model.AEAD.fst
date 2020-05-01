@@ -10,6 +10,7 @@ module Spec = Spec.Agile.AEAD
 #set-options "--fuel 0 --ifuel 0"
 
 open Mem
+open LowStar.BufferOps
 
 let log #i (u: info i): Type0 =
   Seq.seq (entry i u)
@@ -17,11 +18,14 @@ let log #i (u: info i): Type0 =
 let model_writer i =
   u:info i & B.pointer (log #i u)
 
+let unsafe_writer i =
+  info i & Spec.kv (I.ae_id_ginfo i)
+
 let aead_writer (i: id): Type u#1 =
   if is_safe i then
     model_writer i
   else
-    info i
+    unsafe_writer i
 
 let aead_reader #i (w: aead_writer i): Type u#1 =
   w':aead_writer i { w' == w }
@@ -30,14 +34,16 @@ let wgetinfo #i (u: aead_writer i) =
   if is_safe i then
     dfst (u <: model_writer i)
   else
-    u
+    fst (u <: unsafe_writer i)
 
-// JP: is this correct?
 let rgetinfo #_ u =
   wgetinfo u
 
 let wlog #i w h =
   B.deref h (dsnd (w <: model_writer i))
+
+let wkey #i w =
+  snd (w <: unsafe_writer i)
 
 let wfootprint #i w =
   if is_safe i then
@@ -57,13 +63,34 @@ let wframe_invariant #_ w h0 l h1 =
 let frame_log #_ w h0 l h1 =
   ()
 
+let random (l: nat { l < pow2 32 }): Spec.lbytes l =
+  let open Lib.RandomSequence in
+  snd (crypto_random entropy0 l)
+
 let gen i u =
   if is_safe i then
     let l: log #i u = Seq.empty #(entry i u) in
     ((| u, B.malloc q_ae_region l 1ul |) <: model_writer i)
   else
-    (u <: aead_writer i)
+    let key_l = Spec.key_length u.alg in
+    u, random key_l
 
 let gen_reader #i w =
   w
 
+let encrypt i w nonce aad plain_length plain =
+  if is_safe i then
+    let a = (wgetinfo w).alg in
+    let w: model_writer i = w in
+    let p = dsnd w in
+    let log = !*p in
+    let cipher_length = (plain_length <: nat) + Spec.tag_length a in
+    let cipher = random cipher_length in
+    p *= Seq.snoc log (Entry #i #(wgetinfo w) nonce aad #plain_length plain cipher);
+    cipher
+  else
+    let a = (wgetinfo w).alg in
+    let k: Spec.kv a = wkey w in
+    let iv = NoncePkg?.repr (wgetinfo w).nonce i nonce in
+    let p = PlainPkg?.repr (wgetinfo w).plain i plain_length plain in
+    Spec.encrypt #a k iv aad p

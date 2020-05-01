@@ -32,7 +32,7 @@ let unsafe_id =
 /// Some redefinitions, using Spec
 /// ------------------------------
 
-// Not modeling arbitrary-length IVs as supported by AES-GCM.
+// Not modeling arbitrary-length IVs as supported by AES-GCM (via IV reduction).
 let iv_len (a: alg) =
   12ul
 
@@ -41,16 +41,17 @@ let iv_len (a: alg) =
 let tag_len: x:U32.t { forall (a: alg). {:pattern Spec.tag_length a} U32.v x == Spec.tag_length a } =
   16ul
 
-// JP: don't understand why this previously was UInt128.t -- remnant from
-// ancient code?
+// JP: Use iv_len above or not?
 let iv (a: alg) =
   Spec.iv a
 
-// JP: this duplicates a fair amount of definitions from Spec.Agile.AEAD, but
-// here the bounds are tighter and force plain texts to not overflow 32 bits
-// once encrypted and tagged.
+// This duplicates a fair amount of definitions from Spec.Agile.AEAD, but here
+// the bounds are tighter and force plain texts to not overflow 32 bits once
+// encrypted and tagged.
 //
-// TODO: it would be good to get everyone on the same page rather than duplicating things
+// Introducing a minimum length allows making sure that there are enough bytes
+// to sample out of the ciphertext, as the tag can be too small for that purpose
+// for some AEAD ciphersuites.
 type plain_length = l:nat{l + U32.v tag_len < pow2 32}
 type plain_length_at_least (lmin: plain_length) = l:plain_length{lmin <= l}
 
@@ -60,6 +61,7 @@ type plain_length_at_least (lmin: plain_length) = l:plain_length{lmin <= l}
 noeq
 type plain_pkg (idt: eqtype) (safe: idt -> bool) =
   | PlainPkg:
+    // Make this parameterized from idt rather than an argument to the constructor?
     min_len: plain_length ->
     plain: (i:idt -> plain_length_at_least min_len -> eqtype) ->
     as_bytes: (i:idt -> l:plain_length_at_least min_len -> plain i l -> GTot (Spec.lbytes l)) ->
@@ -76,7 +78,8 @@ type nonce_pkg (idt: eqtype) (safe: idt -> bool) (alg: idt -> GTot I.ea) =
 
 noeq type info' = {
   alg: alg;
-  // JP: subq is an abbreviation that means "sub quic region"
+  // JP: subq is an abbreviation that means "sub quic region"; this region field
+  // seems to not be used anywhere else?
   region: r:subq{r `HS.disjoint` q_ae_region};
   plain: plain_pkg id is_safe;
   nonce: nonce_pkg id is_safe I.ae_id_ginfo;
@@ -135,7 +138,8 @@ val rgetinfo: #i:id -> #w:aead_writer i -> aead_reader w -> Tot (u:info i{u == w
 val wlog: #i:safe_id -> w:aead_writer i -> mem -> GTot (Seq.seq (entry i (wgetinfo w)))
 let rlog (#i:safe_id) (#w: aead_writer i) (r:aead_reader w) (h:mem) = wlog w h
 
-// JP: disjointness? anything?
+val wkey: #i:unsafe_id -> aead_writer i -> Tot (Spec.Agile.AEAD.kv (I.ae_id_ginfo i))
+
 val wfootprint: #i:id -> aead_writer i -> GTot B.loc
 
 val winvariant : #i:id -> aead_writer i -> mem -> Type0
@@ -178,10 +182,7 @@ val gen (i:id) (u:info i) : ST (aead_writer i)
 (** Building a reader from a writer **)
 val gen_reader (#i: id) (w: aead_writer i) : ST (aead_reader w)
   (requires (fun h -> winvariant w h))
-  (ensures (fun h0 r h1 ->
-    // JP: can this be strengthened into h0 == h1?
-    B.modifies B.loc_none h0 h1)
-  )
+  (ensures (fun h0 r h1 -> h0 == h1))
 
 let nonce_filter (#i:id) (#w:aead_writer i) (n:nonce (wgetinfo w)) (e:entry i (wgetinfo w)) : bool =
   Entry?.n e = n
@@ -201,7 +202,7 @@ val encrypt
   (aad: ad (wgetinfo w))
   (l: at_least (wgetinfo w))
   (p: plain (wgetinfo w) l)
-  : ST (cipher (wgetinfo w) l)
+  : Stack (cipher (wgetinfo w) l)
   (requires (fun h0 ->
     winvariant w h0 /\
     (is_safe i ==> fresh_nonce w n h0)))
@@ -209,7 +210,13 @@ val encrypt
     B.modifies (wfootprint w) h0 h1 /\
     winvariant w h1 /\
     (is_safe i ==>
-      wlog w h1 == Seq.snoc (wlog w h0) (Entry n aad p c))))
+      wlog w h1 == Seq.snoc (wlog w h0) (Entry n aad p c)) /\
+    (~ (is_safe i) ==> (
+      let a: Spec.supported_alg = I.ae_id_ginfo i in
+      let k: Spec.kv a = wkey w in
+      let iv = NoncePkg?.as_bytes (wgetinfo w).nonce i n in
+      let p = PlainPkg?.as_bytes (wgetinfo w).plain i l p in
+      c == Spec.encrypt #(I.ae_id_ginfo i) k iv aad p))))
 
 val decrypt
   (i: id)
@@ -219,7 +226,7 @@ val decrypt
   (n: nonce (rgetinfo r))
   (l:at_least (wgetinfo w))
   (c:cipher (wgetinfo w) l)
-  : ST (option (plain (rgetinfo r) l))
+  : Stack (option (plain (rgetinfo r) l))
   (requires (fun h0 ->
     winvariant w h0))
   (ensures fun h0 res h1 ->
@@ -228,7 +235,8 @@ val decrypt
     (is_safe i ==>
       (match wentry_for_nonce w n h0 with
       | None -> None? res
-      | Some (Entry _ aad' #l' p' c') ->
+      | Some (Entry n' aad' #l' p' c') ->
+        // We know that n == n' here, owing to the definition of wentry_for_nonce.
         let matches = aad' == aad /\ c' == c /\ l == l' in
         (matches ==> res = Some p') /\
         (~matches ==> res = None)
