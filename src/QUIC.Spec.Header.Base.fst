@@ -132,31 +132,3 @@ type packet = b:bytes{let l = S.length b in (* 21 <= l /\ *) l < pow2 32}
 let is_valid_header (h: header) (cid_len: nat) (last: nat) : Tot Type0 =
   (MShort? h ==> dcid_len h == cid_len) /\
   ((~ (is_retry h)) ==> PN.in_window (Secret.v (pn_length h) - 1) last (Secret.v (packet_number h)))
-
-module HD = Spec.Hash.Definitions
-module AEAD = Spec.Agile.AEAD
-
-let supported_hash = function
-  | HD.SHA1 | HD.SHA2_256 | HD.SHA2_384 | HD.SHA2_512 -> true
-  | _ -> false
-
-let supported_aead = function
-  | AEAD.AES128_GCM | AEAD.AES256_GCM | AEAD.CHACHA20_POLY1305 -> true
-  | _ -> false
-
-type ha = a:HD.hash_alg{supported_hash a}
-type ea = a:AEAD.alg{supported_aead a}
-
-// JP: this is Spec.Agile.Cipher.key_length
-let ae_keysize (a:ea) =
-  match a with
-  | AEAD.AES128_GCM -> 16
-  | _ -> 32
-
-let max_cipher_length : n:nat {
-  forall a. {:pattern AEAD.max_length a \/ AEAD.tag_length a }
-    n <= AEAD.max_length a + AEAD.tag_length a
-} =
-  pow2 32 - header_len_bound
-
-type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}

@@ -1,5 +1,5 @@
 module QUIC.Spec.Header
-include QUIC.Spec.Header.Base
+include QUIC.Crypto.Base
 
 module Seq = FStar.Seq
 module HD = Spec.Hash.Definitions
