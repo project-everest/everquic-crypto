@@ -118,3 +118,17 @@ let lemma_header_parsing_post
     assert (b `Seq.equal` (format_header h `Seq.append` c));
     assert (Seq.slice b 0 (header_len h) `Seq.equal` format_header h);
     assert (c `Seq.equal` Seq.slice b (header_len h) (Seq.length b))
+
+val parse_header_exists
+  (cid_len: nat { cid_len <= 20 })
+  (last: nat { last + 1 < pow2 62 })
+  (x:bytes)
+: Lemma
+  (requires (
+    match putative_pn_offset cid_len x with
+    | None -> False
+    | Some off -> off + 4 <= Seq.length x
+  ))
+  (ensures (
+    H_Success? (parse_header cid_len last x)
+  ))

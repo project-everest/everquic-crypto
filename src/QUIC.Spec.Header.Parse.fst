@@ -314,6 +314,97 @@ let lp_parse_header
     (parse_header_dtuple short_dcid_len last)
     (synth_header short_dcid_len last)
 
+#push-options "--z3rlimit 64"
+
+let parse_header_dtuple_eq_1
+  (short_dcid_len: short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (x: bytes)
+: Lemma
+  (LP.parse (parse_header_dtuple short_dcid_len last) x ==
+    LP.bare_parse_dtuple2
+      #_ #(Public.header' short_dcid_len)
+      (Public.parse_header short_dcid_len)
+      #_ #(packet_number_opt short_dcid_len last)
+      (parse_packet_number_opt short_dcid_len last)
+      x
+  )
+= LP.parse_dtuple2_eq'
+    #_ #(Public.header' short_dcid_len)
+    (Public.parse_header short_dcid_len)
+    #_ #(packet_number_opt short_dcid_len last)
+    (parse_packet_number_opt short_dcid_len last)
+    x
+
+let parse_header_dtuple_eq_2
+  (short_dcid_len: short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (x: bytes)
+: Lemma
+  (LP.parse (parse_header_dtuple short_dcid_len last) x == (
+    match LP.parse (Public.parse_header short_dcid_len) x with
+    | None -> None
+    | Some (ph, consumed) ->
+      begin match LP.parse (parse_packet_number_opt short_dcid_len last ph) (Seq.slice x consumed (Seq.length x)) with
+      | None -> None
+      | Some (pn, consumed') -> Some ((| ph, pn |), consumed + consumed')
+      end
+  ))
+= parse_header_dtuple_eq_1 short_dcid_len last x
+
+let parse_header_dtuple_eq
+  (short_dcid_len: short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (x: bytes)
+: Lemma
+  (LP.parse (parse_header_dtuple short_dcid_len last) x == (
+    match LP.parse (Public.parse_header short_dcid_len) x with
+    | None -> None
+    | Some (ph, consumed) ->
+      if Public.is_retry ph
+      then Some ((| ph, () |), consumed)
+      else begin
+        match LP.parse (PN.parse_packet_number last (get_pn_length ph)) (Seq.slice x consumed (Seq.length x)) with
+        | None -> None
+        | Some (pn, consumed') -> Some ((| ph, pn |), consumed + consumed')
+      end
+  ))
+=
+  LP.parse_dtuple2_eq'
+    #_ #(Public.header' short_dcid_len)
+    (Public.parse_header short_dcid_len)
+    #_ #(packet_number_opt short_dcid_len last)
+    (parse_packet_number_opt short_dcid_len last)
+    x
+
+let lp_parse_header_eq
+  (short_dcid_len: short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (x: bytes)
+: Lemma
+  (LP.parse (lp_parse_header short_dcid_len last) x == (
+    match LP.parse (Public.parse_header short_dcid_len) x with
+    | None -> None
+    | Some (ph, consumed) ->
+      if Public.is_retry ph
+      then Some (synth_header short_dcid_len last (| ph, () |), consumed)
+      else begin
+        match LP.parse (PN.parse_packet_number last (get_pn_length ph)) (Seq.slice x consumed (Seq.length x)) with
+        | None -> None
+        | Some (pn, consumed') -> Some (synth_header short_dcid_len last (| ph, pn |), consumed + consumed')
+      end
+  ))
+= LP.parse_synth_eq
+    #_
+    #(dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
+    #(header' short_dcid_len last)
+    (parse_header_dtuple short_dcid_len last)
+    (synth_header short_dcid_len last)
+    x;
+  parse_header_dtuple_eq short_dcid_len last x
+
+#pop-options
+
 let serialize_header_dtuple
   (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
@@ -667,3 +758,19 @@ let lemma_header_parsing_safe
     LP.parse_injective (lp_parse_header cid_len' last') b1 b2;
     Seq.lemma_split b1 consumed;
     Seq.lemma_split b2 consumed
+
+let parse_header_exists
+  cid_len last x
+=
+  let cid_len' = U32.uint_to_t cid_len in
+  let last' = Secret.to_u64 (U64.uint_to_t last) in
+  lp_parse_header_eq cid_len' last' x;
+  let Some (ph, consumed) = Public.parse_header cid_len' x in
+  if Public.is_retry ph
+  then ()
+  else begin
+    let pn_len = get_pn_length ph in
+    PN.parse_packet_number_kind'_correct last' pn_len;
+    LP.parser_kind_prop_equiv (PN.parse_packet_number_kind' pn_len)  (PN.parse_packet_number last' pn_len);
+    assert (Some? (LP.parse (PN.parse_packet_number last' pn_len) (Seq.slice x consumed (Seq.length x))))
+  end
