@@ -32,18 +32,10 @@ let unsafe_id =
 /// Some redefinitions, using Spec
 /// ------------------------------
 
-// Not modeling arbitrary-length IVs as supported by AES-GCM (via IV reduction).
-let iv_len (a: alg) =
-  12ul
-
 // Trying to follow the Fournet-Protzenko conventions: _len for machine lengths,
 // _length for spec (nat) lengths.
 let tag_len: x:U32.t { forall (a: alg). {:pattern Spec.tag_length a} U32.v x == Spec.tag_length a } =
   16ul
-
-// JP: Use iv_len above or not?
-let iv (a: alg) =
-  Spec.iv a
 
 // This duplicates a fair amount of definitions from Spec.Agile.AEAD, but here
 // the bounds are tighter and force plain texts to not overflow 32 bits once
@@ -66,14 +58,15 @@ type plain_pkg (idt: eqtype) (safe: idt -> bool) =
     plain: (i:idt -> plain_length_at_least min_len -> eqtype) ->
     as_bytes: (i:idt -> l:plain_length_at_least min_len -> plain i l -> GTot (Spec.lbytes l)) ->
     repr: (i:idt{not (safe i)} -> l:plain_length_at_least min_len -> p:plain i l -> Tot (b:Spec.lbytes l{b == as_bytes i l p})) ->
+    mk: (i:idt{not (safe i)} -> l:plain_length_at_least min_len -> p:Spec.lbytes l -> p':plain i l { as_bytes i l p' == p }) ->
     plain_pkg idt safe
 
 noeq
 type nonce_pkg (idt: eqtype) (safe: idt -> bool) (alg: idt -> GTot I.ea) =
   | NoncePkg:
     nonce: (i:idt -> eqtype) ->
-    as_bytes: (i:idt -> nonce i -> GTot (iv (alg i))) ->
-    repr: (i:idt{not (safe i)} -> n:nonce i -> Tot (r:iv (alg i) {r == as_bytes i n})) ->
+    as_bytes: (i:idt -> nonce i -> GTot (Spec.iv (alg i))) ->
+    repr: (i:idt{not (safe i)} -> n:nonce i -> Tot (r:Spec.iv (alg i) {r == as_bytes i n})) ->
     nonce_pkg idt safe alg
 
 noeq type info' = {
@@ -233,6 +226,9 @@ val decrypt
     winvariant w h1 /\
     B.modifies B.loc_none h0 h1 /\
     (is_safe i ==>
+      // JP: feels like we should state something more interesting, e.g. if we
+      // take all the entries in the log that match this nonce, then there is
+      // exactly one
       (match wentry_for_nonce w n h0 with
       | None -> None? res
       | Some (Entry n' aad' #l' p' c') ->
@@ -241,5 +237,17 @@ val decrypt
         (matches ==> res = Some p') /\
         (~matches ==> res = None)
       )
-    )
+    ) /\
+    (~ (is_safe i) ==> (
+      let a: Spec.supported_alg = I.ae_id_ginfo i in
+      let k: Spec.kv a = wkey w in
+      let iv = NoncePkg?.as_bytes (wgetinfo w).nonce i n in
+      let maybe_plain = Spec.decrypt k iv aad c in
+      match maybe_plain with
+      | None -> None? res
+      | Some p ->
+          Some? res /\ (
+          let p' = PlainPkg?.as_bytes (wgetinfo w).plain i l (Some?.v res) in
+          p == p')
+    ))
   )
