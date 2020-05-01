@@ -10,6 +10,8 @@ module U8 = FStar.UInt8
 module QS = QUIC.Spec
 module QSL = QUIC.Spec.Lemmas
 
+module Secret = QUIC.Secret.Int
+
 // friend Lib.IntTypes // declassify secret integers
 
 #set-options "--max_fuel 0 --max_ifuel 0"
@@ -198,21 +200,22 @@ let rec and_inplace_commutative (s1 s2: S.seq U8.t): Lemma
 #pop-options
 
 #push-options "--max_fuel 1"
-let rec seq_map2_xor0 (s1 s2: S.seq U8.t): Lemma
+let rec seq_map2_xor0 (s1 s2: S.seq Secret.uint8): Lemma
   (requires
     S.length s1 = S.length s2 /\
-    s1 `S.equal` S.create (S.length s2) 0uy)
+    s1 `S.equal` S.create (S.length s2) (Secret.to_u8 0uy))
   (ensures
-    Spec.Loops.seq_map2 U8.logxor s1 s2 `S.equal` s2)
+    Spec.Loops.seq_map2 EverCrypt.CTR.xor8 s1 s2 `S.equal` s2)
   (decreases (S.length s1))
 =
   if S.length s1 = 0 then
     ()
   else
     let open FStar.UInt in
-    logxor_lemma_1 #8 (U8.v (S.head s2));
-    logxor_lemma_1 #8 (U8.v (S.head s1));
-    logxor_commutative (U8.v (S.head s1)) (U8.v (S.head s2));
+    logxor_lemma_1 #8 (Secret.v (S.head s2));
+    logxor_lemma_1 #8 (Secret.v (S.head s1));
+    logxor_commutative #8 (Secret.v (S.head s1)) (Secret.v (S.head s2));
+    assert (Secret.v (S.head (Spec.Loops.seq_map2 EverCrypt.CTR.xor8 s1 s2)) == Secret.v (S.head s2));
     seq_map2_xor0 (S.tail s1) (S.tail s2)
 #pop-options
 
@@ -228,6 +231,7 @@ let upd_op_inplace (#a:eqtype) op (s: S.seq a) (x: a): Lemma
 /// Endianness lemmas
 /// -----------------
 
+#push-options "--z3rlimit 16"
 #restart-solver
 let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
   (requires i <= S.length s)
@@ -295,6 +299,7 @@ let rec be_to_n_slice (s: S.seq U8.t) (i: nat): Lemma
         (U8.v (S.last s) + pow2 8 * be_to_n (S.slice s 0 (S.length s - 1))) %
           pow2 (8 * (S.length s - i));
       }
+#pop-options
 
 let n_to_be_lower
   (len: nat)

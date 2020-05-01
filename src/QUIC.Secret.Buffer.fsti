@@ -60,6 +60,24 @@ val with_buffer_hide
     post res (B.as_seq h' (B.gsub b 0ul from)) (B.as_seq h' (B.gsub b from (to `U32.sub` from))) (B.as_seq h' (B.gsub b to (B.len b `U32.sub` to))) h'
   ))
 
+module E = FStar.Endianness
+
+inline_for_extraction noextract
+val load32_be
+  (b:B.buffer Secret.uint8{B.length b == 4}):
+  HST.Stack Secret.uint32
+    (requires (fun h -> B.live h b))
+    (ensures  (fun h0 z h1 -> h0 == h1 /\ B.live h1 b /\
+                           E.be_to_n (Seq.seq_reveal (B.as_seq h1 b)) == Secret.v z))
+
+inline_for_extraction noextract
+val load32_le
+  (b:B.buffer Secret.uint8 {B.length b == 4}):
+  HST.Stack Secret.uint32
+    (requires (fun h -> B.live h b))
+    (ensures  (fun h0 z h1 -> h0 == h1 /\ B.live h1 b /\
+                           E.le_to_n (Seq.seq_reveal (B.as_seq h1 b)) == Secret.v z))
+
 (* Not secret-related, but very useful for footprints *)
 
 inline_for_extraction

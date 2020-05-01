@@ -1,6 +1,110 @@
 module QUIC.Impl.Header
 friend QUIC.Spec.Header
 
+open QUIC.Impl.Header.Base
+
+module Parse = QUIC.Impl.Header.Parse
+module ParseSpec = QUIC.Spec.Header.Parse
+module Spec = QUIC.Spec.Header
+
+module B = LowStar.Buffer
+
+module Cipher = EverCrypt.Cipher
+module AEAD = EverCrypt.AEAD
+module HKDF = EverCrypt.HKDF
+module CTR = EverCrypt.CTR
+
+module U8 = FStar.UInt8
+module HST = FStar.HyperStack.ST
+module U32 = FStar.UInt32
+module G = FStar.Ghost
+module Seq = QUIC.Secret.Seq
+module Secret = QUIC.Secret.Int
+module SecretBuffer = QUIC.Secret.Buffer
+
+module Lemmas = QUIC.Impl.Lemmas
+friend QUIC.Impl.Lemmas
+
+(* There are a few places where EverCrypt needs public data whereas it
+could/should be secret. Thus, we may need some declassification
+locally using Lib.RawIntTypes, but we definitely don't want to make
+secret integers globally transparent using friend *)
+
+module ADMITDeclassify = Lib.RawIntTypes
+
+let block_len (a: Spec.Agile.Cipher.cipher_alg):
+  x:U32.t { U32.v x = Spec.Agile.Cipher.block_length a }
+=
+  let open Spec.Agile.Cipher in
+  match a with | CHACHA20 -> 64ul | _ -> 16ul
+
+#push-options "--z3rlimit 256"
+inline_for_extraction
+let block_of_sample (a: Spec.Agile.Cipher.cipher_alg)
+  (dst: B.buffer Secret.uint8)
+  (s: CTR.state a)
+  (k: B.buffer Secret.uint8)
+  (sample: B.buffer Secret.uint8):
+  HST.Stack unit
+    (requires fun h0 ->
+      B.(all_live h0 [ buf dst; buf k; buf sample ]) /\
+      CTR.invariant h0 s /\
+      B.(all_disjoint
+        [ CTR.footprint h0 s; loc_buffer dst; loc_buffer k; loc_buffer sample ]) /\
+      Spec.Agile.Cipher.(a == AES128 \/ a == AES256 \/ a == CHACHA20) /\
+      B.length k = Spec.Agile.Cipher.key_length a /\
+      B.length dst = 16 /\
+      B.length sample = 16)
+    (ensures fun h0 _ h1 ->
+      B.(modifies (loc_buffer dst `loc_union` CTR.footprint h0 s) h0 h1) /\
+      B.as_seq h1 dst `Seq.equal`
+        Spec.block_of_sample a (B.as_seq h0 k) (B.as_seq h0 sample) /\
+      CTR.footprint h0 s == CTR.footprint h1 s /\
+      CTR.invariant h1 s)
+=
+  HST.push_frame ();
+  (**) let h0 = HST.get () in
+  let zeroes = B.alloca (Secret.to_u8 0uy) (block_len a) in
+  let dst_block = B.alloca (Secret.to_u8 0uy) (block_len a) in
+  begin match a with
+  | Spec.Agile.Cipher.CHACHA20 ->
+      let ctr = SecretBuffer.load32_le (B.sub sample 0ul 4ul) in
+      let iv = B.sub sample 4ul 12ul in
+      (**) let h1 = HST.get () in
+      CTR.init (G.hide a) s k iv 12ul (ADMITDeclassify.u32_to_UInt32 ctr);
+      CTR.update_block (G.hide a) s dst_block zeroes;
+      (**) let h2 = HST.get () in
+      (**) Lemmas.seq_map2_xor0 (B.as_seq h1 dst_block)
+      (**)   (Spec.Agile.Cipher.ctr_block a (B.as_seq h0 k) (B.as_seq h1 iv) (Secret.v ctr));
+      (**) assert (B.as_seq h2 dst_block `Seq.equal`
+      (**)   Spec.Agile.Cipher.ctr_block a (B.as_seq h0 k) (B.as_seq h1 iv) (Secret.v ctr));
+      let dst_slice = B.sub dst_block 0ul 16ul in
+      (**) assert (B.as_seq h2 dst_slice `Seq.equal` Seq.slice (
+      (**)   Spec.Agile.Cipher.ctr_block a (B.as_seq h0 k) (B.as_seq h1 iv) (Secret.v ctr)
+      (**) ) 0 16);
+      B.blit dst_slice 0ul dst 0ul 16ul
+  | _ ->
+      let ctr = SecretBuffer.load32_be (B.sub sample 12ul 4ul) in
+      let iv = B.sub sample 0ul 12ul in
+      (**) let h1 = HST.get () in
+      CTR.init (G.hide a) s k iv 12ul (ADMITDeclassify.u32_to_UInt32 ctr);
+      CTR.update_block (G.hide a) s dst_block zeroes;
+      (**) let h2 = HST.get () in
+      (**) Lemmas.seq_map2_xor0 (B.as_seq h1 dst_block)
+      (**)   (Spec.Agile.Cipher.ctr_block a (B.as_seq h0 k) (B.as_seq h1 iv) (Secret.v ctr));
+      (**) assert (B.as_seq h2 dst_block `Seq.equal`
+      (**)   Spec.Agile.Cipher.ctr_block a (B.as_seq h0 k) (B.as_seq h1 iv) (Secret.v ctr));
+      let dst_slice = B.sub dst_block 0ul 16ul in
+      (**) assert (B.as_seq h2 dst_slice `Seq.equal` Seq.slice (
+      (**)   Spec.Agile.Cipher.ctr_block a (B.as_seq h0 k) (B.as_seq h1 iv) (Secret.v ctr)
+      (**) ) 0 16);
+      B.blit dst_slice 0ul dst 0ul 16ul
+  end;
+  HST.pop_frame ()
+#pop-options
+
+
+(*
 open QUIC.Impl.Base
 open QUIC.Spec.Header
 

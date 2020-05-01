@@ -15,24 +15,22 @@ module Lemmas = QUIC.Spec.Lemmas
 let block_of_sample
   (a: Cipher.cipher_alg)
   (k: Cipher.key a)
-  (sample: lbytes 16)
-: GTot (lbytes 16) =
+  (sample: Seq.lseq Secret.uint8 16)
+: GTot (Seq.lseq Secret.uint8 16) =
   let open FStar.Mul in
   let ctr, iv = match a with
     | Cipher.CHACHA20 ->
         let ctr_bytes, iv = Seq.split sample 4 in
-        let iv = Seq.seq_hide #Secret.U8 iv in
-        FStar.Endianness.lemma_le_to_n_is_bounded ctr_bytes;
+        FStar.Endianness.lemma_le_to_n_is_bounded (Seq.seq_reveal ctr_bytes);
         assert_norm (pow2 (8 * 4) = pow2 32);
-        FStar.Endianness.le_to_n ctr_bytes, iv
+        FStar.Endianness.le_to_n (Seq.seq_reveal ctr_bytes), iv
     | _ ->
         let iv, ctr_bytes = Seq.split sample 12 in
-        let iv = Seq.seq_hide #Secret.U8 iv in
-        FStar.Endianness.lemma_be_to_n_is_bounded ctr_bytes;
+        FStar.Endianness.lemma_be_to_n_is_bounded (Seq.seq_reveal ctr_bytes);
         assert_norm (pow2 (8 * 4) = pow2 32);
-        FStar.Endianness.be_to_n ctr_bytes, iv
+        FStar.Endianness.be_to_n (Seq.seq_reveal ctr_bytes), iv
   in
-  Seq.seq_reveal (Seq.slice (Cipher.ctr_block a k iv ctr) 0 16)
+  (Seq.slice (Cipher.ctr_block a k iv ctr) 0 16)
 
 (*
 Decryption of packet number
@@ -62,8 +60,8 @@ let header_encrypt
   else
     let pn_offset = Parse.pn_offset h in
     let pn_len = Secret.v (pn_length h) - 1 in
-    let sample = Seq.slice c (3-pn_len) (19-pn_len) in
-    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+    let sample = Seq.seq_hide (Seq.slice c (3-pn_len) (19-pn_len)) in
+    let mask = Seq.seq_reveal (block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample) in
     let pnmask = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
     let f = Seq.index r 0 in
     let protected_bits = if MShort? h then 5 else 4 in
@@ -104,8 +102,8 @@ let header_encrypt_post
     let y = x `Seq.append` c in
     let pn_offset = Parse.pn_offset h in
     let pn_len = Secret.v (pn_length h) - 1 in
-    let sample = Seq.slice c (3-pn_len) (19-pn_len) in
-    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+    let sample = Seq.seq_hide (Seq.slice c (3-pn_len) (19-pn_len)) in
+    let mask = Seq.seq_reveal (block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample) in
     let pnmask = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
     let f = Seq.index y 0 in
     let protected_bits = if MShort? h then 5 else 4 in
@@ -171,8 +169,8 @@ let header_decrypt_aux
         if sample_offset + 16 > Seq.length packet
         then None
         else begin
-          let sample = Seq.slice packet sample_offset (sample_offset+16) in
-          let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+          let sample = Seq.seq_hide (Seq.slice packet sample_offset (sample_offset+16)) in
+          let mask = Seq.seq_reveal (block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample) in
           (* mask the least significant bits of the first byte *)
           let protected_bits = if is_short then 5 else 4 in
           let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits) in
@@ -225,8 +223,8 @@ let header_decrypt_aux_post
   else begin
     let Some pn_offset = Parse.putative_pn_offset cid_len packet in
     let sample_offset = pn_offset + 4 in
-    let sample = Seq.slice packet sample_offset (sample_offset+16) in
-    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample in
+    let sample = Seq.seq_hide (Seq.slice packet sample_offset (sample_offset+16)) in
+    let mask = Seq.seq_reveal (block_of_sample (AEAD.cipher_alg_of_supported_alg a) hpk sample) in
     (* mask the least significant bits of the first byte *)
     let protected_bits = if is_short then 5 else 4 in
     let bf = BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits in
@@ -364,10 +362,11 @@ let lemma_header_encryption_correct_aux
     Parse.putative_pn_offset_correct h cid_len;
     let pn_offset = Parse.pn_offset h in
     let pn_len = Secret.v (pn_length h) - 1 in
-    let sample = Seq.slice c (3-pn_len) (19-pn_len) in
-    assert (sample `Seq.equal` Seq.slice packet (pn_offset + 4) (pn_offset + 20));
+    let sample' = Seq.slice c (3-pn_len) (19-pn_len) in
+    assert (sample' `Seq.equal` Seq.slice packet (pn_offset + 4) (pn_offset + 20));
+    let sample = Seq.seq_hide sample' in
     assert ((r.pn_offset <: nat) == pn_offset);
-    let mask = block_of_sample (AEAD.cipher_alg_of_supported_alg a) k sample in
+    let mask = Seq.seq_reveal (block_of_sample (AEAD.cipher_alg_of_supported_alg a) k sample) in
     let protected_bits = if MShort? h then 5 else 4 in
     assert (protected_bits == (if r.is_short then 5 else 4));
     let f = Seq.index format 0 in

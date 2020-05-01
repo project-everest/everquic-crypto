@@ -37,3 +37,13 @@ let with_buffer_hide #t b from to h0 lin lout x1 x2 x3 x4 x5 x6 post f =
   let bs = B.sub b from (to `U32.sub` from) in
   let br = B.offset b to in
   f (Ghost.hide (B.loc_buffer b)) bl bs br
+
+let load32_be
+  b
+=
+  LowStar.Endianness.load32_be b
+
+let load32_le
+  b
+=
+  LowStar.Endianness.load32_le b

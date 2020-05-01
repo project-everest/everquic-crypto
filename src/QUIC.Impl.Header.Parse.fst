@@ -88,6 +88,12 @@ let public_header_len_is_pn_offset
   h m pn
 = public_header_len_correct' h m pn
 
+#pop-options
+
+#push-options "--z3rlimit 2048 --query_stats"
+
+#restart-solver
+
 let header_len_correct
   h m pn
 =
