@@ -136,22 +136,19 @@ val read_header
   (packet: B.buffer U8.t)
   (packet_len: U32.t { let v = U32.v packet_len in v == B.length packet })
   (cid_len: U32.t { U32.v cid_len <= 20 } )
-: HST.Stack (option (header & U32.t))
+: HST.Stack header
   (requires (fun h ->
-    B.live h packet
+    B.live h packet /\
+    Some? (LP.parse (parse_header cid_len) (B.as_seq h packet))
   ))
   (ensures (fun h res h' ->
     B.modifies B.loc_none h h' /\
     begin
-      match LP.parse (parse_header cid_len) (B.as_seq h packet), res with
-      | None, None -> True
-      | Some (x, len), Some (x', len') ->
-        header_live x' h' /\
-        len <= B.length packet /\
-        B.loc_buffer (B.gsub packet 0ul (U32.uint_to_t len)) `B.loc_includes` header_footprint x' /\
-        g_header x' h' == x /\
-        U32.v len' == len
-      | _ -> False
+      let Some (x, len) = LP.parse (parse_header cid_len) (B.as_seq h packet) in
+      header_live res h' /\
+      len <= B.length packet /\
+      B.loc_buffer (B.gsub packet 0ul (U32.uint_to_t len)) `B.loc_includes` header_footprint res /\
+      g_header res h' == x
     end
   ))
 

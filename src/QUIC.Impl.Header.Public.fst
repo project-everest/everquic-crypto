@@ -382,10 +382,7 @@ let read_header packet packet_len cid_len =
     Some?.v k.LP.parser_kind_high <= U32.v LP.validator_max_length /\
     k.LP.parser_kind_subkind == Some LP.ParserStrong
   );
-  let len = LP.validate_bounded_strong_prefix (validate_header cid_len) sl 0ul in
-  if len `U32.gt` LP.validator_max_length
-  then None
-  else begin
+  begin
     LPB.valid_bitsum_elim
       #LP.parse_u8_kind
       #8
@@ -409,7 +406,7 @@ let read_header packet packet_len cid_len =
       r
       ()
     in
-    Some (res, len)
+    res
   end
 
 #pop-options
