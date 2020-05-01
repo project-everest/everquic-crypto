@@ -15,10 +15,6 @@ noeq
 type must_inline =
 
 noextract
-unfold
-let norm = norm [delta_attr [(`%must_inline)]; iota; zeta; primops]
-
-noextract
 let supported_type = function
   | U8 | U16 | U32 | U64 -> true
   | _ -> false
@@ -548,21 +544,21 @@ let secrets_are_equal_32_2
 : Tot (z: uint32 {
     v z == (if v x = v y then 1 else 0)
   })
-= norm (secrets_are_equal 2 x y)
+= norm [delta_attr [(`%must_inline)]; iota; zeta; primops] (secrets_are_equal 2 x y)
 
 [@"opaque_to_smt"]
 let secret_is_le_64
   (x: uint64)
   (y: uint64)
 : Tot (z: uint64 { v z == (if v x <= v y then 1 else 0) })
-= norm (secret_is_le 64 x y)
+= norm [delta_attr [(`%must_inline)]; iota; zeta; primops] (secret_is_le 64 x y)
 
 [@"opaque_to_smt"]
 let secret_is_lt_64
   (x: uint64)
   (y: uint64)
 : Tot (z: uint64 { v z == (if v x < v y then 1 else 0) })
-= norm (secret_is_lt 64 x y)
+= norm [delta_attr [(`%must_inline)]; iota; zeta; primops] (secret_is_lt 64 x y)
 
 [@"opaque_to_smt"]
 let secrets_are_equal_64_2
@@ -571,7 +567,7 @@ let secrets_are_equal_64_2
 : Tot (z: uint64 {
     v z == (if v x = v y then 1 else 0)
   })
-= norm (secrets_are_equal 2 x y)
+= norm [delta_attr [(`%must_inline)]; iota; zeta; primops] (secrets_are_equal 2 x y)
 
 [@"opaque_to_smt"]
 let secrets_are_equal_62
@@ -580,4 +576,4 @@ let secrets_are_equal_62
 : Tot (z: uint64 {
     v z == (if v x = v y then 1 else 0)
   })
-= norm (secrets_are_equal 62 x y)
+= norm [delta_attr [(`%must_inline)]; iota; zeta; primops] (secrets_are_equal 62 x y)

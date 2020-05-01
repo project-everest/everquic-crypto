@@ -633,6 +633,10 @@ let pn_offset'
   let (| ph, _ |) = synth_header_recip cid_len last h in
   Seq.length (LP.serialize (Public.serialize_header cid_len) ph)
 
+#push-options "--z3rlimit 64"
+
+#restart-solver
+
 let pn_offset_prop
   (h: header)
 : Lemma
@@ -650,6 +654,8 @@ let pn_offset_prop
   let (| ph, pn |) = synth_header_recip cid_len last h in
   LP.serialize_length (Public.serialize_header cid_len) ph;
   LP.serialize_length #(PN.parse_packet_number_kind' pn_len) #_ #(PN.parse_packet_number last pn_len <: LP.bare_parser (PN.packet_number_t' last pn_len)) (PN.serialize_packet_number last pn_len <: LP.bare_serializer (PN.packet_number_t' last pn_len)) pn
+
+#pop-options
 
 let pn_offset
   h
