@@ -63,3 +63,29 @@ val putative_pn_offset
     | _ -> False
     end
   ))
+
+val read_header
+  (packet: B.buffer U8.t)
+  (packet_len: U32.t { let v = U32.v packet_len in v == B.length packet })
+  (cid_len: U32.t { U32.v cid_len <= 20 } )
+  (last: PN.last_packet_number_t)
+: HST.Stack (header & PN.packet_number_t)
+  (requires (fun h ->
+    B.live h packet /\
+    begin match Spec.putative_pn_offset (U32.v cid_len) (B.as_seq h packet) with
+    | None -> False
+    | Some off -> (~ (packet_is_retry (B.as_seq h packet))) ==> off + 4 <= B.length packet
+    end
+  ))
+  (ensures (fun h (x, pn) h' ->
+    B.modifies B.loc_none h h' /\
+    begin match parse_header (U32.v cid_len) (Secret.v last) (B.as_seq h packet) with
+    | H_Success hd _ ->
+      let len = public_header_len x in
+      U32.v len <= B.length packet /\
+      header_live x h' /\
+      B.loc_buffer (B.gsub packet 0ul len) `B.loc_includes` header_footprint x /\
+      g_header x h' pn == hd
+    | _ -> False
+    end
+  ))

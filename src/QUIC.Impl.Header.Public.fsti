@@ -57,6 +57,20 @@ type header =
   } ->
   header
 
+let is_retry
+  (h: header)
+: Tot bool
+= if PShort? h
+  then false
+  else
+    let spec = PLong?.spec h in
+    PRetry? spec
+
+let dcid_len (h: header) : Tot short_dcid_len_t =
+  match h with
+  | PLong _ _ _ dcil _ _ _ -> dcil
+  | PShort _ _ _ dcil -> dcil
+
 let header_live (h: header) (m: HS.mem) : GTot Type0 =
   match h with
   | PShort protected_bits spin cid cid_len ->
