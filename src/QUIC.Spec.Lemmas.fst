@@ -108,15 +108,15 @@ let lemma_be_index_bytes (l:pos) (b:bytes) : Lemma
 
 /// generic lemmas for sequences
 
-let append_slices1 (#a:eqtype) (s1 s2:S.seq a) : Lemma
+let append_slices1 (#a:Type) (s1 s2:S.seq a) : Lemma
   (S.equal s1 (S.slice (S.append s1 s2) 0 (S.length s1))) =
   ()
 
-let append_slices2 (#a:eqtype) (s1 s2:S.seq a) : Lemma
+let append_slices2 (#a:Type) (s1 s2:S.seq a) : Lemma
   (Seq.equal s2 (Seq.slice (Seq.append s1 s2) (Seq.length s1) (Seq.length s1 + Seq.length s2))) =
   ()
 
-let append_slices3 (#a:eqtype) (s1 s2:S.seq a) : Lemma
+let append_slices3 (#a:Type) (s1 s2:S.seq a) : Lemma
   ( (forall (i:nat) (j:nat).
                 i <= j /\ j <= Seq.length s2 ==>
                 Seq.equal (Seq.slice s2 i j)
@@ -128,46 +128,46 @@ let lemma_create_slice b i : Lemma
   (ensures S.(equal (create 1 (index b i)) (slice b i (i+1)))) =
   ()
 
-let lemma_append_assoc (#a:eqtype) (u v w:S.seq a) : Lemma
+let lemma_append_assoc (#a:Type) (u v w:S.seq a) : Lemma
   (S.equal S.(u @| v @| w) S.((u @| v) @| w)) =
   ()
 
-let compose_split (#a:eqtype) (b:S.seq a) (i j:nat) : Lemma
+let compose_split (#a:Type) (b:S.seq a) (i j:nat) : Lemma
   (requires i+j <= S.length b)
-  (ensures snd (S.split (snd (S.split b i)) j) = snd (S.split b (i+j))) =
+  (ensures snd (S.split (snd (S.split b i)) j) == snd (S.split b (i+j))) =
   ()
 
-let lemma_compose_slice (#a:eqtype) (b:S.seq a) (i j k l:nat) : Lemma
+let lemma_compose_slice (#a:Type) (b:S.seq a) (i j k l:nat) : Lemma
   (requires i <= j /\ j <= S.length b /\ k <= l /\ k <= j - i /\ l <= j - i)
-  (ensures S.slice (S.slice b i j) k l = S.slice b (i+k) (i+l)) =
+  (ensures S.slice (S.slice b i j) k l == S.slice b (i+k) (i+l)) =
   ()
 
-let add_offset (#a:eqtype) (b:S.seq a) (i:nat) (p1 p2:S.seq a) : Lemma
-  (requires i <= S.length b /\ S.slice b i (S.length b) = S.(p1@|p2))
+let add_offset (#a:Type) (b:S.seq a) (i:nat) (p1 p2:S.seq a) : Lemma
+  (requires i <= S.length b /\ S.slice b i (S.length b) == S.(p1@|p2))
   (ensures (
-    assert (S.length S.(p1@|p2) = S.length p1+S.length p2);
-    S.slice b (i+S.length p1) (S.length b) = p2)) =
+    S.length S.(p1@|p2) == S.length p1+S.length p2 /\
+    S.slice b (i+S.length p1) (S.length b) == p2)) =
   assert (S.length S.(p1@|p2) = S.length p1+S.length p2);
   append_slices2 p1 p2;
   compose_split b i (S.length p1)
 
-let slice_trans (#a:eqtype) (b:S.seq a) (i j k:nat) : Lemma
+let slice_trans (#a:Type) (b:S.seq a) (i j k:nat) : Lemma
   (requires i <= j /\ j <= k /\ k <= S.length b)
-  (ensures S.slice b i k = S.(slice b i j @| slice b j k)) =
+  (ensures S.slice b i k == S.(slice b i j @| slice b j k)) =
   S.lemma_split (S.slice b i k) (j-i)
 
-let extensionality_slice (#a:eqtype) (b1 b2:S.seq a) (i j:nat) : Lemma
+let extensionality_slice (#a:Type) (b1 b2:S.seq a) (i j:nat) : Lemma
   (requires
     S.length b1 = S.length b2 /\
     i <= j /\ j <= S.length b1 /\
-    (forall (k:nat{i<=k /\ k<j}). S.index b1 k = S.index b2 k))
+    (forall (k:nat{i<=k /\ k<j}). S.index b1 k == S.index b2 k))
   (ensures S.equal (S.slice b1 i j) (S.slice b2 i j)) =
   let index_slice_aux (b:S.seq a) (i j k:nat) : Lemma
     (requires i <= j /\ j <= S.length b /\ k < j - i)
-    (ensures S.index (S.slice b i j) k = S.index b (i+k)) =
+    (ensures S.index (S.slice b i j) k == S.index b (i+k)) =
     () in
   let index_slice (b:S.seq a{j <= S.length b}) (k:nat{k < j - i}) : Lemma
-    (S.index (S.slice b i j) k = S.index b (i+k)) =
+    (S.index (S.slice b i j) k == S.index b (i+k)) =
     index_slice_aux b i j k in
 
   FStar.Classical.forall_intro (index_slice b1);
@@ -175,47 +175,47 @@ let extensionality_slice (#a:eqtype) (b1 b2:S.seq a) (i j:nat) : Lemma
 
 
 // application of a byte operation at a subposition
-let rec pointwise_op (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat) : Pure (S.seq a)
+let rec pointwise_op (#a:Type0) (f:a->a->a) (b1 b2:S.seq a) (pos:nat) : Pure (S.seq a)
   (requires S.length b2 + pos <= S.length b1)
   (ensures fun b -> S.length b == S.length b1)
   (decreases (S.length b2)) =
-  if b2 = S.empty then b1
+  if Seq.length b2 = 0 then b1
   else
     let _ = S.lemma_empty b2 in
     let x = f (S.index b1 pos) (S.index b2 0) in
     pointwise_op f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) (pos + 1)
 
 let pointwise_op_empty
-  (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
+  (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
 : Lemma
   (requires (S.length b2 == 0 /\ pos <= S.length b1))
   (ensures (pointwise_op f b1 b2 pos == b1))
 = assert (b2 `S.equal` S.empty)
 
 // three lemmas to recover indexes after application of bitwise_op
-let rec pointwise_index1 (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
+let rec pointwise_index1 (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
   (requires (S.length b2 + pos <= S.length b1 /\ i < pos))
-  (ensures (S.index (pointwise_op f b1 b2 pos) i = S.index b1 i))
+  (ensures (S.index (pointwise_op f b1 b2 pos) i == S.index b1 i))
   (decreases (S.length b2)) =
-  if b2 = S.empty then ()
+  if Seq.length b2 = 0 then ()
   else begin
     S.lemma_empty b2;
     let x = f (S.index b1 pos) (S.index b2 0) in
-    assert (pointwise_op f b1 b2 pos = pointwise_op f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) (pos + 1));
+    assert (pointwise_op f b1 b2 pos == pointwise_op f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) (pos + 1));
     S.lemma_index_upd2 b1 pos x i;
-    assert (S.index (S.upd b1 pos x) i = S.index b1 i);
+    assert (S.index (S.upd b1 pos x) i == S.index b1 i);
     pointwise_index1 f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) i (pos + 1)
   end
 
 
-let rec pointwise_index2 (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
+let rec pointwise_index2 (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
   (requires (S.length b2 + pos <= S.length b1 /\ pos <= i /\ i < S.length b2 + pos))
-  (ensures (S.index (pointwise_op f b1 b2 pos) i = f (S.index b1 i) (S.index b2 (i-pos))))
+  (ensures (S.index (pointwise_op f b1 b2 pos) i == f (S.index b1 i) (S.index b2 (i-pos))))
   (decreases (S.length b2)) =
-  if S.empty = b2 then ()
+  if Seq.length b2 = 0 then ()
   else begin
     let x = f (S.index b1 pos) (S.index b2 0) in
-    assert (pointwise_op f b1 b2 pos = pointwise_op f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) (pos+1));
+    assert (pointwise_op f b1 b2 pos == pointwise_op f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) (pos+1));
     if i = pos then begin
       pointwise_index1 f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) pos (pos+1);
       S.lemma_index_upd1 b1 pos x
@@ -225,11 +225,11 @@ let rec pointwise_index2 (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : L
   end
 
 
-let rec pointwise_index3 (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
+let rec pointwise_index3 (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lemma
   (requires (S.length b2 + pos <= i /\ i < S.length b1))
-  (ensures (S.index (pointwise_op f b1 b2 pos) i = S.index b1 i))
+  (ensures (S.index (pointwise_op f b1 b2 pos) i == S.index b1 i))
   (decreases (S.length b2)) =
-  if S.empty = b2 then ()
+  if Seq.length b2 = 0 then ()
   else begin
     S.lemma_empty b2;
     let x = f (S.index b1 pos) (S.index b2 0) in
@@ -238,7 +238,7 @@ let rec pointwise_index3 (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : L
 
 
 
-let pointwise_op_suff (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
+let pointwise_op_suff (#a:Type) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
   (requires pos >= S.length a1 /\ S.length b + pos <= S.length a1 + S.length a2)
   (ensures
     S.equal
@@ -246,7 +246,7 @@ let pointwise_op_suff (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemm
       S.(a1 @| pointwise_op f a2 b (pos - S.length a1))) =
   let b1 = pointwise_op f S.(a1 @| a2) b pos in
   let b2 = S.(a1 @| pointwise_op f a2 b (pos - S.length a1)) in
-  let step i : Lemma (S.index b1 i = S.index b2 i) =
+  let step i : Lemma (S.index b1 i == S.index b2 i) =
     if i < S.length a1 then pointwise_index1 f S.(a1 @| a2) b i pos
     else begin
       if i < pos then begin
@@ -264,7 +264,7 @@ let pointwise_op_suff (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemm
   FStar.Classical.forall_intro step
 
 
-let pointwise_op_pref (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
+let pointwise_op_pref (#a:Type) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
   (requires S.length b + pos <= S.length a1)
   (ensures
     S.equal
@@ -272,7 +272,7 @@ let pointwise_op_pref (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemm
       S.(pointwise_op f a1 b pos @| a2)) =
   let b1 = pointwise_op f S.(a1 @| a2) b pos in
   let b2 = S.(pointwise_op f a1 b pos @| a2) in
-  let step i : Lemma (S.index b1 i = S.index b2 i) =
+  let step i : Lemma (S.index b1 i == S.index b2 i) =
     if i < pos then begin
       pointwise_index1 f S.(a1 @| a2) b i pos;
       pointwise_index1 f a1 b i pos
@@ -288,7 +288,7 @@ let pointwise_op_pref (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemm
   FStar.Classical.forall_intro step
 
 
-let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
+let pointwise_op_dec (#a:Type) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
   (requires
     pos <= S.length a1 /\
     S.length a1 <= S.length b + pos /\
@@ -303,7 +303,7 @@ let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
   let (b1,b2) = S.split b (length a1 - pos) in
   let p = pointwise_op f (a1 @| a2) b pos in
   let q = pointwise_op f a1 b1 pos @| pointwise_op f a2 b2 0 in
-  let step i : Lemma (S.index p i = S.index q i) =
+  let step i : Lemma (S.index p i == S.index q i) =
     if i < pos then begin
       pointwise_index1 f (a1 @| a2) b i pos;
       pointwise_index1 f a1 b1 i pos
@@ -323,7 +323,7 @@ let pointwise_op_dec (#a:eqtype) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
 #push-options "--z3rlimit 32"
 
 let pointwise_op_append_r
-  (#t: eqtype)
+  (#t: Type)
   (f: t -> t -> t)
   (a b1 b2: S.seq t)
   (pos: nat)
@@ -344,7 +344,7 @@ let pointwise_op_append_r
 #pop-options
 
 let pointwise_op_split
-  (#t: eqtype)
+  (#t: Type)
   (f: t -> t -> t)
   (a b: S.seq t)
   (pos: nat)
@@ -364,7 +364,7 @@ let pointwise_op_split
   pointwise_op_dec f (S.slice a 0 pos_split) (S.slice a pos_split (S.length a)) b pos
 
 let pointwise_op_slice_other
-  (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
+  (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (pos:nat)
   (from to: nat)
 : Lemma
   (requires (
@@ -407,7 +407,7 @@ let xor_involutive (b1 b2:byte) : Lemma
   FStar.UInt.logxor_lemma_1 (U8.v b1)
 
 
-let rec xor_inplace_involutive (b1 b2:bytes) (pos:nat) : Lemma
+let xor_inplace_involutive (b1 b2:bytes) (pos:nat) : Lemma
   (requires S.length b2 + pos <= S.length b1)
   (ensures S.equal (xor_inplace (xor_inplace b1 b2 pos) b2 pos) b1)
   (decreases (S.length b2)) =
@@ -428,7 +428,7 @@ let rec xor_inplace_involutive (b1 b2:bytes) (pos:nat) : Lemma
   FStar.Classical.forall_intro step
 
 
-let rec xor_inplace_commutative (b b1 b2:bytes) (pos1 pos2:nat) : Lemma
+let xor_inplace_commutative (b b1 b2:bytes) (pos1 pos2:nat) : Lemma
   (requires
     S.length b1 + pos1 <= S.length b /\
     S.length b2 + pos2 <= S.length b)
@@ -545,28 +545,28 @@ let rec lemma_bitwise_op_index (f:bool->bool->bool) (l1 l2:list bool) (n:nat) : 
     if n = 0 then ()
     else lemma_bitwise_op_index f t1 t2 (n-1)
 
-let rec list_to_seq (#a:eqtype) (l:list a) : (s:(S.seq a){S.length s = List.Tot.length l /\ (forall i. S.index s i = List.Tot.index l i)}) =
+let rec list_to_seq (#a:Type) (l:list a) : (s:(S.seq a){S.length s = List.Tot.length l /\ (forall i. S.index s i == List.Tot.index l i)}) =
   match l with
   | [] -> S.empty
   | h :: t -> S.(create 1 h @| list_to_seq t)
 
-let rec rev_seq (#a:eqtype) (s:S.seq a) : Pure (S.seq a)
+let rec rev_seq (#a:Type) (s:S.seq a) : Pure (S.seq a)
   (requires True)
   (ensures fun s' -> S.length s = S.length s')
   (decreases (S.length s)) =
-  if s = S.empty then S.empty
+  if S.length s = 0 then S.empty
   else
     let _ = S.lemma_empty s in
     S.(rev_seq S.(slice s 1 (length s)) @| create 1 (index s 0))
 
 
-let rec lemma_rev_seq (#a:eqtype) (s:S.seq a) (i:nat) : Lemma
+let rec lemma_rev_seq (#a:Type) (s:S.seq a) (i:nat) : Lemma
   (requires i < S.length s)
   (ensures
     S.length (rev_seq s) = S.length s /\
-    S.index s i = S.index (rev_seq s) (S.length s-1-i))
+    S.index s i == S.index (rev_seq s) (S.length s-1-i))
   (decreases (i))=
-  if s = S.empty then ()
+  if S.length s = 0 then ()
   else if i = 0 then ()
   else lemma_rev_seq (S.slice s 1 (S.length s)) (i-1)
 

@@ -119,7 +119,6 @@ let last_packet_number_of_state #i s =
 /// Helpers & globals
 /// -----------------
 
-friend QUIC.Impl.Lemmas
 open QUIC.Impl.Lemmas
 
 inline_for_extraction noextract
@@ -147,88 +146,6 @@ let prefix = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.prefix_
 
 /// Actual code
 /// -----------
-
-#push-options "--z3rlimit 200"
-inline_for_extraction noextract
-let op_inplace (dst: B.buffer U8.t)
-  (dst_len: U32.t)
-  (src: B.buffer U8.t)
-  (src_len: U32.t)
-  (ofs: U32.t)
-  (op: U8.t -> U8.t -> U8.t)
-:
-  Stack unit
-    (requires fun h0 ->
-      B.(all_live h0 [ buf dst; buf src ]) /\
-      B.disjoint dst src /\
-      B.length src = U32.v src_len /\
-      B.length dst = U32.v dst_len /\
-      B.length dst >= U32.v ofs + B.length src)
-    (ensures fun h0 _ h1 ->
-      B.(modifies (loc_buffer dst) h0 h1) /\
-      B.as_seq h1 dst `Seq.equal`
-        QUIC.Spec.Lemmas.pointwise_op op (B.as_seq h0 dst) (B.as_seq h0 src) (U32.v ofs) /\
-      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.equal`
-        Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) /\
-      Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len) `Seq.equal`
-      Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len))
-=
-  let h0 = ST.get () in
-  let dst0 = B.sub dst 0ul ofs in
-  let dst1 = B.sub dst ofs src_len in
-  let dst2 = B.sub dst (ofs `U32.add` src_len) (dst_len `U32.sub` (ofs `U32.add` src_len)) in
-  C.Loops.in_place_map2 dst1 src src_len op;
-  let h1 = ST.get () in
-  calc (Seq.equal) {
-    B.as_seq h1 dst;
-  (Seq.equal) { lemma_slice3 (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)) }
-    Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
-    (Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) {}
-    Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { pointwise_seq_map2 op (B.as_seq h0 dst1) (B.as_seq h0 src) 0 }
-    Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
-    (QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
-      (B.as_seq h0 src)
-      0) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { QUIC.Spec.Lemmas.pointwise_op_suff op (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
-    (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
-    (B.as_seq h0 src)
-    (U32.v ofs) }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.append (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
-        (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))))
-      (B.as_seq h0 src)
-      (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { lemma_slice1 (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)) }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
-      (B.as_seq h0 src)
-      (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { QUIC.Spec.Lemmas.pointwise_op_pref op
-    (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
-    (B.as_seq h0 src)
-    (U32.v ofs)
-  }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)) `Seq.append`
-      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst)))
-      (B.as_seq h0 src)
-      (U32.v ofs);
-  (Seq.equal) { lemma_slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (B.as_seq h0 dst)
-      (B.as_seq h0 src)
-      (U32.v ofs);
-  }
 
 #push-options "--max_ifuel 1 --initial_ifuel 1"
 /// One ifuel for inverting on the hash algorithm for computing bounds (the
@@ -506,16 +423,12 @@ let create_in i r dst initial_pn traffic_secret =
       (**) frame_invariant (B.loc_region_only false (HS.get_tip h6)) (B.deref h7 dst) h6 h7;
 
       Success
-#pop-options
+// #pop-options // intentionally commented out
 
 //module HeaderS = QUIC.Spec.Header
 //module HeaderI = QUIC.Impl.Header
 
-let block_len (a: Spec.Agile.Cipher.cipher_alg):
-  x:U32.t { U32.v x = Spec.Agile.Cipher.block_length a }
-=
-  let open Spec.Agile.Cipher in
-  match a with | CHACHA20 -> 64ul | _ -> 16ul
+#restart-solver
 
 let encrypt
   #i s dst dst_pn h plain plain_len

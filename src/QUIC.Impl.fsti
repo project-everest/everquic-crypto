@@ -230,6 +230,8 @@ let create_in_st (i:index) =
 // The index is passed at run-time.
 val create_in: i:index -> create_in_st i
 
+#restart-solver
+
 val encrypt: #i:G.erased index -> (
   let i = G.reveal i in
   s: state i ->

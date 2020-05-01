@@ -1,4 +1,5 @@
 module QUIC.Impl.Lemmas
+include QUIC.Spec.Lemmas
 
 module G = FStar.Ghost
 module S = QUIC.Secret.Seq
@@ -11,8 +12,6 @@ module QS = QUIC.Spec
 module QSL = QUIC.Spec.Lemmas
 
 module Secret = QUIC.Secret.Int
-
-// friend Lib.IntTypes // declassify secret integers
 
 #set-options "--max_fuel 0 --max_ifuel 0"
 
@@ -73,11 +72,11 @@ let lemma_slice1 #a (s: S.seq a) (i j: nat): Lemma
 
 open FStar.Mul
 
-/// Lemmas about pointwise_op (needs friending)
+/// Lemmas about pointwise_op
 /// -------------------------------------------
 
 #push-options "--max_fuel 1 --z3rlimit 100"
-let rec pointwise_upd (#a: eqtype) f b1 b2 i pos (x: a): Lemma
+let pointwise_upd (#a: Type) f b1 b2 i pos (x: a): Lemma
   (requires (S.length b2 + pos <= S.length b1 /\ i < pos))
   (ensures (S.upd (QSL.pointwise_op f b1 b2 pos) i x `S.equal`
     QSL.pointwise_op f (S.upd b1 i x) b2 pos))
@@ -127,7 +126,7 @@ let rec pointwise_upd (#a: eqtype) f b1 b2 i pos (x: a): Lemma
     S.upd (QSL.pointwise_op f b1 b2 pos) i x;
   }
 
-let rec pointwise_seq_map2 (#a: eqtype) (f: a -> a -> a) (s1 s2: S.seq a) (i: nat): Lemma
+let rec pointwise_seq_map2 (#a: Type) (f: a -> a -> a) (s1 s2: S.seq a) (i: nat): Lemma
   (requires (
     let l = S.length s1 in
     S.length s2 = l - i /\ i <= S.length s1))
@@ -220,7 +219,7 @@ let rec seq_map2_xor0 (s1 s2: S.seq Secret.uint8): Lemma
 #pop-options
 
 #push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1"
-let upd_op_inplace (#a:eqtype) op (s: S.seq a) (x: a): Lemma
+let upd_op_inplace (#a:Type) op (s: S.seq a) (x: a): Lemma
   (requires S.length s > 0)
   (ensures (S.upd s 0 (S.index s 0 `op` x) `S.equal`
     QSL.pointwise_op op s (S.create 1 x) 0))

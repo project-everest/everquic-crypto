@@ -1,6 +1,7 @@
 module QUIC.Impl.Header
 friend QUIC.Spec.Header
 
+open QUIC.Spec.Header
 open QUIC.Impl.Header.Base
 
 module Parse = QUIC.Impl.Header.Parse
@@ -23,7 +24,7 @@ module Secret = QUIC.Secret.Int
 module SecretBuffer = QUIC.Secret.Buffer
 
 module Lemmas = QUIC.Impl.Lemmas
-friend QUIC.Impl.Lemmas
+module BF = LowParse.BitFields
 
 (* There are a few places where EverCrypt needs public data whereas it
 could/should be secret. Thus, we may need some declassification
@@ -103,6 +104,276 @@ let block_of_sample (a: Spec.Agile.Cipher.cipher_alg)
   HST.pop_frame ()
 #pop-options
 
+(* A more careful version of header_encrypt wrt. constant-time issues, which does not test or truncate on pn_len *)
+
+inline_for_extraction
+let pn_sizemask_ct (pn_len:nat { pn_len < 4 }) : lbytes 4 =
+  let open FStar.Endianness in
+  FStar.Math.Lemmas.pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
+  FStar.Endianness.n_to_be 4 (pow2 32 - pow2 (24 - (8 `op_Multiply` pn_len)))
+
+let index_pn_sizemask_ct_right
+  (pn_len: nat { pn_len < 4 })
+  (i: nat {i > pn_len /\ i < 4})
+: Lemma
+  (Seq.index (pn_sizemask_ct pn_len) i == 0uy)
+= let open FStar.Endianness in
+  let open FStar.Math.Lemmas in
+  let open FStar.Mul in
+  pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
+  pow2_plus (24 - (8 * pn_len)) (8 * (pn_len + 1));
+  Lemmas.index_n_to_be_zero_right 4 (pow2 32 - pow2 (24 - (8 * pn_len))) i
+
+let header_encrypt_ct
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (h: Spec.header)
+  (c: cbytes' (Spec.is_retry h))
+: GTot packet
+= 
+  assert_norm(max_cipher_length < pow2 62);
+  let r = ParseSpec.format_header h `Seq.append` c in
+  if Spec.is_retry h
+  then
+    r
+  else
+    let pn_offset = ParseSpec.pn_offset h in
+    let pn_len = Secret.v (Spec.pn_length h) - 1 in
+    let sample = Seq.seq_hide (Seq.slice c (3-pn_len) (19-pn_len)) in
+    let mask = Seq.seq_reveal (Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) hpk sample) in
+    let pnmask = Lemmas.and_inplace (Seq.slice mask 1 5) (pn_sizemask_ct pn_len) 0 in
+    let f = Seq.index r 0 in
+    let protected_bits = if MShort? h then 5 else 4 in
+    let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits) in
+    let r = Lemmas.xor_inplace r pnmask pn_offset in
+    let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
+    r
+
+#push-options "--z3rlimit 256"
+
+let header_encrypt_ct_correct
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (h: Spec.header)
+  (c: cbytes' (Spec.is_retry h))
+: Lemma
+  (header_encrypt_ct a hpk h c `Seq.equal` header_encrypt a hpk h c)
+=
+  assert_norm(max_cipher_length < pow2 62);
+  let r = ParseSpec.format_header h `Seq.append` c in
+  if Spec.is_retry h
+  then ()
+  else begin
+    let pn_offset = ParseSpec.pn_offset h in
+    let pn_len = Secret.v (ParseSpec.pn_length h) - 1 in
+    let sample = Seq.seq_hide (Seq.slice c (3-pn_len) (19-pn_len)) in
+    let mask = Seq.seq_reveal (Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) hpk sample) in
+    let pnmask_ct = Lemmas.and_inplace (Seq.slice mask 1 5) (pn_sizemask_ct pn_len) 0 in
+    let pnmask_naive = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
+    Lemmas.pointwise_op_split U8.logand (Seq.slice mask 1 5) (pn_sizemask_ct pn_len) 0 (pn_len + 1);
+    assert (pnmask_naive `Seq.equal` Seq.slice pnmask_ct 0 (pn_len + 1));
+    Seq.lemma_split r (pn_offset + pn_len + 1);
+    Lemmas.pointwise_op_split U8.logxor r pnmask_ct pn_offset (pn_offset + pn_len + 1);
+    Lemmas.pointwise_op_split U8.logxor r pnmask_naive pn_offset (pn_offset + pn_len + 1);
+    Lemmas.pointwise_op_empty U8.logxor (Seq.slice r (pn_offset + pn_len + 1) (Seq.length r)) (Seq.slice pnmask_naive (pn_len + 1) (Seq.length pnmask_naive)) 0;
+    Lemmas.xor_inplace_zero (Seq.slice r (pn_offset + pn_len + 1) (Seq.length r)) (Seq.slice pnmask_ct (pn_len + 1) 4)
+      (fun i ->
+        Lemmas.and_inplace_zero
+          (Seq.slice mask (pn_len + 2) 5)
+          (Seq.slice (pn_sizemask_ct pn_len) (pn_len + 1) 4)
+          (fun j -> index_pn_sizemask_ct_right pn_len (j + (pn_len + 1)))
+          i
+      )
+      0
+  end
+
+#pop-options
+
+#push-options "--z3rlimit 200"
+inline_for_extraction noextract
+let op_inplace
+  (#t: Type)
+  (dst: B.buffer t)
+  (dst_len: U32.t)
+  (src: B.buffer t)
+  (src_len: U32.t)
+  (ofs: U32.t)
+  (op: t -> t -> t)
+:
+  HST.Stack unit
+    (requires fun h0 ->
+      B.(all_live h0 [ buf dst; buf src ]) /\
+      B.disjoint dst src /\
+      B.length src == U32.v src_len /\
+      B.length dst == U32.v dst_len /\
+      B.length dst >= U32.v ofs + B.length src)
+    (ensures fun h0 _ h1 ->
+      B.(modifies (loc_buffer dst) h0 h1) /\
+      B.as_seq h1 dst `Seq.equal`
+        QUIC.Spec.Lemmas.pointwise_op op (B.as_seq h0 dst) (B.as_seq h0 src) (U32.v ofs) /\
+      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.equal`
+        Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) /\
+      Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len) `Seq.equal`
+      Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len))
+=
+  let h0 = HST.get () in
+  let dst0 = B.sub dst 0ul ofs in
+  let dst1 = B.sub dst ofs src_len in
+  let dst2 = B.sub dst (ofs `U32.add` src_len) (dst_len `U32.sub` (ofs `U32.add` src_len)) in
+  C.Loops.in_place_map2 dst1 src src_len op;
+  let h1 = HST.get () in
+  calc (Seq.equal) {
+    B.as_seq h1 dst;
+  (Seq.equal) { Lemmas.lemma_slice3 (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)) }
+    Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) `Seq.append`
+    (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
+    (Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
+  (Seq.equal) {}
+    Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
+    (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
+    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
+  (Seq.equal) { Lemmas.pointwise_seq_map2 op (B.as_seq h0 dst1) (B.as_seq h0 src) 0 }
+    Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
+    (QUIC.Spec.Lemmas.pointwise_op op
+      (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
+      (B.as_seq h0 src)
+      0) `Seq.append`
+    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
+  (Seq.equal) { QUIC.Spec.Lemmas.pointwise_op_suff op (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
+    (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
+    (B.as_seq h0 src)
+    (U32.v ofs) }
+    QUIC.Spec.Lemmas.pointwise_op op
+      (Seq.append (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
+        (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))))
+      (B.as_seq h0 src)
+      (U32.v ofs) `Seq.append`
+    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
+  (Seq.equal) { Lemmas.lemma_slice1 (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)) }
+    QUIC.Spec.Lemmas.pointwise_op op
+      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
+      (B.as_seq h0 src)
+      (U32.v ofs) `Seq.append`
+    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
+  (Seq.equal) { QUIC.Spec.Lemmas.pointwise_op_pref op
+    (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
+    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+    (B.as_seq h0 src)
+    (U32.v ofs)
+  }
+    QUIC.Spec.Lemmas.pointwise_op op
+      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)) `Seq.append`
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst)))
+      (B.as_seq h0 src)
+      (U32.v ofs);
+  (Seq.equal) { Lemmas.lemma_slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) }
+    QUIC.Spec.Lemmas.pointwise_op op
+      (B.as_seq h0 dst)
+      (B.as_seq h0 src)
+      (U32.v ofs);
+  }
+
+(*
+
+let h0 = HST.get () in
+  let dst0 = B.sub dst 0ul ofs in
+  let dst1 = B.sub dst ofs src_len in
+  let dst2 = B.sub dst (ofs `U32.add` src_len) (dst_len `U32.sub` (ofs `U32.add` src_len)) in
+  C.Loops.in_place_map2 dst1 src src_len op;
+  let h1 = HST.get () in
+  assert (B.modifies (B.loc_buffer dst) h0 h1);
+  let post () : Lemma (
+      B.as_seq h1 dst `Seq.equal`
+        QUIC.Spec.Lemmas.pointwise_op op (B.as_seq h0 dst) (B.as_seq h0 src) (U32.v ofs) /\
+      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.equal`
+        Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) /\
+      Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len) `Seq.equal`
+      Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len)
+  )
+  =
+    let r1 = B.as_seq h1 dst in
+    Lemmas.lemma_slice3 (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len));
+    let r2 =
+      Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) `Seq.append`
+      (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
+      (Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+    in
+    assert (r1 `Seq.equal` r2);
+    let r3 = 
+      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
+      (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+    in
+    assert (r2 `Seq.equal` r3);
+    Lemmas.pointwise_seq_map2 op (B.as_seq h0 dst1) (B.as_seq h0 src) 0;
+    let r4 =
+      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
+      (QUIC.Spec.Lemmas.pointwise_op op
+        (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
+        (B.as_seq h0 src)
+        0) `Seq.append`
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+    in
+    assert (r3 `Seq.equal` r4);
+    QUIC.Spec.Lemmas.pointwise_op_suff op (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
+      (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
+      (B.as_seq h0 src)
+      (U32.v ofs);
+    let r5 =
+      QUIC.Spec.Lemmas.pointwise_op op
+        (Seq.append (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
+          (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))))
+        (B.as_seq h0 src)
+        (U32.v ofs) `Seq.append`
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+    in
+    assert (r4 `Seq.equal` r5);
+    Lemmas.lemma_slice1 (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len));    
+    let r6 =
+      QUIC.Spec.Lemmas.pointwise_op op
+        (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
+        (B.as_seq h0 src)
+        (U32.v ofs) `Seq.append`
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+    in
+    assert (r5 `Seq.equal` r6);
+    QUIC.Spec.Lemmas.pointwise_op_pref op
+      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+      (B.as_seq h0 src)
+      (U32.v ofs);
+    let r7 =
+        QUIC.Spec.Lemmas.pointwise_op op
+      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)) `Seq.append`
+      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst)))
+      (B.as_seq h0 src)
+      (U32.v ofs)
+    in
+    assert (r6 `Seq.equal` r7);
+    Lemmas.lemma_slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len));
+    let r8 =
+      QUIC.Spec.Lemmas.pointwise_op op
+        (B.as_seq h0 dst)
+        (B.as_seq h0 src)
+        (U32.v ofs)
+    in
+    assert (r7 `Seq.equal` r8)
+  in
+  post ()
+
+(*
+
+
+  let h1 = HST.get () in  
+  calc (Seq.equal) {
+  (Seq.equal) {  }
+  (Seq.equal) {  }
+  (Seq.equal) {  }
+  (Seq.equal) { 
+  }
+  (Seq.equal) {  }
+  }
+#pop-options
 
 (*
 open QUIC.Impl.Base
