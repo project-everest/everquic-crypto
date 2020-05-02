@@ -62,4 +62,4 @@ let derive_secret a prk label len =
   let info = z @| lb @| llen @| prefix @| label @| z in
   lemma_hash_lengths a;
   assert_norm(452 < pow2 61);
-  Seq.seq_reveal (HKDF.expand a prk (Seq.seq_hide info) len)
+  HKDF.expand a prk (Seq.seq_hide info) len

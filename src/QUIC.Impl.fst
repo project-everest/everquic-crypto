@@ -33,6 +33,8 @@ open LowStar.BufferOps
 //module HeaderS = QUIC.Spec.Header
 //module HeaderI = QUIC.Impl.Header
 
+#set-options "--z3rlimit 16"
+
 #restart-solver
 
 let encrypt

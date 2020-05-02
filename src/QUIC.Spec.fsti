@@ -6,10 +6,9 @@ include QUIC.Spec.Crypto
 module Seq = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
+module Cipher = Spec.Agile.Cipher
 
-// JP: should we allow inversion on either hash algorithm or AEAD algorithm?
-#set-options "--max_fuel 0 --max_ifuel 0"
-
+(*
 type nat2 = n:nat{n < 4}
 type nat4 = n:nat{n < 16}
 type nat32 = n:nat{n < pow2 32}
@@ -18,6 +17,7 @@ type nat62 = n:nat{n < pow2 62}
 let add3 (n:nat4) : n:nat{n=0 \/ (n >= 4 /\ n <= 18)} = if n = 0 then 0 else 3+n
 let sub3 (n:nat{n = 0 \/ (n >= 4 /\ n <= 18)}) : nat4 = if n = 0 then 0 else n-3
 type qbytes (n:nat4) = lbytes (add3 n)
+*)
 
 // JP: seems appropriate for this module...?
 let _: squash (inversion header) = allow_inversion header
@@ -46,24 +46,24 @@ type result =
   result
 | Failure
 
+let iv_t (a: ea) = (x: AEAD.iv a { Seq.length x == 12 })
+
 val encrypt:
   a: ea ->
-  k: lbytes (AEAD.key_length a) ->
-  static_iv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  k: AEAD.kv a ->
+  static_iv: iv_t a ->
+  hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   h: header ->
   plain: pbytes' (is_retry h) ->
   GTot packet
 
 /// decryption and correctness
 
-#set-options "--max_fuel 0 --max_ifuel 1"
-
 val decrypt:
   a: ea ->
-  k: lbytes (AEAD.key_length a) ->
-  static_iv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  k: AEAD.kv a ->
+  static_iv: iv_t a ->
+  hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   last: nat{last+1 < pow2 62} ->
   cid_len: nat { cid_len <= 20 } ->
   packet: packet ->

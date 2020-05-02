@@ -38,7 +38,7 @@ type state_s (i: index) =
       initial_pn:G.erased PN.packet_number_t ->
       aead_state:EverCrypt.AEAD.state the_aead_alg ->
       iv:EverCrypt.AEAD.iv_p the_aead_alg ->
-      hp_key:B.buffer U8.t { B.length hp_key = QUIC.Spec.ae_keysize the_aead_alg } ->
+      hp_key:B.buffer Secret.uint8 { B.length hp_key = QUIC.Spec.ae_keysize the_aead_alg } ->
       pn:B.pointer PN.packet_number_t ->
       ctr_state:CTR.state (as_cipher_alg the_aead_alg) ->
       state_s i
@@ -73,9 +73,9 @@ let invariant_s #i h s =
     AEAD.footprint h aead_state; loc_buffer iv; loc_buffer hp_key; loc_buffer pn ]) /\
   // JP: automatic insertion of reveal does not work here
   Secret.v initial_pn <= Secret.v (B.deref h pn) /\
-  Seq.seq_reveal (AEAD.as_kv (B.deref h aead_state)) ==
+  AEAD.as_kv (B.deref h aead_state) ==
     derive_secret i.hash_alg (G.reveal traffic_secret) label_key (Spec.Agile.AEAD.key_length aead_alg) /\
-  Seq.seq_reveal (B.as_seq h iv) ==
+  (B.as_seq h iv) ==
     derive_secret i.hash_alg (G.reveal traffic_secret) label_iv 12 /\
   B.as_seq h hp_key ==
     derive_secret i.hash_alg (G.reveal traffic_secret) label_hp (QUIC.Spec.ae_keysize aead_alg)
@@ -142,9 +142,9 @@ let prefix = LowStar.ImmutableBuffer.igcmalloc_of_list HS.root QUIC.Spec.prefix_
 /// from UInt32 to UInt8 to write the label for the key derivation. This could
 /// be fixed later.
 val derive_secret: a: QUIC.Spec.ha ->
-  dst:B.buffer U8.t ->
+  dst:B.buffer Secret.uint8 ->
   dst_len: U8.t { B.length dst = U8.v dst_len /\ U8.v dst_len <= 255 } ->
-  secret:B.buffer U8.t { B.length secret = Spec.Hash.Definitions.hash_length a } ->
+  secret:B.buffer Secret.uint8 { B.length secret = Spec.Hash.Definitions.hash_length a } ->
   label:IB.ibuffer U8.t ->
   label_len:U8.t { IB.length label = U8.v label_len /\ U8.v label_len <= 244 } ->
   HST.Stack unit
@@ -155,7 +155,7 @@ val derive_secret: a: QUIC.Spec.ha ->
       assert_norm (255 < pow2 61);
       assert_norm (pow2 61 < pow2 125);
       B.(modifies (loc_buffer dst) h0 h1) /\
-      B.as_seq h1 dst == QUIC.Spec.derive_secret a (Seq.seq_hide (B.as_seq h0 secret))
+      B.as_seq h1 dst == QUIC.Spec.derive_secret a (B.as_seq h0 secret)
         (IB.as_seq h0 label) (U8.v dst_len))
 #pop-options
 
@@ -211,7 +211,7 @@ let derive_secret a dst dst_len secret label label_len =
   (**)     z lb llen QUIC.Spec.prefix (B.as_seq h0 label) z
   (**) );
   (**) hash_is_keysized_ a;
-  assume False;
+  assume False; // TODO: hide `info`
   HKDF.expand a dst secret (Hacl.Hash.Definitions.hash_len a) info info_len dst_len32;
   (**) let h3 = HST.get () in
   HST.pop_frame ();
@@ -237,7 +237,7 @@ val create_in_core:
   r:HS.rid ->
   dst: B.pointer (B.pointer_or_null (state_s i)) ->
   initial_pn:PN.packet_number_t ->
-  traffic_secret:B.buffer U8.t {
+  traffic_secret:B.buffer Secret.uint8 {
     B.length traffic_secret = Spec.Hash.Definitions.hash_length i.hash_alg
   } ->
   aead_state:AEAD.state i.aead_alg ->
@@ -257,8 +257,8 @@ val create_in_core:
       not (B.g_is_null aead_state) /\
       CTR.invariant h0 ctr_state /\
       not (B.g_is_null ctr_state) /\
-      Seq.seq_reveal (AEAD.as_kv (B.deref h0 aead_state)) ==
-        QUIC.Spec.(derive_secret i.hash_alg (Seq.seq_hide (B.as_seq h0 traffic_secret)) label_key
+      AEAD.as_kv (B.deref h0 aead_state) ==
+        QUIC.Spec.(derive_secret i.hash_alg (B.as_seq h0 traffic_secret) label_key
           (Spec.Agile.AEAD.key_length i.aead_alg))))
     (ensures (fun h0 _ h1 ->
       let s = B.deref h1 dst in
@@ -291,12 +291,11 @@ let create_in_core i r dst initial_pn traffic_secret aead_state ctr_state =
   // The modifies clauses that we will transitively carry across this function body.
   let mloc = G.hide (B.(loc_buffer dst `loc_union` loc_unused_in h0)) in
   let e_traffic_secret: G.erased (Spec.Hash.Definitions.bytes_hash i.hash_alg) =
-    G.hide (Seq.seq_hide #Secret.U8 (B.as_seq h0 traffic_secret)) in
+    G.hide (B.as_seq h0 traffic_secret) in
   let e_initial_pn: G.erased PN.packet_number_t = G.hide (initial_pn) in
 
-  assume False;
-  let iv = B.malloc r 0uy 12ul in
-  let hp_key = B.malloc r 0uy (key_len32 i.aead_alg) in
+  let iv = B.malloc r (Secret.to_u8 0uy) 12ul in
+  let hp_key = B.malloc r (Secret.to_u8 0uy) (key_len32 i.aead_alg) in
   let pn = B.malloc r initial_pn 1ul in
   (**) let h1 = HST.get () in
   (**) B.(modifies_loc_includes (G.reveal mloc) h0 h1 loc_none);
@@ -341,13 +340,12 @@ let create_in i r dst initial_pn traffic_secret =
   let mloc = G.hide (B.(loc_region_only true (HS.get_tip h1) `loc_union` loc_buffer dst
     `loc_union` loc_unused_in h0)) in
 
-  let aead_key = B.alloca 0uy (key_len32 i.aead_alg) in
+  let aead_key = B.alloca (Secret.to_u8 0uy) (key_len32 i.aead_alg) in
   let aead_state: B.pointer (B.pointer_or_null (AEAD.state_s i.aead_alg)) =
     B.alloca B.null 1ul in
   let ctr_state: B.pointer (B.pointer_or_null (CTR.state_s (as_cipher_alg i.aead_alg))) =
     B.alloca (B.null #(CTR.state_s (as_cipher_alg i.aead_alg))) 1ul in
-  assume False;
-  let dummy_iv = B.alloca 0uy 12ul in
+  let dummy_iv = B.alloca (Secret.to_u8 0uy) 12ul in
 
   (**) let h2 = HST.get () in
   (**) B.(modifies_loc_includes (G.reveal mloc) h1 h2 (loc_none));

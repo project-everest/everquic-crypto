@@ -168,7 +168,7 @@ let create_in_st (i:index) =
   r:HS.rid ->
   dst: B.pointer (B.pointer_or_null (state_s i)) ->
   initial_pn:PN.packet_number_t ->
-  traffic_secret:B.buffer U8.t {
+  traffic_secret:B.buffer Secret.uint8 {
     B.length traffic_secret = Spec.Hash.Definitions.hash_length i.hash_alg
   } ->
   HST.ST error_code

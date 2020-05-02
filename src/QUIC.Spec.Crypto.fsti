@@ -4,6 +4,7 @@ include QUIC.Spec.Base
 module Seq = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
+module Secret = QUIC.Secret.Int
 
 let supported_hash = function
   | HD.SHA1 | HD.SHA2_256 | HD.SHA2_384 | HD.SHA2_512 -> true
@@ -61,9 +62,11 @@ val derive_secret:
   prk:Spec.Hash.Definitions.bytes_hash a ->
   label: bytes ->
   len: nat ->
-  Ghost (* Pure *) (lbytes len)
+  Pure (Seq.seq Secret.uint8)
   (requires len <= 255 /\
     Seq.length label <= 244 /\
     keysized a (Seq.length prk)
     )
-  (ensures fun out -> True)
+  (ensures fun out ->
+    Seq.length out == len
+  )
