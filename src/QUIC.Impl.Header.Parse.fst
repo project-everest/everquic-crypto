@@ -90,7 +90,7 @@ let public_header_len_is_pn_offset
 
 #pop-options
 
-#push-options "--z3rlimit 2048 --query_stats"
+#push-options "--z3rlimit 16 --query_stats --z3cliopt smt.arith.nl=false"
 
 #restart-solver
 
@@ -102,6 +102,7 @@ let header_len_correct
   let gh = g_header h m pn in
   let cid_len = dcid_len h in
   let last = last_packet_number gh in
+  in_window_last_packet_number gh;
   let (| ph, pn' |) = synth_header_recip cid_len last gh in
   public_g_header_p_header h m pn;
   assert (Public.g_header (p_header h) m == ph);
@@ -111,13 +112,17 @@ let header_len_correct
   public_header_len_correct' h m pn;
   assert (Seq.length (LP.serialize (Public.serialize_header cid_len) ph) == U32.v (public_header_len h));
   if is_retry h
-  then
+  then begin
+    header_len_is_retry h;
     assert (Secret.v (header_len h) == Spec.header_len (g_header h m pn))
-  else begin
+  end else begin
+    header_len_not_is_retry h;
     assert (pn_offset gh + Secret.v (Spec.pn_length gh) == Spec.header_len gh);
     assert (pn_offset gh == Seq.length (LP.serialize (Public.serialize_header cid_len) ph));
     assert (Secret.v (header_len h) == Spec.header_len (g_header h m pn))
   end
+
+#pop-options
 
 let last_pn
   (is_retry: bool)
@@ -129,6 +134,8 @@ let last_pn
     let cond = Secret.lognot_one_bit (pn `Secret.secrets_are_equal_62` Secret.to_u64 0uL) in
     pn `Secret.sub` cond
 
+#push-options "--z3rlimit 64 --query_stats"
+
 let last_pn_correct
   (h: header)
   (m: HS.mem)
@@ -137,14 +144,22 @@ let last_pn_correct
   (last_packet_number (g_header h m pn) == last_pn (is_retry h) pn)
 = ()
 
+#pop-options
+
+#push-options "--z3rlimit 128 --query_stats"
+
+#restart-solver
+
 let write_header
   h pn out out_len
 = let m = HST.get () in
+  header_len_correct h m pn;
   public_header_len_correct' h m pn;
   let cid_len = dcid_len h in
   let last = last_pn (is_retry h) pn in
   last_pn_correct h m pn;
   let ph = p_header h in
+  in_window_last_packet_number (g_header h m pn);
   serialize_header_eq cid_len last (g_header h m pn);
   let len = Public.write_header cid_len ph out out_len in
   if is_retry h

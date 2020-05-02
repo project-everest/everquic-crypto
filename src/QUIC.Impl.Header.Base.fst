@@ -242,3 +242,21 @@ let header_len
 = Secret.to_u32 (public_header_len h) `Secret.add` (if is_retry h then Secret.to_u32 0ul else pn_length h)
 
 #pop-options
+
+(* One can experience trouble reasoning with secrets and the embedded `if` above, hence the following two helpers: *)
+
+let header_len_is_retry
+  (h: header { is_retry h })
+: Lemma
+  (Secret.v (header_len h) == U32.v (public_header_len h))
+= ()
+
+#push-options "--z3rlimit 16"
+
+let header_len_not_is_retry
+  (h: header { ~ (is_retry h) })
+: Lemma
+  (Secret.v (header_len h) == U32.v (public_header_len h) + Secret.v (pn_length h))
+= ()
+
+#pop-options
