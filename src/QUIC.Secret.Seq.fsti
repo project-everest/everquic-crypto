@@ -133,3 +133,45 @@ let seq_hide_inj
 = match sec with
   | Secret.SEC -> seq_hide_sec #t x1; seq_hide_sec #t x2
   | Secret.PUB -> seq_reveal_hide #t x1; seq_reveal_hide #t x2
+
+(* Properties *)
+
+let slice_seq_hide
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: seq (Secret.uint_t t sec))
+  (from: nat)
+  (to: nat { from <= to /\ to <= length x })
+: Lemma
+  (slice (seq_hide x) from to == seq_hide (slice x from to))
+  [SMTPat (slice (seq_hide x) from to)]
+= assert (slice (seq_hide x) from to `equal` seq_hide (slice x from to))
+
+let reveal_seq_slice
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (x: seq (Secret.uint_t t sec))
+  (from: nat)
+  (to: nat { from <= to /\ to <= length x })
+: Lemma
+  (slice (seq_reveal x) from to == seq_reveal (slice x from to))
+  [SMTPat (slice (seq_reveal x) from to)]
+= assert (slice (seq_reveal x) from to `equal` seq_reveal (slice x from to))
+
+let cons_seq_hide
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (a: Secret.uint_t t sec)
+  (x: seq (Secret.uint_t t sec))
+: Lemma
+  (cons (Secret.hide a) (seq_hide x) == seq_hide (cons a x))
+= assert (cons (Secret.hide a) (seq_hide x) `equal` seq_hide (cons a x))
+
+let cons_seq_reveal
+  (#t: Secret.inttype { Secret.unsigned t })
+  (#sec: Secret.secrecy_level)
+  (a: Secret.uint_t t sec)
+  (x: seq (Secret.uint_t t sec))
+: Lemma
+  (cons (Secret.reveal a) (seq_reveal x) == seq_reveal (cons a x))
+= assert (cons (Secret.reveal a) (seq_reveal x) `equal` seq_reveal (cons a x))
