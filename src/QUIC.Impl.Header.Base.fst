@@ -234,7 +234,11 @@ let public_header_len
 
 (* The actual header length, which is secret because of pn_length *)
 
+#push-options "--z3rlimit 16"
+
 let header_len
   (h: header)
 : Tot Secret.uint32
 = Secret.to_u32 (public_header_len h) `Secret.add` (if is_retry h then Secret.to_u32 0ul else pn_length h)
+
+#pop-options

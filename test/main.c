@@ -3,7 +3,7 @@
 
 #include "EverQuic.h"
 
-QUIC_Impl_index
+EverQuic_index
 QUICTest_idx =
   { .hash_alg = Spec_Hash_Definitions_SHA2_256, .aead_alg = Spec_Agile_AEAD_CHACHA20_POLY1305 };
 
@@ -68,8 +68,8 @@ bool QUICTest_is_equal(char * const b1, char * const b2, uint32_t len) {
 
 bool QUICTest_test()
 {
-  QUIC_Impl_state_s *st_enc = NULL;
-  QUIC_Impl_state_s *st_dec = NULL;
+  EverQuic_state_s *st_enc = NULL;
+  EverQuic_state_s *st_dec = NULL;
   uint8_t
   traffic_secret[32U] =
     {
@@ -102,10 +102,10 @@ bool QUICTest_test()
   uint8_t token[token_len];
   memset(token, 0U, token_len * sizeof token[0U]);
   uint32_t cipher_len = plain_len + (uint32_t)16U;
-  QUIC_Impl_Header_Base_long_header_specifics
+  EverQuic_long_header_specifics
   hdr_spec =
     {
-      .tag = QUIC_Impl_Header_Base_BInitial,
+      .tag = EverQuic_BInitial,
       {
         .case_BInitial = {
           .reserved_bits = 0,
@@ -116,10 +116,10 @@ bool QUICTest_test()
         }
       }
     };
-  QUIC_Impl_Header_Base_header
+  EverQuic_header
   hdr =
     {
-      .tag = QUIC_Impl_Header_Base_BLong,
+      .tag = EverQuic_BLong,
       {
         .case_BLong = {
           .version = (uint32_t)0xff000017U, .dcid = dcid, .dcil = dcil, .scid = scid, .scil = scil,
@@ -127,29 +127,29 @@ bool QUICTest_test()
         }
       }
     };
-  uint32_t hdr_len = QUIC_Impl_header_len(hdr);
+  uint32_t hdr_len = EverQuic_header_len(hdr);
   uint32_t cipher_len1 = plain_len + (uint32_t)16U;
   uint32_t enc_dst_len = hdr_len + cipher_len1;
   KRML_CHECK_SIZE(sizeof (uint8_t), enc_dst_len);
   uint8_t enc_dst[enc_dst_len];
   memset(enc_dst, 0U, enc_dst_len * sizeof enc_dst[0U]);
   uint64_t enc_dst_pn = initial_pn;
-  QUIC_Impl_result
+  EverQuic_result
   dec_dst =
     {
       .pn = (uint64_t)0U, .header = hdr, .header_len = (uint32_t)0U, .plain_len = (uint32_t)0U,
       .total_len = (uint32_t)0U
     };
   EverCrypt_Error_error_code
-  r = QUIC_Impl_create_in(QUICTest_idx, &st_enc, initial_pn, traffic_secret);
+  r = EverQuic_create_in(QUICTest_idx, &st_enc, initial_pn, traffic_secret);
   LowStar_Printf_print_string("Performing ");
   LowStar_Printf_print_string("create_in st_enc");
   LowStar_Printf_print_string(": ");
   if (!QUICTest_is_success_body(r))
     return false;
-  QUIC_Impl_state_s *st_enc1 = st_enc;
+  EverQuic_state_s *st_enc1 = st_enc;
   EverCrypt_Error_error_code
-    r1 = QUIC_Impl_encrypt(st_enc1, enc_dst, &enc_dst_pn, hdr, plain, plain_len);
+    r1 = EverQuic_encrypt(st_enc1, enc_dst, &enc_dst_pn, hdr, plain, plain_len);
   LowStar_Printf_print_string("Performing ");
   LowStar_Printf_print_string("encrypt");
   LowStar_Printf_print_string(": ");
@@ -157,21 +157,21 @@ bool QUICTest_test()
     return false;
   uint64_t pn = enc_dst_pn;
   EverCrypt_Error_error_code
-    r2 = QUIC_Impl_create_in(QUICTest_idx, &st_dec, initial_pn, traffic_secret);
+    r2 = EverQuic_create_in(QUICTest_idx, &st_dec, initial_pn, traffic_secret);
   LowStar_Printf_print_string("Performing ");
   LowStar_Printf_print_string("create_in st_dec");
   LowStar_Printf_print_string(": ");
   if (!QUICTest_is_success_body(r2))
     return false;
-  QUIC_Impl_state_s *st_dec1 = st_dec;
+  EverQuic_state_s *st_dec1 = st_dec;
   EverCrypt_Error_error_code
-    r3 = QUIC_Impl_decrypt(st_dec1, &dec_dst, enc_dst, enc_dst_len, dcil8);
+    r3 = EverQuic_decrypt(st_dec1, &dec_dst, enc_dst, enc_dst_len, dcil8);
   LowStar_Printf_print_string("Performing ");
   LowStar_Printf_print_string("decrypt");
   LowStar_Printf_print_string(": ");
   if (!QUICTest_is_success_body(r3))
     return false;
-  QUIC_Impl_result res = dec_dst;
+  EverQuic_result res = dec_dst;
   LowStar_Printf_print_string("Checking ");
   LowStar_Printf_print_string("pn");
   LowStar_Printf_print_string(": ");

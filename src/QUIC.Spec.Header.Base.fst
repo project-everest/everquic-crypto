@@ -124,8 +124,6 @@ let payload_length
   | MZeroRTT _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
   | MHandshake _ pl pnl _ -> Secret.to_u64 pl `Secret.sub` Secret.to_u64 pnl
 
-type packet = b:bytes{let l = S.length b in (* 21 <= l /\ *) l < pow2 32}
-
 
 (* Correctness of a packet wrt. parsing parameters (cid_len, window) *)
 
