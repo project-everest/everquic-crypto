@@ -236,7 +236,22 @@ let rec pointwise_index3 (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat) : Lem
     pointwise_index3 f (S.upd b1 pos x) (S.slice b2 1 (S.length b2)) i (pos+1)
   end
 
-
+let pointwise_index
+  (#a:Type) (f:a->a->a) (b1 b2:S.seq a) (i pos:nat)
+: Lemma
+  (requires (S.length b2 + pos <= S.length b1 /\ i < S.length b1))
+  (ensures (
+    S.length b2 + pos <= S.length b1 /\ i < S.length b1 /\
+    S.index (pointwise_op f b1 b2 pos) i == (
+    if S.length b2 + pos <= i || i < pos
+    then S.index b1 i
+    else f (S.index b1 i) (S.index b2 (i-pos))
+  )))
+= if i < pos
+  then pointwise_index1 f b1 b2 i pos
+  else if S.length b2 + pos <= i
+  then pointwise_index3 f b1 b2 i pos
+  else pointwise_index2 f b1 b2 i pos
 
 let pointwise_op_suff (#a:Type) (f:a->a->a) (a1 a2 b:S.seq a) (pos:nat) : Lemma
   (requires pos >= S.length a1 /\ S.length b + pos <= S.length a1 + S.length a2)

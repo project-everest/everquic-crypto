@@ -38,6 +38,22 @@ let with_buffer_hide #t b from to h0 lin lout x1 x2 x3 x4 x5 x6 post f =
   let br = B.offset b to in
   f (Ghost.hide (B.loc_buffer b)) bl bs br
 
+let with_buffer_hide_weak_modifies #t b from to h0 lin lout ml ms mr post f =
+  let bl = B.sub b 0ul from in
+  let bs = B.sub b from (to `U32.sub` from) in
+  let br = B.offset b to in
+  f (Ghost.hide (B.loc_buffer b)) bl bs br
+
+let with_buffer_hide_from #t b from h0 lin lout x1 x2 x3 x4 post f =
+  let bl = B.sub b 0ul from in
+  let bs = B.offset b from in
+  f (Ghost.hide (B.loc_buffer b)) bl bs
+
+let with_buffer_hide_from_weak_modifies #t b from h0 lin lout ml ms post f =
+  let bl = B.sub b 0ul from in
+  let bs = B.offset b from in
+  f (Ghost.hide (B.loc_buffer b)) bl bs
+
 let load32_be
   b
 =
@@ -47,3 +63,11 @@ let load32_le
   b
 =
   LowStar.Endianness.load32_le b
+
+let store32_be
+  b z
+= LowStar.Endianness.store32_be b z
+
+let store32_le
+  b z
+= LowStar.Endianness.store32_le b z

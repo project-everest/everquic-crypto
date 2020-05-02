@@ -1,4 +1,116 @@
 module QUIC.Impl.Header
+include QUIC.Impl.Header.Base
+
+open QUIC.Spec.Crypto
+
+module G = FStar.Ghost
+module U8 = FStar.UInt8
+module B = LowStar.Buffer
+module U32 = FStar.UInt32
+module Secret = QUIC.Secret.Int
+module PN = QUIC.Spec.PacketNumber.Base
+module HST = FStar.HyperStack.ST
+module Seq = FStar.Seq
+module HS = FStar.HyperStack
+
+module Spec = QUIC.Spec.Header
+module Parse = QUIC.Spec.Header.Parse
+module AEAD = Spec.Agile.AEAD
+
+module CTR = EverCrypt.CTR // because we do not want to friend the full state definition here
+
+unfold
+let header_encrypt_pre
+  (a: ea)
+  (s: CTR.state (AEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (dst:B.buffer U8.t)
+  (h: G.erased Spec.header)
+  (is_short: bool)
+  (is_retry: bool)
+  (public_len: U32.t)
+  (pn_len: PN.packet_number_length_t)
+  (m: HS.mem)
+: GTot Type0
+=
+  let a' = AEAD.cipher_alg_of_supported_alg a in
+  let fmt = Parse.format_header h in
+  let header_len = Seq.length fmt in
+
+  B.all_disjoint [
+    CTR.footprint m s;
+    B.loc_buffer k;
+    B.loc_buffer dst;
+  ] /\
+
+  CTR.invariant m s /\
+  B.live m k /\ B.length k == Spec.Agile.Cipher.key_length a' /\
+  B.live m dst /\
+
+  is_short == Spec.MShort? h /\
+  is_retry == Spec.is_retry h /\
+  begin if is_retry
+  then
+    U32.v public_len == header_len /\
+    B.length dst == header_len
+  else
+    let cipher_len = B.length dst - header_len in
+    U32.v public_len == Parse.pn_offset h /\
+    pn_len == Spec.pn_length h /\
+    19 < cipher_len /\ cipher_len < max_cipher_length
+  end /\
+  Seq.slice (B.as_seq m dst) 0 header_len `Seq.equal` fmt
+
+unfold
+let header_encrypt_post
+  (a: ea)
+  (s: CTR.state (AEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (dst:B.buffer U8.t)
+  (h: G.erased Spec.header)
+  (is_short: bool)
+  (is_retry: bool)
+  (public_len: U32.t)
+  (pn_len: PN.packet_number_length_t)
+  (m: HS.mem)
+  (m' : HS.mem)
+: GTot Type0
+= 
+  header_encrypt_pre a s k dst h is_short is_retry public_len pn_len m /\
+  begin
+    let a' = AEAD.cipher_alg_of_supported_alg a in
+    let fmt = Parse.format_header h in
+    let header_len = Seq.length fmt in
+    let cipher = Seq.slice (B.as_seq m dst) header_len (B.length dst) in
+    B.modifies (B.loc_buffer dst `B.loc_union` CTR.footprint m s) m m' /\
+    B.as_seq m' dst `Seq.equal`
+      Spec.header_encrypt a (B.as_seq m k) h cipher /\
+    CTR.invariant m' s /\
+    CTR.footprint m s == CTR.footprint m' s
+  end
+
+val header_encrypt: a: ea ->
+  (s: CTR.state (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)) ->
+  (k: B.buffer Secret.uint8) ->
+  dst:B.buffer U8.t ->
+  h: G.erased Spec.header ->
+  is_short: bool ->
+  is_retry: bool ->
+  public_len: U32.t ->
+  pn_len: PN.packet_number_length_t ->
+  HST.Stack unit
+    (requires (fun h0 ->
+      header_encrypt_pre a s k dst h is_short is_retry public_len pn_len h0
+    ))
+    (ensures fun h0 _ h1 ->
+      header_encrypt_post a s k dst h is_short is_retry public_len pn_len h0 h1
+    )
+
+(*
+      let fmt = Parse.format_header h in
+      let header_len = Seq.length fmt in
+    )
+  )
 
 (*
 include QUIC.Spec.Header

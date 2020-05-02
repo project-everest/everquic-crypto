@@ -12,8 +12,6 @@ module Secret = QUIC.Secret.Int
 module AEAD = Spec.Agile.AEAD
 module Cipher = Spec.Agile.Cipher
 
-type cbytes' (is_retry: bool) = b: bytes { let l = Seq.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
-
 // Header serialization and protection
 
 val header_encrypt:

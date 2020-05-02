@@ -1,19 +1,17 @@
 module QUIC.Impl.Header
 friend QUIC.Spec.Header
 
-open QUIC.Spec.Header
 open QUIC.Impl.Header.Base
 
-module Parse = QUIC.Impl.Header.Parse
 module ParseSpec = QUIC.Spec.Header.Parse
 module Spec = QUIC.Spec.Header
+module PN = QUIC.Spec.PacketNumber.Base
 
 module B = LowStar.Buffer
 
 module Cipher = EverCrypt.Cipher
 module AEAD = EverCrypt.AEAD
 module HKDF = EverCrypt.HKDF
-module CTR = EverCrypt.CTR
 
 module U8 = FStar.UInt8
 module HST = FStar.HyperStack.ST
@@ -143,7 +141,7 @@ let header_encrypt_ct
     let mask = Seq.seq_reveal (Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) hpk sample) in
     let pnmask = Lemmas.and_inplace (Seq.slice mask 1 5) (pn_sizemask_ct pn_len) 0 in
     let f = Seq.index r 0 in
-    let protected_bits = if MShort? h then 5 else 4 in
+    let protected_bits = if Spec.MShort? h then 5 else 4 in
     let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits) in
     let r = Lemmas.xor_inplace r pnmask pn_offset in
     let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
@@ -157,7 +155,7 @@ let header_encrypt_ct_correct
   (h: Spec.header)
   (c: cbytes' (Spec.is_retry h))
 : Lemma
-  (header_encrypt_ct a hpk h c `Seq.equal` header_encrypt a hpk h c)
+  (header_encrypt_ct a hpk h c `Seq.equal` Spec.header_encrypt a hpk h c)
 =
   assert_norm(max_cipher_length < pow2 62);
   let r = ParseSpec.format_header h `Seq.append` c in
@@ -169,7 +167,7 @@ let header_encrypt_ct_correct
     let sample = Seq.seq_hide (Seq.slice c (3-pn_len) (19-pn_len)) in
     let mask = Seq.seq_reveal (Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) hpk sample) in
     let pnmask_ct = Lemmas.and_inplace (Seq.slice mask 1 5) (pn_sizemask_ct pn_len) 0 in
-    let pnmask_naive = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (pn_sizemask pn_len) 0 in
+    let pnmask_naive = Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (Spec.pn_sizemask pn_len) 0 in
     Lemmas.pointwise_op_split U8.logand (Seq.slice mask 1 5) (pn_sizemask_ct pn_len) 0 (pn_len + 1);
     assert (pnmask_naive `Seq.equal` Seq.slice pnmask_ct 0 (pn_len + 1));
     Seq.lemma_split r (pn_offset + pn_len + 1);
@@ -188,13 +186,180 @@ let header_encrypt_ct_correct
   end
 
 #pop-options
+  
+let secret_and_inplace (b1 b2:Seq.seq Secret.uint8) (pos:nat)
+  : Pure (Seq.seq Secret.uint8)
+  (requires Seq.length b2 + pos <= Seq.length b1)
+  (ensures fun b -> Seq.length b == Seq.length b1)
+=
+  Lemmas.pointwise_op (Secret.logand #Secret.U8 #Secret.SEC) b1 b2 pos
+
+let secret_and_inplace_eq
+  (b1 b2: Seq.seq Secret.uint8)
+  (pos: nat)
+: Lemma
+  (requires (Seq.length b2 + pos <= Seq.length b1))
+  (ensures (
+    Seq.length b2 + pos <= Seq.length b1/\
+    Seq.seq_reveal (secret_and_inplace b1 b2 pos) `Seq.equal` Lemmas.and_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos
+  ))
+  [SMTPat (secret_and_inplace b1 b2 pos)]
+= let f
+    (i: nat {i < Seq.length b1})
+  : Lemma
+    (Seq.index (Seq.seq_reveal (secret_and_inplace b1 b2 pos)) i == Seq.index (Lemmas.and_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos) i)
+  =
+    Lemmas.pointwise_index (Secret.logand #Secret.U8 #Secret.SEC) b1 b2 i pos;
+    Lemmas.pointwise_index U8.logand (Seq.seq_reveal b1) (Seq.seq_reveal b2) i pos
+  in
+  Classical.forall_intro f
+
+let secret_xor_inplace (b1 b2:Seq.seq Secret.uint8) (pos:nat)
+  : Pure (Seq.seq Secret.uint8)
+  (requires Seq.length b2 + pos <= Seq.length b1)
+  (ensures fun b -> Seq.length b == Seq.length b1)
+=
+  Lemmas.pointwise_op (Secret.logxor #Secret.U8 #Secret.SEC) b1 b2 pos
+
+let secret_xor_inplace_eq
+  (b1 b2: Seq.seq Secret.uint8)
+  (pos: nat)
+: Lemma
+  (requires (Seq.length b2 + pos <= Seq.length b1))
+  (ensures (
+    Seq.length b2 + pos <= Seq.length b1/\
+    Seq.seq_reveal (secret_xor_inplace b1 b2 pos) `Seq.equal` Lemmas.xor_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos
+  ))
+  [SMTPat (secret_xor_inplace b1 b2 pos)]
+= let f
+    (i: nat {i < Seq.length b1})
+  : Lemma
+    (Seq.index (Seq.seq_reveal (secret_xor_inplace b1 b2 pos)) i == Seq.index (Lemmas.xor_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos) i)
+  =
+    Lemmas.pointwise_index (Secret.logxor #Secret.U8 #Secret.SEC) b1 b2 i pos;
+    Lemmas.pointwise_index U8.logxor (Seq.seq_reveal b1) (Seq.seq_reveal b2) i pos
+  in
+  Classical.forall_intro f
+
+let header_encrypt_ct_secret_preserving_not_retry_spec
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (is_short: bool)
+  (pn_len: PN.packet_number_length_t)
+  (f: Secret.uint8)
+  (pn_and_c: Seq.seq Secret.uint8 { Seq.length pn_and_c >= 20 })
+: GTot (Secret.uint8 & Seq.seq Secret.uint8)
+= let sample = Seq.slice pn_and_c 4 20 in
+  let mask = Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) hpk sample in
+  let pnmask = secret_and_inplace (Seq.slice mask 1 5) (Seq.seq_hide (pn_sizemask_ct (Secret.v pn_len - 1))) 0 in
+  let protected_bits = if is_short then 5ul else 4ul in
+  let f' = Secret.set_bitfield f 0ul protected_bits (Secret.get_bitfield (f `Secret.logxor` Seq.index mask 0) 0ul protected_bits) in
+  let pn_and_c' = secret_xor_inplace pn_and_c pnmask 0 in
+  f', pn_and_c'
+
+let header_encrypt_ct_secret_preserving_not_retry_spec_correct
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (h: Spec.header)
+  (c: cbytes)
+  (f: Secret.uint8)
+  (pub: Seq.seq U8.t)
+  (pn_and_c: Seq.seq Secret.uint8)
+: Lemma
+  (requires (
+    (~ (Spec.is_retry h)) /\
+    (ParseSpec.format_header h `Seq.append` c) `Seq.equal` (Secret.reveal f `Seq.cons` (pub `Seq.append` Seq.seq_reveal pn_and_c)) /\
+    1 + Seq.length pub == ParseSpec.pn_offset h
+  ))
+  (ensures (
+    Seq.length pn_and_c >= 20 /\ (
+    let (f', pn_and_c') = header_encrypt_ct_secret_preserving_not_retry_spec a hpk (Spec.MShort? h) (ParseSpec.pn_length h) f pn_and_c in
+    Spec.header_encrypt a hpk h c `Seq.equal` (Secret.reveal f' `Seq.cons` (pub `Seq.append` Seq.seq_reveal pn_and_c'))
+  )))
+=
+(*
+  let pn_length = Secret.v (ParseSpec.pn_length h) in
+  let pn_len_1 = pn_length - 1 in
+  assert (ParseSpec.pn_offset h + pn_length == Seq.length (ParseSpec.format_header h));
+  let s = ParseSpec.format_header h `Seq.append` c in
+  let t = Secret.reveal f `Seq.cons` (pub `Seq.append` Seq.seq_reveal pn_and_c) in
+  assert (Seq.length (ParseSpec.format_header h `Seq.append` c) == Seq.length (Secret.reveal f `Seq.cons` (pub `Seq.append` Seq.seq_reveal pn_and_c)));
+  assert (1 + (Seq.length pub + Seq.length pn_and_c) == Seq.length (ParseSpec.format_header h) + Seq.length c);
+  assert (Seq.length pn_and_c == pn_length + Seq.length c);
+  assert (pn_length + Seq.length c >= 20);
+  Seq.slice_slice s 0 (Seq.length (ParseSpec.format_header h)) 0 (1 + Seq.length pub);
+  Seq.slice_slice t 0 (1 + Seq.length pub) 4 20;
+  assert (Seq.slice (Seq.seq_reveal pn_and_c) 4 20 `Seq.equal` Seq.slice s (3 - pn_len_1) (19 - pn_len_1));
+*)
+  admit ()
+
+unfold
+let header_encrypt_ct_secret_preserving_not_retry_spec_post
+  (a:ea)
+  (hpk: Ghost.erased (Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)))
+  (is_short: bool)
+  (pn_len: PN.packet_number_length_t)
+  (f: Ghost.erased Secret.uint8)
+  (pub: Ghost.erased (Seq.seq U8.t))
+  (pn_and_c: Ghost.erased (Seq.seq Secret.uint8))
+  (f' : Ghost.erased Secret.uint8)
+  (pub' : Ghost.erased (Seq.seq U8.t))
+  (pn_and_c' : Ghost.erased (Seq.seq Secret.uint8))
+: Tot Type0
+= 
+  Seq.length pn_and_c >= 20 /\ (
+  let (f_, pn_and_c_) =
+      header_encrypt_ct_secret_preserving_not_retry_spec a hpk is_short pn_len f pn_and_c
+  in
+  f_ == Ghost.reveal f' /\
+  Ghost.reveal pub `Seq.equal` Ghost.reveal pub' /\
+  pn_and_c_ `Seq.equal` Ghost.reveal pn_and_c'
+  )
+
+let header_encrypt_ct_secret_preserving_not_retry_spec_correct'
+  (a:ea)
+  (hpk: Ghost.erased (Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)))
+  (h: Ghost.erased Spec.header)
+  (is_short: bool)
+  (pn_len: PN.packet_number_length_t)
+  (c: Ghost.erased cbytes)
+  (f: Ghost.erased Secret.uint8)
+  (pub: Ghost.erased (Seq.seq U8.t))
+  (pn_and_c: Ghost.erased (Seq.seq Secret.uint8))
+  (req: squash (
+    (~ (Spec.is_retry h)) /\
+    is_short == (Spec.MShort? h) /\
+    pn_len == (Spec.pn_length h) /\
+    (ParseSpec.format_header h `Seq.append` c) `Seq.equal` (Secret.reveal f `Seq.cons` (pub `Seq.append` Seq.seq_reveal pn_and_c)) /\
+    1 + Seq.length pub == ParseSpec.pn_offset h
+  ))
+: Tot (
+    x: squash (Seq.length pn_and_c >= 20) & (
+    (f' : Secret.uint8) ->
+    (pub' : Seq.seq U8.t) ->
+    (pn_and_c' : Seq.seq Secret.uint8) ->
+    Lemma
+      (requires (
+        header_encrypt_ct_secret_preserving_not_retry_spec_post a hpk is_short pn_len f pub pn_and_c f' pub' pn_and_c'
+      ))
+      (ensures (
+        Spec.header_encrypt a hpk h c == (Secret.reveal f' `Seq.cons` (pub' `Seq.append` Seq.seq_reveal pn_and_c'))
+      ))
+  ))
+= header_encrypt_ct_secret_preserving_not_retry_spec_correct a hpk h c f pub pn_and_c;
+  (| (), (fun _ _ pn_and_c' ->
+    let (f_, pn_and_c_) =
+      header_encrypt_ct_secret_preserving_not_retry_spec a hpk (Spec.MShort? h) (ParseSpec.pn_length h) f pn_and_c
+    in
+    ()
+  ) |)
 
 #push-options "--z3rlimit 200"
 inline_for_extraction noextract
-let op_inplace
+let op_inplace'
   (#t: Type)
   (dst: B.buffer t)
-  (dst_len: U32.t)
+  (dst_len: Ghost.erased U32.t)
   (src: B.buffer t)
   (src_len: U32.t)
   (ofs: U32.t)
@@ -219,7 +384,7 @@ let op_inplace
   let h0 = HST.get () in
   let dst0 = B.sub dst 0ul ofs in
   let dst1 = B.sub dst ofs src_len in
-  let dst2 = B.sub dst (ofs `U32.add` src_len) (dst_len `U32.sub` (ofs `U32.add` src_len)) in
+  let dst2 = Ghost.hide (B.gsub dst (ofs `U32.add` src_len) (dst_len `U32.sub` (ofs `U32.add` src_len))) in
   C.Loops.in_place_map2 dst1 src src_len op;
   let h1 = HST.get () in
   calc (Seq.equal) {
@@ -272,6 +437,247 @@ let op_inplace
       (B.as_seq h0 src)
       (U32.v ofs);
   }
+#pop-options
+
+inline_for_extraction noextract
+let op_inplace
+  (#t: Type)
+  (dst: B.buffer t)
+  (src: B.buffer t)
+  (src_len: U32.t)
+  (ofs: U32.t)
+  (op: t -> t -> t)
+:
+  HST.Stack unit
+    (requires fun h0 ->
+      B.(all_live h0 [ buf dst; buf src ]) /\
+      B.disjoint dst src /\
+      B.length src == U32.v src_len /\
+      B.length dst >= U32.v ofs + B.length src)
+    (ensures fun h0 _ h1 ->
+      B.(modifies (loc_buffer dst) h0 h1) /\
+      B.as_seq h1 dst `Seq.equal`
+        QUIC.Spec.Lemmas.pointwise_op op (B.as_seq h0 dst) (B.as_seq h0 src) (U32.v ofs) /\
+      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.equal`
+        Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) /\
+      Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst) `Seq.equal`
+      Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
+= op_inplace' dst (B.len dst) src src_len ofs op
+
+inline_for_extraction
+noextract
+let pn_sizemask (dst: B.buffer Secret.uint8) (pn_len: PN.packet_number_length_t): HST.Stack unit
+  (requires fun h0 ->
+    B.live h0 dst /\ B.length dst == 4)
+  (ensures fun h0 _ h1 ->
+    B.as_seq h1 dst `Seq.equal` Seq.seq_hide (pn_sizemask_ct (Secret.v pn_len - 1)) /\
+    B.(modifies (loc_buffer dst) h0 h1))
+= admit ()
+
+(*
+let open FStar.Mul in
+  [@ inline_let ]
+  let pn_len32 = FStar.Int.Cast.uint8_to_uint32 pn_len in
+  assert (U32.v pn_len32 = U8.v pn_len);
+  assert_norm (0xffffffff = pow2 32 - 1);
+  assert (24 - 8 * U32.v pn_len32 < 32);
+  assert (24 - 8 * U32.v pn_len32 >= 0);
+  FStar.UInt.shift_left_value_lemma #32 1 (24 - 8 * U32.v pn_len32);
+  FStar.Math.Lemmas.pow2_lt_compat 32 (24 - 8 * U32.v pn_len32);
+  FStar.Math.Lemmas.modulo_lemma (pow2 (24 - 8 * U32.v pn_len32)) (pow2 32);
+  assert (U32.(v (1ul <<^ (24ul -^ 8ul *^ pn_len32))) = pow2 (24 - 8 * U32.v pn_len32));
+  LowStar.Endianness.store32_be dst
+    U32.(0xfffffffful -^ (1ul <<^ (24ul -^ 8ul *^ pn_len32)) +^ 1ul)
+*)
+
+#push-options "--z3rlimit 512 --query_stats --z3cliopt smt.arith.nl=false --fuel 2 --ifuel 1"
+
+#restart-solver
+
+let header_encrypt_ct_secret_preserving_not_retry
+  (a: ea)
+  (s: CTR.state (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (is_short: bool)
+  (pn_len: PN.packet_number_length_t)
+  (f: B.buffer Secret.uint8)
+  (pub: B.buffer Secret.uint8)
+  (pn_and_c: B.buffer Secret.uint8)
+: HST.Stack unit
+  (requires (fun m ->
+    B.all_live m [B.buf k; B.buf f; B.buf pub; B.buf pn_and_c] /\
+    CTR.invariant m s /\
+    B.all_disjoint
+      [ CTR.footprint m s; B.loc_buffer k; B.loc_buffer f; B.loc_buffer pub; B.loc_buffer pn_and_c] /\
+    B.length k == Spec.Agile.Cipher.key_length (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) /\
+    B.length f == 1 /\
+    B.length pn_and_c >= 20
+  ))
+  (ensures (fun m _ m' ->
+    B.modifies (B.loc_buffer f `B.loc_union` B.loc_buffer pn_and_c `B.loc_union` CTR.footprint m s) m m' /\
+    CTR.invariant m' s /\
+    CTR.footprint m s == CTR.footprint m' s /\
+    header_encrypt_ct_secret_preserving_not_retry_spec_post a (B.as_seq m k) is_short pn_len (Seq.index (B.as_seq m f) 0) (Seq.seq_reveal (B.as_seq m pub)) (B.as_seq m pn_and_c) (Seq.index (B.as_seq m' f) 0) (Seq.seq_reveal (B.as_seq m' pub)) (B.as_seq m' pn_and_c)
+  ))
+= let m0 = HST.get () in
+  HST.push_frame ();
+  let m01 = HST.get () in
+  let mask = B.alloca (Secret.to_u8 0uy) 16ul in
+  B.loc_unused_in_not_unused_in_disjoint m01;
+  let m02 = HST.get () in
+  B.loc_unused_in_not_unused_in_disjoint m02;
+  let pn_sm = B.alloca (Secret.to_u8 0uy) 4ul in
+  let m03 = HST.get () in
+  assert (B.loc_disjoint (B.loc_buffer mask) (B.loc_buffer pn_sm));
+  assert (CTR.footprint m03 s == CTR.footprint m0 s);
+  assert (B.loc_disjoint (B.loc_buffer mask `B.loc_union` B.loc_buffer pn_sm) (CTR.footprint m0 s `B.loc_union` B.loc_buffer k `B.loc_union` B.loc_buffer f `B.loc_union` B.loc_buffer pub `B.loc_union` B.loc_buffer pn_and_c));
+  let sample = B.sub pn_and_c 4ul 16ul in
+  let m1 = HST.get () in
+  let gsample = Ghost.hide (Seq.slice (B.as_seq m0 pn_and_c) 4 20) in
+  assert (B.as_seq m1 sample == Ghost.reveal gsample);
+  block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) mask s k sample;
+  let m2 = HST.get () in
+  let gmask = Ghost.hide (Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) (B.as_seq m0 k) gsample) in
+  assert (B.as_seq m2 mask == Ghost.reveal gmask);
+  pn_sizemask pn_sm pn_len;
+  let m3 = HST.get () in
+  assert (B.as_seq m3 mask == Ghost.reveal gmask);
+  let gpn_sm = Ghost.hide (Seq.seq_hide #Secret.U8 (pn_sizemask_ct (Secret.v pn_len - 1))) in
+  assert (B.as_seq m3 pn_sm == Ghost.reveal gpn_sm);
+  let pnmask = B.sub mask 1ul 4ul in
+  op_inplace pnmask pn_sm 4ul 0ul (Secret.logand #Secret.U8 #Secret.SEC);
+  let m4 = HST.get () in
+  let gpnmask = Ghost.hide (secret_and_inplace (Seq.slice gmask 1 5) gpn_sm 0) in
+  assert (B.as_seq m4 pnmask == Ghost.reveal gpnmask);
+  let protected_bits = if is_short then 5ul else 4ul in
+  let mask_0 = B.index mask 0ul in
+  assert (mask_0 == Seq.index (B.as_seq m4 (B.gsub mask 0ul 1ul)) 0);
+  assert (mask_0 == Seq.index gmask 0);
+  let f_ = B.index f 0ul in
+  assert (f_ == Seq.index (B.as_seq m0 f) 0);
+  let f' = Secret.set_bitfield f_ 0ul protected_bits (Secret.get_bitfield (f_ `Secret.logxor` mask_0) 0ul protected_bits) in
+  B.upd f 0ul f' ;
+  op_inplace pn_and_c pnmask 4ul 0ul (Secret.logxor #Secret.U8 #Secret.SEC);
+  HST.pop_frame ();
+  let m5 = HST.get () in
+  assert (f' == Seq.index (B.as_seq m5 f) 0);
+  assert (B.as_seq m5 pn_and_c == secret_xor_inplace (B.as_seq m0 pn_and_c) gpnmask 0)
+
+#restart-solver
+
+let header_encrypt
+  a s k dst h is_short is_retry public_len pn_len
+= if is_retry
+  then ()
+  else begin
+    let m = HST.get () in
+    let hpk = Ghost.hide (B.as_seq m k) in
+    let cipher = Ghost.hide (Seq.slice (B.as_seq m dst) (Seq.length (ParseSpec.format_header (G.reveal h))) (B.length dst)) in
+    let f = Ghost.hide (Secret.hide #Secret.U8 (Seq.index (B.as_seq m dst) 0)) in
+    let pub = Ghost.hide (Seq.slice (B.as_seq m dst) 1 (U32.v public_len)) in
+    let pn_and_cipher = Ghost.hide (Seq.slice (Seq.seq_hide #Secret.U8 (B.as_seq m dst)) (U32.v public_len) (B.length dst)) in
+    let (| prf, phi |) = header_encrypt_ct_secret_preserving_not_retry_spec_correct'
+        a
+        hpk
+        h
+        is_short
+        pn_len
+        cipher
+        f
+        pub
+        pn_and_cipher
+        ()
+    in
+    let post (cont: Seq.lseq Secret.uint8 (B.length dst)) (m1: HS.mem) : GTot Type0 =
+        let f' = Seq.index cont 0 in
+        let pub' = Seq.seq_reveal #Secret.U8 (Seq.slice cont 1 (U32.v public_len)) in 
+        let pn_and_c' = Seq.slice cont (U32.v public_len) (B.length dst) in
+        header_encrypt_ct_secret_preserving_not_retry_spec_post a hpk is_short pn_len f pub pn_and_cipher f' pub' pn_and_c' /\
+        CTR.invariant m1 s /\
+        CTR.footprint m1 s == CTR.footprint m s
+    in
+    SecretBuffer.with_whole_buffer_hide_weak_modifies'
+      #unit
+      dst
+      m
+      (CTR.footprint m s `B.loc_union` B.loc_buffer k)
+      (CTR.footprint m s)
+      true
+      (fun _ cont m1 ->
+        post cont m1
+      )
+      (fun _ bs ->
+        let bf = B.sub bs 0ul 1ul in
+        let bpub = B.sub bs 1ul (public_len `U32.sub` 1ul) in
+        let bpn_and_c = B.offset bs public_len in
+        let m1 = HST.get () in
+        assert (Seq.index (B.as_seq m1 bf) 0 == Ghost.reveal f);
+        assert (Seq.seq_reveal (B.as_seq m1 bpub) `Seq.equal` Ghost.reveal pub);
+        assert (B.as_seq m1 bpn_and_c == Ghost.reveal pn_and_cipher);
+        header_encrypt_ct_secret_preserving_not_retry a s k is_short pn_len bf bpub bpn_and_c
+      )
+      ;
+      let m' = HST.get () in
+      let cont_p = Ghost.hide (B.as_seq m' dst) in
+      let cont_s = Ghost.hide (Seq.seq_hide #Secret.U8 cont_p) in
+      assert (post cont_s m');
+      let f' = Ghost.hide (Seq.index cont_s 0) in
+      let pub' = Ghost.hide (Seq.seq_reveal #Secret.U8 (Seq.slice cont_s 1 (U32.v public_len))) in
+      let pn_and_cipher' = Ghost.hide (Seq.slice cont_s (U32.v public_len) (B.length dst)) in
+      assert (
+        header_encrypt_ct_secret_preserving_not_retry_spec_post a hpk is_short pn_len f pub pn_and_cipher f' pub' pn_and_cipher'
+      );
+      assert (
+        cont_p `Seq.equal` (Secret.reveal f' `Seq.cons` (pub' `Seq.append` Seq.seq_reveal pn_and_cipher'))
+      );
+      phi f' pub' pn_and_cipher' ;
+      assert (header_encrypt_post a s k dst h is_short is_retry public_len pn_len m m') // by (FStar.Tactics.fail "abc")
+  end
+
+#pop-options
+
+(*
+
+Secret.reveal f' `Seq.cons` (pub `Seq.append` Seq.seq_reveal pn_and_c')
+
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (is_short: bool)
+  (pn_len: PN.packet_number_length_t)
+  (f: Secret.uint8)
+  (pn_and_c: Seq.seq Secret.uint8 { Seq.length pn_and_c >= 20 })
+
+
+
+let header_encrypt_ct_secret_preserving_not_retry_spec_correct
+header_encrypt_ct_secret_preserving_not_retry_spec_correct
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (h: Spec.header)
+  (c: cbytes)
+  (f: Secret.uint8)
+  (pub: Seq.seq U8.t)
+  (pn_and_c: Seq.seq Secret.uint8)
+  
+  
+  
+  
+  
+  (a:ea)
+  (hpk: Spec.Agile.Cipher.key (Spec.Agile.AEAD.cipher_alg_of_supported_alg a))
+  (h: Spec.header)
+  (c: cbytes)
+  (b: B.buffer U8.t)
+: HST.Stack unit
+  (requires (fun m ->
+    B.live m b /\
+    B.as_seq m b == ParseSpec.format_header h `Seq.append` c
+  ))
+  (ensures (fun m _ m' ->
+    B.modifies (B.loc_buffer b)
+  ))
+
+
 
 (*
 
