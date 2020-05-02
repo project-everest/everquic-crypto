@@ -45,6 +45,34 @@ type u62 = n:UInt64.t{UInt64.v n < pow2 62}
 
 #restart-solver
 
+(* Useful shortcuts *)
+
+let derive_k
+  (i: index)
+  (s: state i)
+  (h: HS.mem)
+: GTot (Seq.seq Secret.uint8)
+=
+  let s0 = g_traffic_secret (B.deref h s) in
+  derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)
+
+let derive_iv
+  (i: index)
+  (s: state i)
+  (h: HS.mem)
+: GTot (Seq.seq Secret.uint8)
+= let s0 = g_traffic_secret (B.deref h s) in
+  derive_secret i.hash_alg s0 label_iv 12
+
+let derive_pne
+  (i: index)
+  (s: state i)
+  (h: HS.mem)
+: GTot (Seq.seq Secret.uint8)
+= let s0 = g_traffic_secret (B.deref h s) in
+  derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)
+
+
 val encrypt: #i:G.erased index -> (
   let i = G.reveal i in
   s: state i ->
@@ -75,16 +103,14 @@ val encrypt: #i:G.erased index -> (
           invariant h1 s /\
           footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\ (
           // Functional correctness
-          let s0 = g_traffic_secret (B.deref h0 s) in
-          let open QUIC.Spec in
-          let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
-          let iv = derive_secret i.hash_alg s0 label_iv 12 in
-          let pne = derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg) in
+          let k = derive_k i s h0 in
+          let iv = derive_iv i s h0 in
+          let pne = derive_pne i s h0 in
           let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
           let pn = g_last_packet_number (B.deref h0 s) h0 `Secret.add` Secret.to_u64 1uL in
           B.deref h1 dst_pn == pn /\
-          packet == encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
+          packet == QSpec.encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
           g_last_packet_number (B.deref h1 s) h1 == pn)
       | _ ->
           False))
@@ -135,10 +161,9 @@ let decrypt_post (i: index)
     incrementable s h0)
   (ensures fun _ -> True)
 =
-  let s0 = g_traffic_secret (B.deref h0 s) in
-  let k = QSpec.(derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)) in
-  let iv = QSpec.(derive_secret i.hash_alg s0 label_iv 12) in
-  let pne = QSpec.(derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)) in
+  let k = derive_k i s h0 in
+  let iv = derive_iv i s h0 in
+  let pne = derive_pne i s h0 in
   let prev = g_last_packet_number (B.deref h0 s) h0 in
   invariant h1 s /\
   footprint_s h1 (B.deref h1 s) == footprint_s h0 (B.deref h0 s) /\
