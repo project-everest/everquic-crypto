@@ -185,60 +185,6 @@ let header_encrypt_ct_correct
   end
 
 #pop-options
-  
-let secret_and_inplace (b1 b2:Seq.seq Secret.uint8) (pos:nat)
-  : Pure (Seq.seq Secret.uint8)
-  (requires Seq.length b2 + pos <= Seq.length b1)
-  (ensures fun b -> Seq.length b == Seq.length b1)
-=
-  Lemmas.pointwise_op (Secret.logand #Secret.U8 #Secret.SEC) b1 b2 pos
-
-let secret_and_inplace_eq
-  (b1 b2: Seq.seq Secret.uint8)
-  (pos: nat)
-: Lemma
-  (requires (Seq.length b2 + pos <= Seq.length b1))
-  (ensures (
-    Seq.length b2 + pos <= Seq.length b1/\
-    Seq.seq_reveal (secret_and_inplace b1 b2 pos) `Seq.equal` Lemmas.and_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos
-  ))
-  [SMTPat (secret_and_inplace b1 b2 pos)]
-= let f
-    (i: nat {i < Seq.length b1})
-  : Lemma
-    (Seq.index (Seq.seq_reveal (secret_and_inplace b1 b2 pos)) i == Seq.index (Lemmas.and_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos) i)
-  =
-    Lemmas.pointwise_index (Secret.logand #Secret.U8 #Secret.SEC) b1 b2 i pos;
-    Lemmas.pointwise_index U8.logand (Seq.seq_reveal b1) (Seq.seq_reveal b2) i pos
-  in
-  Classical.forall_intro f
-
-let secret_xor_inplace (b1 b2:Seq.seq Secret.uint8) (pos:nat)
-  : Pure (Seq.seq Secret.uint8)
-  (requires Seq.length b2 + pos <= Seq.length b1)
-  (ensures fun b -> Seq.length b == Seq.length b1)
-=
-  Lemmas.pointwise_op (Secret.logxor #Secret.U8 #Secret.SEC) b1 b2 pos
-
-let secret_xor_inplace_eq
-  (b1 b2: Seq.seq Secret.uint8)
-  (pos: nat)
-: Lemma
-  (requires (Seq.length b2 + pos <= Seq.length b1))
-  (ensures (
-    Seq.length b2 + pos <= Seq.length b1/\
-    Seq.seq_reveal (secret_xor_inplace b1 b2 pos) `Seq.equal` Lemmas.xor_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos
-  ))
-  [SMTPat (secret_xor_inplace b1 b2 pos)]
-= let f
-    (i: nat {i < Seq.length b1})
-  : Lemma
-    (Seq.index (Seq.seq_reveal (secret_xor_inplace b1 b2 pos)) i == Seq.index (Lemmas.xor_inplace (Seq.seq_reveal b1) (Seq.seq_reveal b2) pos) i)
-  =
-    Lemmas.pointwise_index (Secret.logxor #Secret.U8 #Secret.SEC) b1 b2 i pos;
-    Lemmas.pointwise_index U8.logxor (Seq.seq_reveal b1) (Seq.seq_reveal b2) i pos
-  in
-  Classical.forall_intro f
 
 let header_encrypt_ct_secret_preserving_not_retry_spec
   (a:ea)
@@ -253,11 +199,11 @@ let header_encrypt_ct_secret_preserving_not_retry_spec
   let pn_len = Secret.v (Spec.pn_length h) - 1 in
   let sample = (Seq.slice r (pn_offset + 4) (pn_offset + 20)) in
   let mask = (Spec.block_of_sample (Spec.Agile.AEAD.cipher_alg_of_supported_alg a) hpk sample) in
-  let pnmask = secret_and_inplace (Seq.slice mask 1 5) (Seq.seq_hide (pn_sizemask_ct pn_len)) 0 in
+  let pnmask = Lemmas.secret_and_inplace (Seq.slice mask 1 5) (Seq.seq_hide (pn_sizemask_ct pn_len)) 0 in
   let f = Seq.index r 0 in
   let protected_bits = if Spec.MShort? h then 5ul else 4ul in
   let f' = Secret.set_bitfield f 0ul protected_bits (Secret.get_bitfield (f `Secret.logxor` Seq.index mask 0) 0ul protected_bits) in
-  let r = secret_xor_inplace r pnmask pn_offset in
+  let r = Lemmas.secret_xor_inplace r pnmask pn_offset in
   let r = Seq.cons f' (Seq.slice r 1 (Seq.length r)) in
   r
 
@@ -301,10 +247,10 @@ let header_encrypt_ct_secret_preserving_not_retry_spec_correct
   let mask15 = Seq.slice mask 1 5 in
   let ppnszmask = pn_sizemask_ct pn_len in
   let pnszmask = Seq.seq_hide ppnszmask in
-  let pnmask = secret_and_inplace mask15 pnszmask 0 in
+  let pnmask = Lemmas.secret_and_inplace mask15 pnszmask 0 in
   let pmask15 = Seq.slice pmask 1 5 in
   let ppnmask = Lemmas.and_inplace pmask15 ppnszmask 0 in
-  secret_and_inplace_eq mask15 pnszmask 0;
+  Lemmas.secret_and_inplace_eq mask15 pnszmask 0;
   assert (pnmask == Seq.seq_hide #Secret.U8 ppnmask);
   let f = Seq.index r 0 in
   let pf : Secret.uint_t Secret.U8 Secret.PUB = Seq.index pr 0 in
@@ -315,8 +261,8 @@ let header_encrypt_ct_secret_preserving_not_retry_spec_correct
   assert (U8.v pf' == Secret.v f');
   assert (f' == Secret.hide #Secret.U8 pf');
   let pr1 = Lemmas.xor_inplace pr ppnmask pn_off in
-  let r1 = secret_xor_inplace r pnmask pn_off in
-  secret_xor_inplace_eq r pnmask pn_off;
+  let r1 = Lemmas.secret_xor_inplace r pnmask pn_off in
+  Lemmas.secret_xor_inplace_eq r pnmask pn_off;
   assert (r1 == Seq.seq_hide #Secret.U8 pr1);
   let r2 = Seq.cons f' (Seq.slice r1 1 (Seq.length r1)) in
   let pr2 = Seq.cons pf' (Seq.slice pr1 1 (Seq.length pr1)) in
@@ -334,116 +280,6 @@ let pn_sizemask (dst: B.buffer Secret.uint8) (pn_len: PN.packet_number_length_t)
     B.as_seq h1 dst `Seq.equal` Seq.seq_hide (pn_sizemask_ct (Secret.v pn_len - 1)) /\
     B.(modifies (loc_buffer dst) h0 h1))
 = admit ()
-
-#push-options "--z3rlimit 200"
-inline_for_extraction noextract
-let op_inplace'
-  (#t: Type)
-  (dst: B.buffer t)
-  (dst_len: Ghost.erased U32.t)
-  (src: B.buffer t)
-  (src_len: U32.t)
-  (ofs: U32.t)
-  (op: t -> t -> t)
-:
-  HST.Stack unit
-    (requires fun h0 ->
-      B.(all_live h0 [ buf dst; buf src ]) /\
-      B.disjoint dst src /\
-      B.length src == U32.v src_len /\
-      B.length dst == U32.v dst_len /\
-      B.length dst >= U32.v ofs + B.length src)
-    (ensures fun h0 _ h1 ->
-      B.(modifies (loc_buffer dst) h0 h1) /\
-      B.as_seq h1 dst `Seq.equal`
-        QUIC.Spec.Lemmas.pointwise_op op (B.as_seq h0 dst) (B.as_seq h0 src) (U32.v ofs) /\
-      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.equal`
-        Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) /\
-      Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len) `Seq.equal`
-      Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (U32.v dst_len))
-=
-  let h0 = HST.get () in
-  let dst0 = B.sub dst 0ul ofs in
-  let dst1 = B.sub dst ofs src_len in
-  let dst2 = Ghost.hide (B.gsub dst (ofs `U32.add` src_len) (dst_len `U32.sub` (ofs `U32.add` src_len))) in
-  C.Loops.in_place_map2 dst1 src src_len op;
-  let h1 = HST.get () in
-  calc (Seq.equal) {
-    B.as_seq h1 dst;
-  (Seq.equal) { Lemmas.lemma_slice3 (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)) }
-    Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
-    (Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) {}
-    Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h1 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { Lemmas.pointwise_seq_map2 op (B.as_seq h0 dst1) (B.as_seq h0 src) 0 }
-    Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.append`
-    (QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
-      (B.as_seq h0 src)
-      0) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { QUIC.Spec.Lemmas.pointwise_op_suff op (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
-    (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)))
-    (B.as_seq h0 src)
-    (U32.v ofs) }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.append (Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs))
-        (Seq.slice (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len))))
-      (B.as_seq h0 src)
-      (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { Lemmas.lemma_slice1 (B.as_seq h0 dst) (U32.v ofs) (U32.v (ofs `U32.add` src_len)) }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
-      (B.as_seq h0 src)
-      (U32.v ofs) `Seq.append`
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst));
-  (Seq.equal) { QUIC.Spec.Lemmas.pointwise_op_pref op
-    (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)))
-    (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
-    (B.as_seq h0 src)
-    (U32.v ofs)
-  }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (Seq.slice (B.as_seq h0 dst) 0 (U32.v (ofs `U32.add` src_len)) `Seq.append`
-      (Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst)))
-      (B.as_seq h0 src)
-      (U32.v ofs);
-  (Seq.equal) { Lemmas.lemma_slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) }
-    QUIC.Spec.Lemmas.pointwise_op op
-      (B.as_seq h0 dst)
-      (B.as_seq h0 src)
-      (U32.v ofs);
-  }
-#pop-options
-
-inline_for_extraction noextract
-let op_inplace
-  (#t: Type)
-  (dst: B.buffer t)
-  (src: B.buffer t)
-  (src_len: U32.t)
-  (ofs: U32.t)
-  (op: t -> t -> t)
-:
-  HST.Stack unit
-    (requires fun h0 ->
-      B.(all_live h0 [ buf dst; buf src ]) /\
-      B.disjoint dst src /\
-      B.length src == U32.v src_len /\
-      B.length dst >= U32.v ofs + B.length src)
-    (ensures fun h0 _ h1 ->
-      B.(modifies (loc_buffer dst) h0 h1) /\
-      B.as_seq h1 dst `Seq.equal`
-        QUIC.Spec.Lemmas.pointwise_op op (B.as_seq h0 dst) (B.as_seq h0 src) (U32.v ofs) /\
-      Seq.slice (B.as_seq h0 dst) 0 (U32.v ofs) `Seq.equal`
-        Seq.slice (B.as_seq h1 dst) 0 (U32.v ofs) /\
-      Seq.slice (B.as_seq h0 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst) `Seq.equal`
-      Seq.slice (B.as_seq h1 dst) (U32.v (ofs `U32.add` src_len)) (B.length dst))
-= op_inplace' dst (B.len dst) src src_len ofs op
 
 #push-options "--z3rlimit 512 --query_stats --z3cliopt smt.arith.nl=false --fuel 2 --ifuel 1"
 
@@ -507,9 +343,9 @@ let header_encrypt_ct_secret_preserving_not_retry
   let gpn_sm = Ghost.hide (Seq.seq_hide #Secret.U8 (pn_sizemask_ct (Secret.v pn_len - 1))) in
   assert (B.as_seq m3 pn_sm == Ghost.reveal gpn_sm);
   let pnmask = B.sub mask 1ul 4ul in
-  op_inplace pnmask pn_sm 4ul 0ul (Secret.logand #Secret.U8 #Secret.SEC);
+  Lemmas.op_inplace pnmask pn_sm 4ul 0ul (Secret.logand #Secret.U8 #Secret.SEC);
   let m4 = HST.get () in
-  let gpnmask = Ghost.hide (secret_and_inplace (Seq.slice gmask 1 5) gpn_sm 0) in
+  let gpnmask = Ghost.hide (Lemmas.secret_and_inplace (Seq.slice gmask 1 5) gpn_sm 0) in
   assert (B.as_seq m4 pnmask == Ghost.reveal gpnmask);
   let protected_bits = if is_short then 5ul else 4ul in
   let mask_0 = B.index mask 0ul in
@@ -518,9 +354,9 @@ let header_encrypt_ct_secret_preserving_not_retry
   let f_ = B.index dst 0ul in
   assert (f_ == Seq.index (B.as_seq m0 dst) 0);
   let f' = Secret.set_bitfield f_ 0ul protected_bits (Secret.get_bitfield (f_ `Secret.logxor` mask_0) 0ul protected_bits) in
-  op_inplace dst pnmask 4ul pn_offset (Secret.logxor #Secret.U8 #Secret.SEC);
+  Lemmas.op_inplace dst pnmask 4ul pn_offset (Secret.logxor #Secret.U8 #Secret.SEC);
   let m5 = HST.get () in
-  let gr1 = Ghost.hide (secret_xor_inplace (B.as_seq m0 dst) gpnmask (U32.v pn_offset)) in
+  let gr1 = Ghost.hide (Lemmas.secret_xor_inplace (B.as_seq m0 dst) gpnmask (U32.v pn_offset)) in
   assert (B.as_seq m5 dst == Ghost.reveal gr1);
   B.upd dst 0ul f' ;
   HST.pop_frame ();
