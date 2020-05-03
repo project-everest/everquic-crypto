@@ -34,9 +34,6 @@ open EverCrypt.Error
 unfold noextract
 let lbytes = QUIC.Spec.Base.lbytes
 
-// Reexport this function, which was lost in the bundle
-let header_len = QUIC.Impl.Header.Base.header_len
-
 /// Low-level types used in this API
 /// --------------------------------
 
