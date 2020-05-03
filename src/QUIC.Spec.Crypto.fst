@@ -5,6 +5,7 @@ module Seq = QUIC.Secret.Seq
 module HKDF = Spec.Agile.HKDF
 
 inline_for_extraction
+noextract
 let prefix_l: List.Tot.llist U8.t 11 =
   // JP: "tls13 quic "
   [@inline_let]
@@ -13,6 +14,7 @@ let prefix_l: List.Tot.llist U8.t 11 =
   assert_norm (List.Tot.length l == 11);
   l
 
+noextract
 let prefix: lbytes 11 =
   Seq.seq_of_list prefix_l
 
@@ -25,6 +27,7 @@ let lemma_hash_lengths (a:ha)
 #pop-options
 
 inline_for_extraction
+noextract
 let label_key_l: List.Tot.llist U8.t 3 =
   [@inline_let]
   let l = [ 0x6buy; 0x65uy; 0x79uy ] in
@@ -35,6 +38,7 @@ let label_key =
   Seq.seq_of_list label_key_l
 
 inline_for_extraction
+noextract
 let label_iv_l: List.Tot.llist U8.t 2 =
   [@inline_let]
   let l = [ 0x69uy; 0x76uy ] in
@@ -45,6 +49,7 @@ let label_iv =
   Seq.seq_of_list label_iv_l
 
 inline_for_extraction
+noextract
 let label_hp_l: List.Tot.llist U8.t 2 =
   [@inline_let]
   let l = [ 0x68uy; 0x70uy ] in

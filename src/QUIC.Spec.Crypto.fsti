@@ -51,10 +51,13 @@ type cbytes' (is_retry: bool) = b: bytes { let l = Seq.length b in if is_retry t
 // Static byte sequences to be fed into secret derivation. Marked as inline, so
 // that they can be used as arguments to gcmalloc_of_list for top-level arrays.
 inline_for_extraction
+noextract
 val label_key: lbytes 3
 inline_for_extraction
+noextract
 val label_iv: lbytes 2
 inline_for_extraction
+noextract
 val label_hp: lbytes 2
 
 val derive_secret:

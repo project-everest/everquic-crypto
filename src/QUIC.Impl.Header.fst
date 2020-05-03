@@ -63,8 +63,10 @@ let block_of_sample (a: Spec.Agile.Cipher.cipher_alg)
 =
   HST.push_frame ();
   (**) let h0 = HST.get () in
-  let zeroes = B.alloca (Secret.to_u8 0uy) (block_len a) in
-  let dst_block = B.alloca (Secret.to_u8 0uy) (block_len a) in
+  let zeroes' = B.alloca (Secret.to_u8 0uy) 64ul in
+  let zeroes = B.sub zeroes' 0ul (block_len a) in
+  let dst_block' = B.alloca (Secret.to_u8 0uy) 64ul in
+  let dst_block = B.sub dst_block' 0ul (block_len a) in
   begin match a with
   | Spec.Agile.Cipher.CHACHA20 ->
       let ctr = SecretBuffer.load32_le (B.sub sample 0ul 4ul) in
