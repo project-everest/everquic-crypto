@@ -52,7 +52,7 @@ secret integers globally transparent using friend *)
 module ADMITDeclassify = Lib.RawIntTypes
 
 unfold
-let iv_for_encrypt_pre
+let iv_for_encrypt_decrypt_pre
   (a: ea)
   (siv: B.buffer Secret.uint8)
   (dst: B.buffer Secret.uint8)
@@ -73,7 +73,7 @@ let iv_for_encrypt_pre
   pn == Spec.packet_number h
 
 unfold
-let iv_for_encrypt_post
+let iv_for_encrypt_decrypt_post
   (a: ea)
   (siv: B.buffer Secret.uint8)
   (dst: B.buffer Secret.uint8)
@@ -84,14 +84,14 @@ let iv_for_encrypt_post
   (m' : HS.mem)
 : GTot Type0
 =
-  iv_for_encrypt_pre a siv dst h pn_len pn m /\
+  iv_for_encrypt_decrypt_pre a siv dst h pn_len pn m /\
   begin
     B.modifies (B.loc_buffer dst) m m' /\
     B.as_seq m' dst `Seq.equal`
-      Spec.iv_for_encrypt a (B.as_seq m siv) h
+      Spec.iv_for_encrypt_decrypt a (B.as_seq m siv) h
   end
 
-let iv_for_encrypt
+let iv_for_encrypt_decrypt
   (a: ea)
   (siv: B.buffer Secret.uint8)
   (dst: B.buffer Secret.uint8)
@@ -100,10 +100,10 @@ let iv_for_encrypt
   (pn: PN.packet_number_t)
 : HST.Stack unit
   (requires (fun m ->
-    iv_for_encrypt_pre a siv dst h pn_len pn m
+    iv_for_encrypt_decrypt_pre a siv dst h pn_len pn m
   ))
   (ensures (fun m _ m' ->
-    iv_for_encrypt_post a siv dst h pn_len pn m m'
+    iv_for_encrypt_decrypt_post a siv dst h pn_len pn m m'
   ))
 = let m0 = HST.get () in
   B.fill dst (Secret.to_u8 0uy) 12ul;
@@ -213,7 +213,7 @@ let payload_encrypt
   let cipher = B.sub dst (ADMITDeclassify.u32_to_UInt32 header_len) (ADMITDeclassify.u32_to_UInt32 plain_len) in
   let tag = B.sub dst (ADMITDeclassify.u32_to_UInt32 (header_len `Secret.add` plain_len)) 16ul in
 
-  iv_for_encrypt a siv iv h pn_len pn;
+  iv_for_encrypt_decrypt a siv iv h pn_len pn;
   let res = AEAD.encrypt #a s iv 12ul aad (ADMITDeclassify.u32_to_UInt32 header_len) plain (ADMITDeclassify.u32_to_UInt32 plain_len) cipher tag in
   HST.pop_frame ();
   res
@@ -326,6 +326,14 @@ let encrypt'
 
   if isretry
   then begin
+    let dummy_pn_len = Secret.to_u32 1ul in
+    let m3 = HST.get () in
+    assert (
+      Seq.slice (B.as_seq m3 dst) (Secret.v header_len) (B.length dst) `Seq.equal` Seq.seq_reveal (B.as_seq m0 plain)
+    );
+    QUIC.Impl.Header.header_encrypt a ctr hpk dst gh false true (public_header_len h) dummy_pn_len;
+    let m4 = HST.get () in
+    assert (B.as_seq m4 dst `Seq.equal` QUIC.Spec.Header.header_encrypt a (B.as_seq m0 hpk) gh (Seq.seq_reveal (B.as_seq m0 plain)));
     Success
   end
   else begin

@@ -17,7 +17,7 @@ module Secret = QUIC.Secret.Int
 
 /// encryption of a packet
 
-let iv_for_encrypt
+let iv_for_encrypt_decrypt
   (a: ea)
   (siv: iv_t a)
   (h: header { ~ (is_retry h) })
@@ -38,24 +38,62 @@ let payload_encrypt
 : GTot (cbytes)
 =
   let aad = Parse.format_header h in
-  let iv = iv_for_encrypt a siv h in
+  let iv = iv_for_encrypt_decrypt a siv h in
   Seq.seq_reveal (AEAD.encrypt #a k iv (Seq.seq_hide aad) (Seq.seq_hide plain))
 
 let encrypt
   a k siv hpk h plain
 =
-  if not (is_retry h)
-  then
-    let cipher = payload_encrypt a k siv h plain in
-    H.header_encrypt a hpk h cipher
-  else
-    Parse.format_header h `Seq.append` plain
+  let cipher =
+    if is_retry h
+    then plain
+    else payload_encrypt a k siv h plain
+  in
+  H.header_encrypt a hpk h cipher
 
 #restart-solver
 
 let decrypt
-  a k static_iv hpk last cid_len packet
-= Failure
+  a k siv hpk last cid_len packet
+=
+  let open FStar.Math.Lemmas in
+  let open FStar.Endianness in
+  match H.header_decrypt a hpk cid_len last packet with
+  | H.H_Failure -> Failure
+  | H.H_Success h c rem ->
+    if is_retry h
+    then Success h c rem
+    else    
+      let iv = iv_for_encrypt_decrypt a siv h in
+      let aad = Parse.format_header h in
+      match AEAD.decrypt #a k iv (Seq.seq_hide aad) (Seq.seq_hide c) with
+      | None -> Failure
+      | Some plain -> Success h (Seq.seq_reveal plain) rem
+
+let lemma_encrypt_correct
+  a k siv hpk h cid_len last plain
+=
+  let packet = encrypt a k siv hpk h plain in
+  let aad = Seq.seq_hide (Parse.format_header h) in
+  let cipher = if is_retry h then plain else
+    let iv = iv_for_encrypt_decrypt a siv h in
+    Seq.seq_reveal (AEAD.encrypt #a k iv aad (Seq.seq_hide plain))
+  in
+  assert (packet == H.header_encrypt a hpk h cipher);
+  H.lemma_header_encryption_correct a hpk h cid_len last cipher;
+  if is_retry h
+  then ()
+  else begin
+    let iv = iv_for_encrypt_decrypt a siv h in
+    let dc = H.header_decrypt a hpk cid_len last packet in
+    assert (H.H_Success? dc);
+    let H.H_Success h' c' rem' = dc in
+    assert (h == h' /\ cipher == c');
+    let clen = Seq.length cipher in
+    assert (19 <= clen && clen < max_cipher_length);
+    AEAD.correctness #a k iv aad (Seq.seq_hide plain)
+  end
+
 
 (*
 

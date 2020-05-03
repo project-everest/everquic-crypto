@@ -7,6 +7,8 @@ module Seq = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
 module Cipher = Spec.Agile.Cipher
+module PN = QUIC.Spec.PacketNumber.Base
+module Secret = QUIC.Secret.Int
 
 (*
 type nat2 = n:nat{n < 4}
@@ -75,3 +77,22 @@ val decrypt:
       Seq.length rem <= Seq.length packet /\
       rem `Seq.equal` Seq.slice packet (Seq.length packet - Seq.length rem) (Seq.length packet)
   })
+
+val lemma_encrypt_correct:
+  a: ea ->
+  k: AEAD.kv a ->
+  siv: iv_t a ->
+  hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
+  h: header ->
+  cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
+  last: nat{last+1 < pow2 62 } ->
+  p: pbytes' (is_retry h)  { has_payload_length h ==> Secret.v (payload_length h) == Seq.length p + AEAD.tag_length a } -> Lemma
+  (requires (
+    (~ (is_retry h)) ==> (
+      PN.in_window (Secret.v (pn_length h) - 1) last (Secret.v (packet_number h))
+  )))
+  (ensures (
+    decrypt a k siv hpk last cid_len
+      (encrypt a k siv hpk h p)
+    == Success h p Seq.empty
+  ))
