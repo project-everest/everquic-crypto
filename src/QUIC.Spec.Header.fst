@@ -213,6 +213,7 @@ let header_decrypt_aux_post
       r.pn_offset == pn_offset /\
       r.pn_offset + 20 <= Seq.length r.packet /\
       r.pn_len == BF.get_bitfield (U8.v f') 0 2 /\
+      r.pn_offset + r.pn_len + 1 <= Seq.length r.packet /\
       Seq.slice r.packet (r.pn_offset + r.pn_len + 1) (Seq.length r.packet) `Seq.equal` Seq.slice packet (r.pn_offset + r.pn_len + 1) (Seq.length packet) /\
       True
   )))))
@@ -309,6 +310,8 @@ let header_decrypt_aux_post_parse
 
 let max (a: nat) (b: nat) : Tot (c: nat { c >= a /\ c >= b /\ (c <= a \/ c <= b) }) = if a <= b then b else a
 let min (a: nat) (b: nat) : Tot (c: nat { c <= a /\ c <= b /\ (c >= a \/ c >= b) }) = if b <= a then b else a
+
+#restart-solver
 
 let header_decrypt
   a hpk cid_len last packet
