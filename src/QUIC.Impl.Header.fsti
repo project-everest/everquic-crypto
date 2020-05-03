@@ -57,7 +57,7 @@ let header_encrypt_pre
     let cipher_len = B.length dst - header_len in
     U32.v public_len == Parse.pn_offset h /\
     pn_len == Spec.pn_length h /\
-    19 < cipher_len /\ cipher_len < max_cipher_length
+    19 <= cipher_len /\ cipher_len < max_cipher_length
   end /\
   Seq.slice (B.as_seq m dst) 0 header_len `Seq.equal` fmt
 

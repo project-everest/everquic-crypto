@@ -286,6 +286,14 @@ let with_whole_buffer_hide_weak_modifies'
 module E = FStar.Endianness
 
 inline_for_extraction noextract
+val load64_be
+  (b:B.buffer Secret.uint8{B.length b == 8}):
+  HST.Stack Secret.uint64
+    (requires (fun h -> B.live h b))
+    (ensures  (fun h0 z h1 -> h0 == h1 /\ B.live h1 b /\
+                           E.be_to_n (Seq.seq_reveal (B.as_seq h1 b)) == Secret.v z))
+
+inline_for_extraction noextract
 val load32_be
   (b:B.buffer Secret.uint8{B.length b == 4}):
   HST.Stack Secret.uint32
@@ -300,6 +308,15 @@ val load32_le
     (requires (fun h -> B.live h b))
     (ensures  (fun h0 z h1 -> h0 == h1 /\ B.live h1 b /\
                            E.le_to_n (Seq.seq_reveal (B.as_seq h1 b)) == Secret.v z))
+
+inline_for_extraction noextract
+val store64_be
+  (b:B.buffer Secret.uint8 {B.length b == 8})
+  (z:Secret.uint64)
+: HST.Stack unit
+    (requires (fun h -> B.live h b))
+    (ensures  (fun h0 _ h1 -> B.(modifies (loc_buffer b) h0 h1) /\ B.live h1 b /\
+                           E.be_to_n (Seq.seq_reveal (B.as_seq h1 b)) == Secret.v z))
 
 inline_for_extraction noextract
 val store32_be

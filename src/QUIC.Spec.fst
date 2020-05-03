@@ -15,32 +15,41 @@ module Parse = QUIC.Spec.Header.Parse
 module H = QUIC.Spec.Header
 module Secret = QUIC.Secret.Int
 
-(*
-// two lines to break the abstraction of UInt8 used for
-// side-channel protection (useless here). Copied from mitls-fstar
-// src/tls/declassify.fst (branch dev)
-friend Lib.IntTypes
-let declassify : squash (Lib.IntTypes.uint8 == UInt8.t)= ()
-*)
-
 /// encryption of a packet
 
-let encrypt a k siv hpk h plain =
-  let open FStar.Endianness in
+let iv_for_encrypt
+  (a: ea)
+  (siv: iv_t a)
+  (h: header { ~ (is_retry h) })
+: GTot (iv_t a)
+=
+  let pn_len = Secret.v (pn_length h) - 1 in
+  let seqn = packet_number h in
+  let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
+  let pnb = FStar.Endianness.n_to_be 12 (Secret.v seqn) in
+  Seq.seq_hide #Secret.U8 (xor_inplace pnb (Seq.seq_reveal siv) 0)
+
+let payload_encrypt
+  (a: ea)
+  (k: AEAD.kv a)
+  (siv: iv_t a)
+  (h: header { ~ (is_retry h) })
+  (plain: pbytes)
+: GTot (cbytes)
+=
   let aad = Parse.format_header h in
-  let iv =
-    if is_retry h
-    then siv
-    else 
-      // packet number bytes
-      let pn_len = Secret.v (pn_length h) - 1 in
-      let seqn = packet_number h in
-      let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
-      let pnb = FStar.Endianness.n_to_be 12 (Secret.v seqn) in
-      Seq.seq_hide #Secret.U8 (xor_inplace pnb (Seq.seq_reveal siv) 0)
-  in
-  let cipher = if is_retry h then plain else Seq.seq_reveal (AEAD.encrypt #a k iv (Seq.seq_hide aad) (Seq.seq_hide plain)) in
-  H.header_encrypt a hpk h cipher
+  let iv = iv_for_encrypt a siv h in
+  Seq.seq_reveal (AEAD.encrypt #a k iv (Seq.seq_hide aad) (Seq.seq_hide plain))
+
+let encrypt
+  a k siv hpk h plain
+=
+  if not (is_retry h)
+  then
+    let cipher = payload_encrypt a k siv h plain in
+    H.header_encrypt a hpk h cipher
+  else
+    Parse.format_header h `Seq.append` plain
 
 #restart-solver
 

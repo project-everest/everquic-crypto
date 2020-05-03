@@ -36,7 +36,7 @@ val write_header
     header_live h h0 /\
     B.live h0 out /\
     B.loc_disjoint (header_footprint h) (B.loc_buffer out) /\
-    U32.v (public_header_len h) + 4 <= U32.v out_len // needs more space than just pn_length to write pn in constant time
+    U32.v (public_header_len h) + (if is_retry h then 0 else 4) <= U32.v out_len // needs more space than just pn_length to write pn in constant time
   ))
   (ensures (fun h0 _ h1 ->
     let gh = g_header h h0 pn in

@@ -70,6 +70,8 @@ let block_of_sample (a: Spec.Agile.Cipher.cipher_alg)
       let ctr = SecretBuffer.load32_le (B.sub sample 0ul 4ul) in
       let iv = B.sub sample 4ul 12ul in
       (**) let h1 = HST.get () in
+      (* EverCrypt currently does not support secret counters,
+         so we need to declassify the counter value here and only here. *)
       CTR.init (G.hide a) s k iv 12ul (ADMITDeclassify.u32_to_UInt32 ctr);
       CTR.update_block (G.hide a) s dst_block zeroes;
       (**) let h2 = HST.get () in
@@ -86,6 +88,8 @@ let block_of_sample (a: Spec.Agile.Cipher.cipher_alg)
       let ctr = SecretBuffer.load32_be (B.sub sample 12ul 4ul) in
       let iv = B.sub sample 0ul 12ul in
       (**) let h1 = HST.get () in
+      (* EverCrypt currently does not support secret counters,
+         so we need to declassify the counter value here and only here. *)
       CTR.init (G.hide a) s k iv 12ul (ADMITDeclassify.u32_to_UInt32 ctr);
       CTR.update_block (G.hide a) s dst_block zeroes;
       (**) let h2 = HST.get () in

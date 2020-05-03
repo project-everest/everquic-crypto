@@ -114,6 +114,21 @@ val n_to_be_lower
     n_to_be len n `S.equal` S.slice (n_to_be len' n) (len' - len) len'
   ))
 
+val n_to_be_lower'
+  (len: nat)
+  (len' : nat)
+  (n: nat)
+: Lemma
+  (requires (
+    len <= len' /\
+    n < pow2 (8 * len)
+  ))
+  (ensures (
+    let open FStar.Endianness in
+    n < pow2 (8 * len') /\
+    n_to_be len' n `S.equal` (S.create (len' - len) 0uy `S.append` n_to_be len n)
+  ))
+
 (* Inplace implementation of pointwise_op *)
 
 inline_for_extraction noextract

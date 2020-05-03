@@ -257,6 +257,32 @@ let n_to_be_lower
   in
   Classical.forall_intro phi
 
+#restart-solver
+
+let n_to_be_lower'
+  len len' n
+= let open FStar.Math.Lemmas in
+  let open FStar.Endianness in
+  pow2_le_compat (8 * len') (8 * len);
+  let s1 = n_to_be len' n in
+  let s2 = S.create (len' - len) 0uy `S.append` n_to_be len n in 
+  let phi
+    (i: nat {i < len'})
+  : Lemma
+    (S.index s1 i == S.index s2 i)
+  = QSL.index_n_to_be len' n i;
+    assert (len' - 1 - i == len - 1 - (i - (len' - len)));
+    if len' - len <= i
+    then begin
+      QSL.index_n_to_be len n (i - (len' - len))
+    end else begin
+      pow2_le_compat (8 * (len' - 1 - i)) (8 * len);
+      FStar.Math.Lemmas.small_div n (pow2 (8 * (len' - 1 - i)));
+      assert (n / pow2 (8 * (len' - 1 - i)) == 0);
+      assert (S.index s1 i == 0uy)
+    end
+  in
+  Classical.forall_intro phi
 
 #push-options "--z3rlimit 200"
 inline_for_extraction noextract

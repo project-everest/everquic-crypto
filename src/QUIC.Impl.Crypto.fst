@@ -37,7 +37,7 @@ type state_s (i: index) =
       traffic_secret:G.erased (Spec.Hash.Definitions.bytes_hash the_hash_alg) ->
       initial_pn:G.erased PN.packet_number_t ->
       aead_state:EverCrypt.AEAD.state the_aead_alg ->
-      iv:EverCrypt.AEAD.iv_p the_aead_alg ->
+      iv:EverCrypt.AEAD.iv_p the_aead_alg { B.length iv == 12 } ->
       hp_key:B.buffer Secret.uint8 { B.length hp_key = QUIC.Spec.ae_keysize the_aead_alg } ->
       pn:B.pointer PN.packet_number_t ->
       ctr_state:CTR.state (as_cipher_alg the_aead_alg) ->

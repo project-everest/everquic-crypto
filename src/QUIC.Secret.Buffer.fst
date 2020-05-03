@@ -54,6 +54,11 @@ let with_buffer_hide_from_weak_modifies #t b from h0 lin lout ml ms post f =
   let bs = B.offset b from in
   f (Ghost.hide (B.loc_buffer b)) bl bs
 
+let load64_be
+  b
+=
+  LowStar.Endianness.load64_be b
+
 let load32_be
   b
 =
@@ -63,6 +68,10 @@ let load32_le
   b
 =
   LowStar.Endianness.load32_le b
+
+let store64_be
+  b z
+= LowStar.Endianness.store64_be b z
 
 let store32_be
   b z

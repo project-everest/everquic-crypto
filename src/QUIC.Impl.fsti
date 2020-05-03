@@ -4,10 +4,11 @@ module QUIC.Impl
 include QUIC.Impl.Crypto
 include QUIC.Impl.Header.Base
 
-module QSpec = QUIC.Spec
+module Spec = QUIC.Spec
 module QImpl = QUIC.Impl.Header.Base
 module PN = QUIC.Spec.PacketNumber.Base
 module Secret = QUIC.Secret.Int
+module Seq = QUIC.Secret.Seq
 
 // This MUST be kept in sync with QUIC.Impl.fst...
 module G = FStar.Ghost
@@ -54,7 +55,7 @@ let derive_k
 : GTot (Seq.seq Secret.uint8)
 =
   let s0 = g_traffic_secret (B.deref h s) in
-  derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg)
+  Spec.derive_secret i.hash_alg s0 Spec.label_key (Spec.Agile.AEAD.key_length i.aead_alg)
 
 let derive_iv
   (i: index)
@@ -62,7 +63,7 @@ let derive_iv
   (h: HS.mem)
 : GTot (Seq.seq Secret.uint8)
 = let s0 = g_traffic_secret (B.deref h s) in
-  derive_secret i.hash_alg s0 label_iv 12
+  Spec.derive_secret i.hash_alg s0 Spec.label_iv 12
 
 let derive_pne
   (i: index)
@@ -70,7 +71,7 @@ let derive_pne
   (h: HS.mem)
 : GTot (Seq.seq Secret.uint8)
 = let s0 = g_traffic_secret (B.deref h s) in
-  derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg)
+  Spec.derive_secret i.hash_alg s0 Spec.label_hp (ae_keysize i.aead_alg)
 
 
 val encrypt: #i:G.erased index -> (
@@ -79,7 +80,7 @@ val encrypt: #i:G.erased index -> (
   dst: B.buffer U8.t ->
   dst_pn: B.pointer PN.packet_number_t ->
   h: header ->
-  plain: B.buffer U8.t ->
+  plain: B.buffer Secret.uint8 ->
   plain_len: U32.t ->
   Stack error_code
     (requires fun h0 ->
@@ -91,7 +92,7 @@ val encrypt: #i:G.erased index -> (
       incrementable s h0 /\
       B.length plain == U32.v plain_len /\ (
       let clen = if is_retry h then 0 else U32.v plain_len + Spec.Agile.AEAD.tag_length i.aead_alg in
-      (if is_retry h then U32.v plain_len == 0 else 3 <= U32.v plain_len /\ U32.v plain_len < QSpec.max_plain_length) /\
+      (if is_retry h then U32.v plain_len == 0 else 3 <= U32.v plain_len /\ U32.v plain_len < Spec.max_plain_length) /\
       (has_payload_length h ==> Secret.v (payload_length h) == clen) /\
       B.length dst == Secret.v (header_len h) + clen
     ))
@@ -110,7 +111,7 @@ val encrypt: #i:G.erased index -> (
           let packet: packet = B.as_seq h1 dst in
           let pn = g_last_packet_number (B.deref h0 s) h0 `Secret.add` Secret.to_u64 1uL in
           B.deref h1 dst_pn == pn /\
-          packet == QSpec.encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
+          packet == Spec.encrypt i.aead_alg k iv pne (g_header h h0 pn) (Seq.seq_reveal plain) /\
           g_last_packet_number (B.deref h1 s) h1 == pn)
       | _ ->
           False))
@@ -188,17 +189,17 @@ let decrypt_post (i: index)
         S.slice (B.as_seq h1 packet) (U32.v r.header_len)
           (U32.v r.header_len + U32.v r.plain_len) in
       let rem = B.as_seq h0 (B.gsub packet r.total_len (B.len packet `U32.sub `r.total_len)) in
-      match QSpec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
-      | QSpec.Success h' plain' rem' ->
+      match Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
+      | Spec.Success h' plain' rem' ->
         h' == g_header r.header h1 r.pn /\
         plain' == plain /\
         rem' == rem
       | _ -> False
     ))
     | DecodeError ->
-      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet))
+      Spec.Failure? (Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet))
     | AuthenticationFailure ->
-      QSpec.Failure? (QSpec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
+      Spec.Failure? (Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
       U32.v r.total_len <= B.length packet
     | _ ->
       False
