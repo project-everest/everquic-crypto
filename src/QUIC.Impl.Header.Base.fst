@@ -238,7 +238,7 @@ let public_header_len
 
 let header_len
   (h: header)
-: Tot Secret.uint32
+: Tot (x: Secret.uint32 { Secret.v x == U32.v (public_header_len h) + (if is_retry h then 0 else Secret.v (pn_length h)) })
 = Secret.to_u32 (public_header_len h) `Secret.add` (if is_retry h then Secret.to_u32 0ul else pn_length h)
 
 #pop-options
@@ -251,20 +251,14 @@ let header_len_is_retry
   (Secret.v (header_len h) == U32.v (public_header_len h))
 = ()
 
-#push-options "--z3rlimit 16"
-
 let header_len_not_is_retry
   (h: header { ~ (is_retry h) })
 : Lemma
   (Secret.v (header_len h) == U32.v (public_header_len h) + Secret.v (pn_length h))
 = ()
 
-#pop-options
-
 let header_len_v
   (h: header)
 : Lemma
   (Secret.v (header_len h) == U32.v (public_header_len h) + (if is_retry h then 0 else Secret.v (pn_length h)))
-= if is_retry h
-  then header_len_is_retry h
-  else header_len_not_is_retry h
+= ()
