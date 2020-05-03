@@ -113,9 +113,9 @@ val encrypt: #i:G.erased index -> (
       | _ ->
           False))
 
-val initial_secrets (dst_client: B.buffer U8.t)
-  (dst_server: B.buffer U8.t)
-  (cid: B.buffer U8.t)
+val initial_secrets (dst_client: B.buffer Secret.uint8)
+  (dst_server: B.buffer Secret.uint8)
+  (cid: B.buffer Secret.uint8)
   (cid_len: U32.t):
   Stack unit
     (requires (fun h0 ->

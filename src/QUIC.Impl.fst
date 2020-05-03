@@ -39,6 +39,7 @@ open LowStar.BufferOps
 
 module SAEAD = Spec.Agile.AEAD
 module SCipher = Spec.Agile.Cipher
+module SHKDF = Spec.Agile.HKDF
 
 module SecretBuffer = QUIC.Secret.Buffer
 
@@ -956,6 +957,8 @@ let client_in: client_in:B.buffer U8.t {
   B.gcmalloc_of_list HS.root l
 #pop-options
 
+#push-options "--z3rlimit 64"
+
 let initial_secrets dst_client dst_server cid cid_len =
   (**) let h0 = ST.get () in
   (**) B.recall initial_salt;
@@ -968,26 +971,69 @@ let initial_secrets dst_client dst_server cid cid_len =
   (**) let mloc = G.hide (B.(loc_buffer dst_client `loc_union`
     loc_buffer dst_server `loc_union` loc_region_only true (HS.get_tip h1))) in
 
-  assume False;
-  let secret = B.alloca 0uy 32ul in
+  B.loc_unused_in_not_unused_in_disjoint h1;
+  let secret = B.alloca (Secret.to_u8 0uy) 32ul in
+  
+  (* we allocate a temporary buffer to copy the initial_salt,
+     server_in and client_in and then to hide it through
+     SecretBuffer.with_whole_buffer_hide_weak_modifies, because if we
+     directly hide those global buffers, then we won't be able to
+     prove that the livenesses of function arguments are preserved,
+     because they are not disjoint from the global buffers.  *)
+
+  let h15 = ST.get () in
+  B.loc_unused_in_not_unused_in_disjoint h15;
+  let tmp = B.alloca 0uy 20ul in
+  B.blit initial_salt 0ul tmp 0ul 20ul;
+  
   (**) let h2 = ST.get () in
-  (**) B.(modifies_loc_includes (G.reveal mloc) h1 h2 loc_none);
 
   (**) hash_is_keysized_ Spec.Agile.Hash.SHA2_256;
-  EverCrypt.HKDF.extract Spec.Agile.Hash.SHA2_256 secret initial_salt 20ul
-    cid cid_len;
+  let h25 = HST.get () in
+  SecretBuffer.with_whole_buffer_hide_weak_modifies
+    tmp
+    h25
+    (B.loc_buffer secret `B.loc_union` B.loc_buffer cid)
+    (B.loc_buffer secret)
+    false
+    (fun _ _ m -> True)
+    (fun _ bs ->
+      EverCrypt.HKDF.extract Spec.Agile.Hash.SHA2_256 secret bs 20ul
+        cid cid_len
+    );
   (**) let h3 = ST.get () in
-  (**) B.(modifies_loc_includes (G.reveal mloc) h2 h3 (loc_buffer secret));
   (**) B.(modifies_trans (G.reveal mloc) h1 h2 (G.reveal mloc) h3);
 
-  EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_client secret 32ul client_in 9ul 32ul;
+  let tmp_client_in = B.sub tmp 0ul 9ul in
+  B.blit client_in 0ul tmp_client_in 0ul 9ul;
+  let h35 = ST.get () in
+  SecretBuffer.with_whole_buffer_hide_weak_modifies
+    tmp_client_in
+    h35
+    (B.loc_buffer secret `B.loc_union` B.loc_buffer dst_client)
+    (B.loc_buffer dst_client)
+    false
+    (fun _ _ m -> True)
+    (fun _ bs ->
+      EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_client secret 32ul bs 9ul 32ul
+    );
   (**) let h4 = ST.get () in
-  (**) B.(modifies_loc_includes (G.reveal mloc) h3 h4 (loc_buffer dst_client));
   (**) B.(modifies_trans (G.reveal mloc) h1 h3 (G.reveal mloc) h4);
 
-  EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_server secret 32ul server_in 9ul 32ul;
+  let tmp_server_in = B.sub tmp 0ul 9ul in
+  B.blit server_in 0ul tmp_server_in 0ul 9ul;
+  let h45 = ST.get () in
+  SecretBuffer.with_whole_buffer_hide_weak_modifies
+    tmp_server_in
+    h45
+    (B.loc_buffer secret `B.loc_union` B.loc_buffer dst_server)
+    (B.loc_buffer dst_server)
+    false
+    (fun _ _ m -> True)
+    (fun _ bs ->
+      EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_server secret 32ul bs 9ul 32ul
+    );
   (**) let h5 = ST.get () in
-  (**) B.(modifies_loc_includes (G.reveal mloc) h4 h5 (loc_buffer dst_server));
   (**) B.(modifies_trans (G.reveal mloc) h1 h4 (G.reveal mloc) h5);
 
   pop_frame ();
