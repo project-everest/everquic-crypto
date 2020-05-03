@@ -275,6 +275,31 @@ let header_encrypt_ct_secret_preserving_not_retry_spec_correct
 
 #pop-options
 
+#push-options "--z3rlimit 16"
+
+#restart-solver
+
+let pn_sizemask_ct_num
+  (pn_len: PN.packet_number_length_t)
+: Tot (x: Secret.uint32 { pn_sizemask_ct (Secret.v pn_len - 1) == FStar.Endianness.n_to_be 4 (Secret.v x) })
+=
+  FStar.Math.Lemmas.pow2_lt_compat 32 (24 - (8 `op_Multiply` (Secret.v pn_len - 1)));
+  [@inline_let]
+  let n0 = norm [delta; zeta; iota; primops] (pow2 32 - pow2 24) in
+  [@inline_let]
+  let n1 = norm [delta; zeta; iota; primops] (pow2 32 - pow2 16) in
+  [@inline_let]
+  let n2 = norm [delta; zeta; iota; primops] (pow2 32 - pow2 8) in
+  [@inline_let]
+  let n3 = norm [delta; zeta; iota; primops] (pow2 32 - pow2 0) in
+  let pn_len_1 = pn_len `Secret.sub` Secret.to_u32 1ul in
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 0ul) `Secret.mul` Secret.to_u32 (U32.uint_to_t n0)) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 1ul) `Secret.mul` Secret.to_u32 (U32.uint_to_t n1)) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 2ul) `Secret.mul` Secret.to_u32 (U32.uint_to_t n2)) `Secret.add`
+  ((pn_len_1 `Secret.secrets_are_equal_32_2` Secret.to_u32 3ul) `Secret.mul` Secret.to_u32 (U32.uint_to_t n3))
+
+#pop-options
+
 inline_for_extraction
 noextract
 let pn_sizemask (dst: B.buffer Secret.uint8) (pn_len: PN.packet_number_length_t): HST.Stack unit
@@ -283,7 +308,8 @@ let pn_sizemask (dst: B.buffer Secret.uint8) (pn_len: PN.packet_number_length_t)
   (ensures fun h0 _ h1 ->
     B.as_seq h1 dst `Seq.equal` Seq.seq_hide (pn_sizemask_ct (Secret.v pn_len - 1)) /\
     B.(modifies (loc_buffer dst) h0 h1))
-= admit ()
+= let x = pn_sizemask_ct_num pn_len in
+  SecretBuffer.store32_be dst x
 
 #push-options "--z3rlimit 512 --query_stats --z3cliopt smt.arith.nl=false --fuel 2 --ifuel 1"
 
@@ -366,22 +392,6 @@ let header_encrypt_ct_secret_preserving_not_retry
   HST.pop_frame ();
   let m6 = HST.get () in
   assert (B.as_seq m6 dst `Seq.equal` (f' `Seq.cons` Seq.slice (Ghost.reveal gr1) 1 (B.length dst)))
-
-(*
-let open FStar.Mul in
-  [@ inline_let ]
-  let pn_len32 = FStar.Int.Cast.uint8_to_uint32 pn_len in
-  assert (U32.v pn_len32 = U8.v pn_len);
-  assert_norm (0xffffffff = pow2 32 - 1);
-  assert (24 - 8 * U32.v pn_len32 < 32);
-  assert (24 - 8 * U32.v pn_len32 >= 0);
-  FStar.UInt.shift_left_value_lemma #32 1 (24 - 8 * U32.v pn_len32);
-  FStar.Math.Lemmas.pow2_lt_compat 32 (24 - 8 * U32.v pn_len32);
-  FStar.Math.Lemmas.modulo_lemma (pow2 (24 - 8 * U32.v pn_len32)) (pow2 32);
-  assert (U32.(v (1ul <<^ (24ul -^ 8ul *^ pn_len32))) = pow2 (24 - 8 * U32.v pn_len32));
-  LowStar.Endianness.store32_be dst
-    U32.(0xfffffffful -^ (1ul <<^ (24ul -^ 8ul *^ pn_len32)) +^ 1ul)
-*)
 
 #restart-solver
 
