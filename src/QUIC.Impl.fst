@@ -313,7 +313,7 @@ let encrypt'
   let header_len = header_len h in
   QUIC.Impl.Header.Parse.header_len_correct h m0 pn;
   QUIC.Impl.Header.Base.header_len_v h;
-  let is_retry = is_retry h in
+  let isretry = is_retry h in
 
   (* Currently, EverParse needs the size of the destination buffer for
   writing, as a public integer, even though this is not strictly
@@ -321,9 +321,9 @@ let encrypt'
   and do not perform any declassification of the header sizes, we can
   pass the whole size of the destination buffer. *)
   QUIC.Impl.Header.Parse.write_header h pn dst
-    (ADMITDeclassify.u32_to_UInt32 (header_len `Secret.add` (if is_retry then Secret.to_u32 0ul else plain_len `Secret.add` Secret.to_u32 16ul)));
+    (ADMITDeclassify.u32_to_UInt32 (header_len `Secret.add` (if isretry then Secret.to_u32 0ul else plain_len `Secret.add` Secret.to_u32 16ul)));
 
-  if is_retry
+  if isretry
   then begin
     Success
   end
@@ -367,7 +367,7 @@ let encrypt'
       assert (
         Seq.slice (B.as_seq m3 dst) (Secret.v header_len) (B.length dst) `Seq.equal` Spec.payload_encrypt a (AEAD.as_kv (B.deref m0 aead)) (B.as_seq m0 siv) gh (Seq.seq_reveal (B.as_seq m0 plain))
       );
-      QUIC.Impl.Header.header_encrypt a ctr hpk dst gh (BShort? h) is_retry (public_header_len h) pn_len;
+      QUIC.Impl.Header.header_encrypt a ctr hpk dst gh (BShort? h) isretry (public_header_len h) pn_len;
       let m4 = HST.get () in
       assert (B.as_seq m4 dst `Seq.equal` QUIC.Spec.Header.header_encrypt a (B.as_seq m0 hpk) gh (Spec.payload_encrypt a (AEAD.as_kv (B.deref m0 aead)) (B.as_seq m0 siv) gh (Seq.seq_reveal (B.as_seq m0 plain))));
       res

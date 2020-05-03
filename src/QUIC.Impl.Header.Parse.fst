@@ -36,13 +36,17 @@ let p_header
   | BLong version dcid dcil scid scil spec ->
     begin match spec with
     | BInitial rb payload_and_pn_length pnl token token_length ->
-      Public.PLong (impl_long_protected_bits rb pnl) version dcid dcil scid scil (Public.PInitial payload_and_pn_length token token_length)
+      let spec' = (Public.PInitial payload_and_pn_length token token_length) in
+      Public.PLong (impl_long_protected_bits rb pnl) version dcid dcil scid scil spec'
     | BZeroRTT rb payload_and_pn_length pnl ->
-      Public.PLong (impl_long_protected_bits rb pnl) version dcid dcil scid scil (Public.PZeroRTT payload_and_pn_length)
+      let spec' = (Public.PZeroRTT payload_and_pn_length) in
+      Public.PLong (impl_long_protected_bits rb pnl) version dcid dcil scid scil spec'
     | BHandshake rb payload_and_pn_length pnl ->
-      Public.PLong (impl_long_protected_bits rb pnl) version dcid dcil scid scil (Public.PHandshake payload_and_pn_length)
+      let spec' = (Public.PHandshake payload_and_pn_length) in
+      Public.PLong (impl_long_protected_bits rb pnl) version dcid dcil scid scil spec'
     | BRetry unused odcid odcil ->
-      Public.PLong unused version dcid dcil scid scil (Public.PRetry odcid odcil)
+      let spec' = (Public.PRetry odcid odcil) in
+      Public.PLong unused version dcid dcil scid scil spec'
     end
 
 let public_header_len_correct
