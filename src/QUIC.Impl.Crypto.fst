@@ -8,6 +8,10 @@ module IB = LowStar.ImmutableBuffer
 module U32 = FStar.UInt32
 
 module Seq = QUIC.Secret.Seq
+module SecretBuffer = QUIC.Secret.Buffer
+
+module SHKDF = Spec.Agile.HKDF
+module SHD = Spec.Hash.Definitions
 
 friend QUIC.Spec.Crypto (* for the _l list constants *)
 
@@ -211,8 +215,22 @@ let derive_secret a dst dst_len secret label label_len =
   (**)     z lb llen QUIC.Spec.prefix (B.as_seq h0 label) z
   (**) );
   (**) hash_is_keysized_ a;
-  assume False; // TODO: hide `info`
-  HKDF.expand a dst secret (Hacl.Hash.Definitions.hash_len a) info info_len dst_len32;
+  let h25 = HST.get () in
+  SecretBuffer.with_whole_buffer_hide_weak_modifies
+    #unit
+    info
+    h25
+    (B.loc_buffer secret `B.loc_union` B.loc_buffer dst)
+    (B.loc_buffer dst)
+    false
+    (fun _ cont m ->
+      SHD.hash_length a + B.length info + 1 + SHD.block_length a <= SHD.max_input_length a /\
+      B.as_seq m dst == SHKDF.expand a (B.as_seq h25 secret) (Seq.seq_hide #Secret.U8 (B.as_seq h25 info)) (U32.v dst_len32)
+    )
+    (fun _ bs ->
+      HKDF.hash_block_length_fits a;
+      HKDF.expand a dst secret (Hacl.Hash.Definitions.hash_len a) bs info_len dst_len32
+    );
   (**) let h3 = HST.get () in
   HST.pop_frame ();
   (**) let h4 = HST.get () in
