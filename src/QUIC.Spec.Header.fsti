@@ -25,7 +25,12 @@ noeq
 type h_result =
 | H_Success:
   h: header ->
-  cipher: cbytes' (is_retry h) ->
+  cipher: bytes {
+    let len = Seq.length cipher in
+    if is_retry h
+    then len == 0
+    else 16 <= len (* the true bound is 20-pn_len h *) /\ len < max_cipher_length
+  } ->
   rem: bytes ->
   h_result
 | H_Failure

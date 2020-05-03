@@ -43,7 +43,7 @@ noeq
 type result =
 | Success: 
   h: header ->
-  plain: pbytes' (is_retry h) ->
+  plain: bytes ->
   remainder: bytes ->
   result
 | Failure

@@ -8,7 +8,7 @@ module U64 = FStar.UInt64
 module U32 = FStar.UInt32
 module U8 = FStar.UInt8
 
-module QS = QUIC.Spec
+module QS = QUIC.Spec.Crypto
 module QSL = QUIC.Spec.Lemmas
 
 module Secret = QUIC.Secret.Int

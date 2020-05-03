@@ -210,11 +210,13 @@ let header_decrypt_aux_post
       Some? (Parse.putative_pn_offset cid_len packet) /\
       Parse.putative_pn_offset cid_len r.packet == Parse.putative_pn_offset cid_len packet /\ (
       let Some pn_offset = Parse.putative_pn_offset cid_len packet in
+      r.pn_offset == pn_offset /\
+      r.pn_offset + 20 <= Seq.length r.packet /\
       r.pn_len == BF.get_bitfield (U8.v f') 0 2 /\
       Seq.slice r.packet (r.pn_offset + r.pn_len + 1) (Seq.length r.packet) `Seq.equal` Seq.slice packet (r.pn_offset + r.pn_len + 1) (Seq.length packet) /\
       True
   )))))
-= let Some r = header_decrypt_aux a hpk cid_len packet in
+=let Some r = header_decrypt_aux a hpk cid_len packet in
   let f = Seq.index packet 0 in
   let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
   let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
@@ -278,9 +280,10 @@ let header_decrypt_aux_post_parse
       Some? (Parse.putative_pn_offset cid_len packet) /\ (
       let Some pn_offset = Parse.putative_pn_offset cid_len packet in
       pn_offset == Parse.pn_offset h /\
+      r.pn_offset == pn_offset /\
       r.pn_len == Secret.v (pn_length h) - 1 /\
       r.pn_offset + r.pn_len + 1 == Parse.header_len h /\
-      True
+      Seq.length rem' >= 16
   )))))
 = header_decrypt_aux_post a hpk cid_len packet;
   let Some r = header_decrypt_aux a hpk cid_len packet in
@@ -304,6 +307,9 @@ let header_decrypt_aux_post_parse
 
 #push-options "--z3rlimit 128"
 
+let max (a: nat) (b: nat) : Tot (c: nat { c >= a /\ c >= b /\ (c <= a \/ c <= b) }) = if a <= b then b else a
+let min (a: nat) (b: nat) : Tot (c: nat { c <= a /\ c <= b /\ (c >= a \/ c >= b) }) = if b <= a then b else a
+
 let header_decrypt
   a hpk cid_len last packet
 =
@@ -322,17 +328,19 @@ let header_decrypt
         if is_retry h
         then
           H_Success h Seq.empty rem'
-        else if has_payload_length h && Seq.length rem' < Secret.v (payload_length h)
-        then H_Failure
         else
           let clen = if has_payload_length h then Secret.v (payload_length h) else Seq.length rem' in
-          if 19 <= clen && clen < max_cipher_length
-          then
-            let c : cbytes = Seq.slice rem' 0 clen in
-            let rem = Seq.slice rem' clen (Seq.length rem') in
-            H_Success h c rem
-          else
-            H_Failure
+          assert_norm (16 < max_cipher_length - 1);
+          (* payload_length is secret, so, to stay constant-time, we
+          must not check for failure. Instead, we compute some length
+          that might be garbage if bounds on payload_length do not hold. *)
+          let clen = max (min (min clen (Seq.length rem')) (max_cipher_length - 1)) 16 in
+          assert (clen < max_cipher_length);
+          assert (clen <= Seq.length rem');
+          assert (16 <= clen);
+          let c = Seq.slice rem' 0 clen in
+          let rem = Seq.slice rem' clen (Seq.length rem') in
+          H_Success h c rem
       end
 
 let lemma_header_encryption_correct_aux
@@ -340,7 +348,7 @@ let lemma_header_encryption_correct_aux
   (k: Cipher.key (AEAD.cipher_alg_of_supported_alg a))
   (h:header)
   (cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) })
-  (c: cbytes' (is_retry h)) // { has_payload_length h ==> U64.v (payload_length h) == Seq.length c } ->
+  (c: cbytes' (is_retry h))
 : Lemma
   (let r' = header_decrypt_aux a k cid_len (header_encrypt a k h c) in
    Some? r' /\ (
@@ -405,13 +413,13 @@ let lemma_header_encryption_correct_aux
     ()
   end
 
-#pop-options
-
 let lemma_header_encryption_correct
   a k h cid_len last c
 =
-  lemma_header_encryption_correct_aux a k h cid_len c;
-  Parse.lemma_header_parsing_correct h c cid_len last
+ lemma_header_encryption_correct_aux a k h cid_len c;
+ Parse.lemma_header_parsing_correct h c cid_len last
+
+#pop-options
 
 
 
