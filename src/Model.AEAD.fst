@@ -11,6 +11,7 @@ module Spec = Spec.Agile.AEAD
 
 open Mem
 open LowStar.BufferOps
+open Model.Helpers
 
 let log #i (u: info i): Type0 =
   Seq.seq (entry i u)
@@ -95,27 +96,6 @@ let encrypt i w nonce aad plain_length plain =
     let p = PlainPkg?.repr (wgetinfo w).plain i plain_length plain in
     Spec.encrypt #a k iv aad p
 
-let rec equal (x y: Seq.seq Spec.uint8): Tot (b:bool { b <==> x `Seq.equal` y }) (decreases (Seq.length x)) =
-  if Seq.length x = 0 && Seq.length y = 0 then
-    true
-  else if Seq.length x = 0 && Seq.length y <> 0 then
-    false
-  else if Seq.length x <> 0 && Seq.length y = 0 then
-    false
-  else
-    let hx = Seq.head x in
-    let hy = Seq.head y in
-    let tx = Seq.tail x in
-    let ty = Seq.tail y in
-    if Lib.RawIntTypes.u8_to_UInt8 hx = Lib.RawIntTypes.u8_to_UInt8 hy && equal tx ty then begin
-      assert (x `Seq.equal` Seq.append (Seq.create 1 hx) tx);
-      assert (y `Seq.equal` Seq.append (Seq.create 1 hy) ty);
-      assert (Seq.index (Seq.create 1 hx) 0 == Seq.index (Seq.create 1 hy) 0);
-      assert (Seq.create 1 hx `Seq.equal` Seq.create 1 hy);
-      true
-    end else
-      false
-
 let decrypt i #w r aad n l c =
   if is_safe i then
     let w: model_writer i = w in
@@ -124,7 +104,7 @@ let decrypt i #w r aad n l c =
     | None -> None
     | Some (Entry n' aad' #l' p' c') ->
         assert (n == n');
-        if equal aad aad' && equal c c' && l = l' then
+        if lbytes_eq aad aad' && lbytes_eq c c' && l = l' then
           Some p'
         else
           None
