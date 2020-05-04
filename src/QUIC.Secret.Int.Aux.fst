@@ -199,6 +199,8 @@ let lognot_one_bit
 : Tot (z: int_t t sec { v z == (if v x = 1 then 0 else 1) })
 = x `logxor_one_bit` secret_bool true
 
+#push-options "--z3rlimit 16"
+
 inline_for_extraction
 noextract
 [@"opaque_to_smt"]
@@ -223,7 +225,9 @@ let div2
 : Tot (z: int_t t sec { v z == v x / 2 })
 = x `shift_right` 1ul
 
-[@must_inline]
+#pop-options
+
+[@"opaque_to_smt" must_inline]
 noextract
 let rec secret_is_nonzero
   (#t: inttype { supported_type t })
@@ -242,7 +246,7 @@ let rec secret_is_nonzero
     test_mod `logor_one_bit` re
 
 noextract
-[@must_inline]
+[@"opaque_to_smt" must_inline]
 let rec secrets_are_different
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
@@ -264,7 +268,7 @@ let rec secrets_are_different
     test_mod `logor_one_bit` re
 
 noextract
-[@must_inline]
+[@"opaque_to_smt" must_inline]
 let secrets_are_equal
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
@@ -276,6 +280,7 @@ let secrets_are_equal
   })
 = lognot_one_bit (secrets_are_different size x y)
 
+[@"opaque_to_smt"]
 inline_for_extraction
 noextract
 let one_bit_lt
@@ -286,6 +291,7 @@ let one_bit_lt
 : Tot (z: int_t t sec { v z == (if v x < v y then 1 else 0) })
 = lognot_one_bit x `logand_one_bit` y
 
+[@"opaque_to_smt"]
 inline_for_extraction
 noextract
 let one_bit_eq
@@ -318,6 +324,7 @@ let rec secret_is_lt
 
 #restart-solver
 
+[@"opaque_to_smt"]
 inline_for_extraction
 noextract
 let highest_bit
@@ -330,6 +337,7 @@ let highest_bit
 
 #pop-options
 
+[@"opaque_to_smt"]
 inline_for_extraction
 noextract
 let lowest_bits
@@ -341,8 +349,10 @@ let lowest_bits
 = FStar.Math.Lemmas.pow2_le_compat (bits t) (size); 
   x `logand` mod_mask (mk_int (size - 1))
 
+#push-options "--z3rlimit 16"
+
 noextract
-[@must_inline]
+[@"opaque_to_smt" must_inline]
 let rec secret_is_lt
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
@@ -362,7 +372,7 @@ let rec secret_is_lt
     ((xh `one_bit_eq` yh) `logand_one_bit` secret_is_lt (size - 1) xl yl)
 
 noextract
-[@must_inline]
+[@"opaque_to_smt" must_inline]
 let rec secret_is_le
   (#t: inttype { supported_type t })
   (#sec: secrecy_level)
@@ -381,9 +391,11 @@ let rec secret_is_le
     (xh `one_bit_lt` yh) `logor_one_bit`
     ((xh `one_bit_eq` yh) `logand_one_bit` secret_is_le (size - 1) xl yl)
 
+#pop-options
+
 inline_for_extraction
 noextract
-[@must_inline]
+[@"opaque_to_smt" must_inline]
 let min
   (#t: inttype { supported_type t })
   (n: nat { n == bits t })
@@ -395,7 +407,7 @@ let min
 
 inline_for_extraction
 noextract
-[@must_inline]
+[@"opaque_to_smt" must_inline]
 let max
   (#t: inttype { supported_type t })
   (n: nat { n == bits t })
