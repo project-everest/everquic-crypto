@@ -36,7 +36,8 @@ let validate_varint #rrel #rel sl pos =
   else
     let b = LI.read_u8 sl pos in
     let kd = uint8.get_bitfield b 6 8 in
-    let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+    let msb8 = uint8.get_bitfield b 0 6 in
+    let msb = Cast.uint8_to_uint64 (msb8) in
     if kd = 0uy
     then pos1
     else if kd = 1uy
@@ -104,7 +105,8 @@ let read_varint #rrel #rel sl pos =
   let pos1 = LI.jump_u8 sl pos in
   let b = LI.read_u8 sl pos in
   let kd = uint8.get_bitfield b 6 8 in
-  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+  let msb8 = uint8.get_bitfield b 0 6 in
+  let msb = Cast.uint8_to_uint64 (msb8) in
   if kd = 0uy
   then msb
   else if kd = 1uy
@@ -151,7 +153,8 @@ let jump_varint #rrel #rel sl pos =
   let pos1 = LI.jump_u8 sl pos in
   let b = LI.read_u8 sl pos in
   let kd = uint8.get_bitfield b 6 8 in
-  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+  let msb8 = uint8.get_bitfield b 0 6 in
+  let msb = Cast.uint8_to_uint64 (msb8) in
   if kd = 0uy
   then pos1
   else if kd = 1uy

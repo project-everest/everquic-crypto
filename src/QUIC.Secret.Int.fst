@@ -44,7 +44,10 @@ let lognot_one_bit = Aux.lognot_one_bit
 let get_bitfield
   #t #l x lo hi
 = BF.get_bitfield_eq_2 #(bits t) (v x) (U32.v lo) (U32.v hi);
-  (x `shift_left` (U32.uint_to_t (bits t) `U32.sub` hi)) `shift_right` (U32.uint_to_t (bits t) `U32.sub` hi `U32.add` lo)
+  // due to https://github.com/FStarLang/kremlin/issues/102 we need explicit intermediate operations here
+  let op1 = x `shift_left` (U32.uint_to_t (bits t) `U32.sub` hi) in
+  let op2 = op1 `shift_right` (U32.uint_to_t (bits t) `U32.sub` hi `U32.add` lo) in
+  op2
 
 #restart-solver
 
@@ -52,8 +55,15 @@ let set_bitfield
   #t #l x lo hi w
 = BF.set_bitfield_eq #(bits t) (v x) (U32.v lo) (U32.v hi) (v w);
   U.lognot_lemma_1 #(bits t);
-  (x `logand` lognot' ((ones t l `shift_right` (U32.uint_to_t (bits t) `U32.sub` (hi `U32.sub` lo))) `shift_left` lo)) `logor` (w `shift_left` lo)
-
+  // same as before
+  let op0 = ones t l in
+  let op1 = op0  `shift_right` (U32.uint_to_t (bits t) `U32.sub` (hi `U32.sub` lo)) in
+  let op2 = op1 `shift_left` lo in
+  let op3 = lognot' op2 in
+  let op4 = x `logand` op3 in
+  let op5 = w `shift_left` lo in
+  let op6 = op4 `logor` op5 in
+  op6
 #pop-options
 
 (* Instances *)

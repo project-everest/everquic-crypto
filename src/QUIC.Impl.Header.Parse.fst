@@ -18,14 +18,18 @@ let impl_short_protected_bits
   (key_phase: secret_bitfield 1)
   (pnl: PN.packet_number_length_t)
 : Tot (x: Secret.uint8 { Secret.reveal x == mk_short_protected_bits (Secret.reveal reserved_bits) (Secret.v key_phase = 1) pnl })
-= Secret.set_bitfield #Secret.U8 (Secret.set_bitfield #Secret.U8 (Secret.set_bitfield #Secret.U8 (Secret.to_u8 0uy) 0ul 2ul (Secret.to_u8 pnl `Secret.sub` Secret.to_u8 1uy)) 2ul 3ul key_phase) 3ul 5ul reserved_bits
+= // https://github.com/FStarLang/kremlin/issues/1024
+  let pnl_1 = Secret.to_u8 pnl `Secret.sub` Secret.to_u8 1uy in
+Secret.set_bitfield #Secret.U8 (Secret.set_bitfield #Secret.U8 (Secret.set_bitfield #Secret.U8 (Secret.to_u8 0uy) 0ul 2ul (pnl_1)) 2ul 3ul key_phase) 3ul 5ul reserved_bits
 
 [@"opaque_to_smt"]
 let impl_long_protected_bits
   (reserved_bits: secret_bitfield 2)
   (pnl: PN.packet_number_length_t)
 : Tot (x: Secret.uint8 { Secret.reveal x == mk_long_protected_bits (Secret.reveal reserved_bits) pnl })
-= Secret.set_bitfield #Secret.U8 (Secret.set_bitfield #Secret.U8 (Secret.to_u8 0uy) 0ul 2ul (Secret.to_u8 pnl `Secret.sub` Secret.to_u8 1uy)) 2ul 4ul reserved_bits
+= // https://github.com/FStarLang/kremlin/issues/1024
+  let pnl_1 = Secret.to_u8 pnl `Secret.sub` Secret.to_u8 1uy in
+  Secret.set_bitfield #Secret.U8 (Secret.set_bitfield #Secret.U8 (Secret.to_u8 0uy) 0ul 2ul (pnl_1)) 2ul 4ul reserved_bits
 
 let p_header
   (h: header)
@@ -214,7 +218,9 @@ let impl_protected_bits_pn_length
   (is_short: bool)
   (pb: secret_bitfield (if is_short then 5 else 4))
 : Tot (y: PN.packet_number_length_t { y == protected_bits_pn_length is_short (Secret.reveal pb) })
-= Secret.to_u32 #Secret.U8 (Secret.to_u8 1uy `Secret.add` Secret.get_bitfield #Secret.U8 pb 0ul 2ul)
+= // https://github.com/FStarLang/kremlin/issues/102
+  let bf = Secret.get_bitfield #Secret.U8 pb 0ul 2ul in
+  Secret.to_u32 #Secret.U8 (Secret.to_u8 1uy `Secret.add` bf)
 
 let impl_protected_bits_reserved
   (is_short: bool)

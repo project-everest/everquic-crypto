@@ -389,7 +389,9 @@ let header_encrypt_ct_secret_preserving_not_retry
   assert (mask_0 == Seq.index gmask 0);
   let f_ = B.index dst 0ul in
   assert (f_ == Seq.index (B.as_seq m0 dst) 0);
-  let f' = Secret.set_bitfield f_ 0ul protected_bits (Secret.get_bitfield (f_ `Secret.logxor` mask_0) 0ul protected_bits) in
+  let f_logxor = f_ `Secret.logxor` mask_0 in
+  let f_get_bf = Secret.get_bitfield f_logxor 0ul protected_bits in
+  let f' = Secret.set_bitfield f_ 0ul protected_bits f_get_bf in
   Lemmas.op_inplace dst pnmask 4ul pn_offset (Secret.logxor #Secret.U8 #Secret.SEC);
   let m5 = HST.get () in
   let gr1 = Ghost.hide (Lemmas.secret_xor_inplace (B.as_seq m0 dst) gpnmask (U32.v pn_offset)) in
@@ -709,7 +711,9 @@ let header_decrypt_aux_ct_secret_preserving_not_retry'
   assert (B.as_seq m4 mask == Ghost.reveal gmask);
   let protected_bits = if is_short then 5ul else 4ul in
   let mask0 = B.index mask 0ul in
-  let f' = Secret.set_bitfield f 0ul protected_bits (Secret.get_bitfield (f `Secret.logxor` mask0) 0ul protected_bits) in
+  let f_logxor = f `Secret.logxor` mask0 in
+  let f_bf = Secret.get_bitfield (f_logxor) 0ul protected_bits in
+  let f' = Secret.set_bitfield f 0ul protected_bits f_bf in
   B.upd dst 0ul f';
   let m5 = HST.get () in
   let gpacket' = Ghost.hide (Seq.cons f' (Seq.slice (B.as_seq m0 dst) 1 (B.length dst))) in
@@ -842,8 +846,10 @@ let header_decrypt_aux
   then HD_Failure
   else
     let f = B.index dst 0ul in
-    let isshort = BF.uint8.BF.get_bitfield f 7 8 = 0uy in
-    let isretry = not isshort && (BF.uint8.BF.get_bitfield f 4 6 = 3uy) in
+    let short_or_long = BF.uint8.BF.get_bitfield f 7 8 in
+    let isshort = short_or_long = 0uy in
+    let retry_or_other = BF.uint8.BF.get_bitfield f 4 6 in
+    let isretry = not isshort && (retry_or_other = 3uy) in
     if isretry
     then HD_Success_Retry
     else match ParseImpl.putative_pn_offset cid_len dst dst_len with
