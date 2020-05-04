@@ -180,7 +180,7 @@ let write_header
       m1
       B.loc_none
       B.loc_none
-      0ul 0ul 0ul 4ul 0ul 0ul
+      1ul 0ul 0ul 4ul 1ul 0ul
       (fun _ contl cont _ _ ->
         contl == LP.serialize (Public.serialize_header cid_len) (Public.g_header ph m) /\
         Seq.slice cont 0 (Secret.v pn_len) `Seq.equal` LP.serialize (PN.serialize_packet_number last pn_len) pn
@@ -339,7 +339,7 @@ let read_header
       m1
       B.loc_none
       B.loc_none
-      0ul 0ul 0ul 0ul 0ul 0ul
+      1ul 0ul 1ul 0ul 1ul 0ul
       (fun pn _ cont _ _ ->
         match LP.parse (PN.parse_packet_number last pn_len) cont with
         | None -> False

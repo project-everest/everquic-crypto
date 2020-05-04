@@ -10,7 +10,16 @@ module Ghost = FStar.Ghost
 
 module U32 = FStar.UInt32
 
-#set-options "--z3rlimit 16"
+#set-options "--z3rlimit 32"
+
+let loc_buffer_from_to_if
+  (#t: Type)
+  (b: B.buffer t)
+  (from to: U32.t)
+: GTot B.loc
+= if U32.v to < U32.v from || U32.v to > B.length b
+  then B.loc_none
+  else B.loc_buffer (B.gsub b from (to `U32.sub` from))
 
 inline_for_extraction
 noextract
@@ -22,12 +31,7 @@ val with_buffer_hide
   (h0: HS.mem)
   (lin: Ghost.erased B.loc { B.loc_disjoint (Ghost.reveal lin) (B.loc_buffer b) })
   (lout: Ghost.erased B.loc { B.loc_disjoint (Ghost.reveal lout) (B.loc_buffer b) })
-  (x1 x2 x3 x4 x5: Ghost.erased U32.t)
-  (x6: Ghost.erased U32.t {
-    U32.v x1 <= U32.v x2 /\ U32.v x2 <= U32.v from /\
-    U32.v x3 <= U32.v x4 /\ U32.v x4 <= U32.v to - U32.v from /\
-    U32.v x5 <= U32.v x6 /\ U32.v x6 <= B.length b - U32.v to
-  })
+  (x1 x2 x3 x4 x5 x6: Ghost.erased U32.t)
   (post: (res: t) ->  (contl: Seq.lseq U8.t (U32.v from)) ->  (cont: Seq.lseq U8.t (U32.v to - U32.v from)) ->  (contr: Seq.lseq U8.t (B.length b - U32.v to)) -> (h: HS.mem) -> GTot Type0)
   (f: (
     (l: Ghost.erased B.loc) ->
@@ -46,7 +50,7 @@ val with_buffer_hide
       B.as_seq h br == B.as_seq h0 (B.gsub b to (B.len b `U32.sub` to))
     ))
     (ensures (fun h res h' ->
-      B.modifies (Ghost.reveal lout `B.loc_union` (if U32.v x1 = U32.v x2 then B.loc_none else B.loc_buffer (B.gsub bl x1 (x2 `U32.sub` x1))) `B.loc_union` (if U32.v x3 = U32.v x4 then B.loc_none else B.loc_buffer (B.gsub bs x3 (x4 `U32.sub` x3))) `B.loc_union` (if U32.v x5 = U32.v x6 then B.loc_none else B.loc_buffer (B.gsub br x5 (x6 `U32.sub` x5)))) h h' /\
+      B.modifies (Ghost.reveal lout `B.loc_union` loc_buffer_from_to_if bl x1 x2 `B.loc_union` loc_buffer_from_to_if bs x3 x4 `B.loc_union` loc_buffer_from_to_if br x5 x6) h h' /\
       post res (B.as_seq h' bl) (Seq.seq_reveal (B.as_seq h' bs)) (B.as_seq h' br) h'
     ))
   ))
@@ -56,15 +60,13 @@ val with_buffer_hide
     h0 == h
   ))
   (ensures (fun h res h' ->
-    B.modifies (Ghost.reveal lout `B.loc_union` (if U32.v x1 = U32.v x2 then B.loc_none else B.loc_buffer (B.gsub b x1 (x2 `U32.sub` x1))) `B.loc_union` (if U32.v x3 = U32.v x4 then B.loc_none else B.loc_buffer (B.gsub b (from `U32.add` x3) (x4 `U32.sub` x3))) `B.loc_union` (if U32.v x5 = U32.v x6 then B.loc_none else B.loc_buffer (B.gsub b (to `U32.add` x5) (x6 `U32.sub` x5)))) h h' /\
+    B.modifies (Ghost.reveal lout `B.loc_union` loc_buffer_from_to_if (B.gsub b 0ul from) x1 x2 `B.loc_union` loc_buffer_from_to_if (B.gsub b from (to `U32.sub` from)) x3 x4 `B.loc_union` loc_buffer_from_to_if (B.gsub b to (B.len b `U32.sub` to)) x5 x6) h h' /\
     post res (B.as_seq h' (B.gsub b 0ul from)) (B.as_seq h' (B.gsub b from (to `U32.sub` from))) (B.as_seq h' (B.gsub b to (B.len b `U32.sub` to))) h'
   ))
 
-(* NOTE: this CANNOT be derived from with_buffer_hide, because the footprint of a zero-length buffer is not B.loc_none *)
-
 inline_for_extraction
 noextract
-val with_buffer_hide_weak_modifies
+let with_buffer_hide_weak_modifies
   (#t: Type)
   (b: B.buffer U8.t)
   (from: U32.t)
@@ -104,6 +106,26 @@ val with_buffer_hide_weak_modifies
     B.modifies (Ghost.reveal lout `B.loc_union` (if Ghost.reveal modifies_left then B.loc_buffer (B.gsub b 0ul from) else B.loc_none) `B.loc_union` (if Ghost.reveal modifies_secret then B.loc_buffer (B.gsub b from (to `U32.sub` from)) else B.loc_none) `B.loc_union` (if Ghost.reveal modifies_right then B.loc_buffer (B.gsub b to (B.len b `U32.sub` to)) else B.loc_none)) h h' /\
     post res (B.as_seq h' (B.gsub b 0ul from)) (B.as_seq h' (B.gsub b from (to `U32.sub` from))) (B.as_seq h' (B.gsub b to (B.len b `U32.sub` to))) h'
   ))
+=
+  with_buffer_hide
+    b
+    from
+    to
+    h0
+    lin
+    lout
+    (if Ghost.reveal modifies_left then 0ul else 1ul) (if Ghost.reveal modifies_left then from else 0ul)
+    (if Ghost.reveal modifies_secret then 0ul else 1ul) (if Ghost.reveal modifies_secret then (to `U32.sub` from) else 0ul)
+    (if Ghost.reveal modifies_right then 0ul else 1ul) (if Ghost.reveal modifies_right then (B.len b `U32.sub` to) else 0ul)
+    post
+    (fun l bl bs br ->
+      B.gsub_zero_length bl;
+      B.gsub_zero_length bs;
+      B.gsub_zero_length br;
+      f l bl bs br
+    )
+
+(* NOTE: this CANNOT be derived from with_buffer_hide, because `to` should be the length, which is ghost *)
 
 inline_for_extraction
 noextract
@@ -114,11 +136,7 @@ val with_buffer_hide_from
   (h0: HS.mem)
   (lin: Ghost.erased B.loc { B.loc_disjoint (Ghost.reveal lin) (B.loc_buffer b) })
   (lout: Ghost.erased B.loc { B.loc_disjoint (Ghost.reveal lout) (B.loc_buffer b) })
-  (x1 x2 x3: Ghost.erased U32.t)
-  (x4: Ghost.erased U32.t {
-    U32.v x1 <= U32.v x2 /\ U32.v x2 <= U32.v from /\
-    U32.v x3 <= U32.v x4 /\ U32.v x4 <= B.length b - U32.v from
-  })
+  (x1 x2 x3 x4: Ghost.erased U32.t)
   (post: (res: t) ->  (contl: Seq.lseq U8.t (U32.v from)) ->  (cont: Seq.lseq U8.t (B.length b - U32.v from)) -> (h: HS.mem) -> GTot Type0)
   (f: (
     (l: Ghost.erased B.loc) ->
@@ -134,7 +152,7 @@ val with_buffer_hide_from
       B.as_seq h bs == Seq.seq_hide #Secret.U8 (B.as_seq h0 (B.gsub b from (B.len b `U32.sub` from)))
     ))
     (ensures (fun h res h' ->
-      B.modifies (Ghost.reveal lout `B.loc_union` (if U32.v x1 = U32.v x2 then B.loc_none else B.loc_buffer (B.gsub bl x1 (x2 `U32.sub` x1))) `B.loc_union` (if U32.v x3 = U32.v x4 then B.loc_none else B.loc_buffer (B.gsub bs x3 (x4 `U32.sub` x3)))) h h' /\
+      B.modifies (Ghost.reveal lout `B.loc_union` loc_buffer_from_to_if bl x1 x2 `B.loc_union` loc_buffer_from_to_if bs x3 x4) h h' /\
       post res (B.as_seq h' bl) (Seq.seq_reveal (B.as_seq h' bs)) h'
     ))
   ))
@@ -144,13 +162,13 @@ val with_buffer_hide_from
     h0 == h
   ))
   (ensures (fun h res h' ->
-    B.modifies (Ghost.reveal lout `B.loc_union` (if U32.v x1 = U32.v x2 then B.loc_none else B.loc_buffer (B.gsub b x1 (x2 `U32.sub` x1))) `B.loc_union` (if U32.v x3 = U32.v x4 then B.loc_none else B.loc_buffer (B.gsub b (from `U32.add` x3) (x4 `U32.sub` x3)))) h h' /\
+    B.modifies (Ghost.reveal lout `B.loc_union` loc_buffer_from_to_if (B.gsub b 0ul from) x1 x2 `B.loc_union` loc_buffer_from_to_if (B.gsub b from (B.len b `U32.sub` from)) x3 x4) h h' /\
     post res (B.as_seq h' (B.gsub b 0ul from)) (B.as_seq h' (B.gsub b from (B.len b `U32.sub` from))) h'
   ))
 
 inline_for_extraction
 noextract
-val with_buffer_hide_from_weak_modifies
+let with_buffer_hide_from_weak_modifies
   (#t: Type)
   (b: B.buffer U8.t)
   (from: U32.t { U32.v from <= B.length b })
@@ -186,6 +204,21 @@ val with_buffer_hide_from_weak_modifies
     B.modifies (Ghost.reveal lout `B.loc_union` (if Ghost.reveal modifies_left then B.loc_buffer (B.gsub b 0ul from) else B.loc_none) `B.loc_union` (if Ghost.reveal modifies_secret then B.loc_buffer (B.gsub b from (B.len b `U32.sub` from)) else B.loc_none)) h h' /\
     post res (B.as_seq h' (B.gsub b 0ul from)) (B.as_seq h' (B.gsub b from (B.len b `U32.sub` from))) h'
   ))
+=
+  with_buffer_hide_from
+    b
+    from
+    h0
+    lin
+    lout
+    (if Ghost.reveal modifies_left then 0ul else 1ul) (if Ghost.reveal modifies_left then from else 0ul)
+    (if Ghost.reveal modifies_secret then 0ul else 1ul) (if Ghost.reveal modifies_secret then B.len b `U32.sub` from else 0ul)
+    post
+    (fun l bl bs ->
+      B.gsub_zero_length bl;
+      B.gsub_zero_length bs;
+      f l bl bs
+    )
 
 inline_for_extraction
 noextract

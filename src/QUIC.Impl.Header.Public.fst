@@ -950,7 +950,7 @@ let write_header
     h1
     B.loc_none
     B.loc_none
-    0ul 0ul 0ul 1ul 0ul 0ul
+    1ul 0ul 0ul 1ul 1ul 0ul
     post
     (fun _ bl bs br ->
       let x = B.index bs 0ul in
