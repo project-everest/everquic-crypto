@@ -1226,21 +1226,23 @@ let decrypt'_post
     B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer (B.gsub dst 0ul (Secret.reveal r.total_len))) m m'
   | DecodeError, Spec.Failure ->
     B.modifies B.loc_none m m'
-  | Success, Spec.Success h plain rem ->
+  | Success, Spec.Success gh plain rem ->
     let r = B.deref m' dst_hdr in
     let h = r.header in
     header_live h m' /\
+    gh == g_header h m' r.pn /\
     r.header_len == header_len h /\
     Secret.v r.plain_len == Seq.length plain /\
     Secret.v r.header_len + Secret.v r.plain_len <= Secret.v r.total_len /\
-    Secret.v r.total_len <= B.length dst /\ (
-      let dst_mod = B.gsub dst 0ul (Secret.reveal r.total_len) in
-      B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer dst_mod) m m' /\
+    Secret.v r.total_len <= B.length dst /\
+    B.loc_buffer (B.gsub dst 0ul (public_header_len h)) `B.loc_includes` header_footprint h /\
+    (
+      B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer (B.gsub dst 0ul (Secret.reveal r.total_len))) m m' /\
       B.as_seq m' (B.gsub dst 0ul (Secret.reveal r.header_len)) `Seq.equal` QUIC.Spec.Header.Parse.format_header (g_header h m' r.pn) /\
       B.as_seq m' (B.gsub dst (Secret.reveal r.header_len) (Secret.reveal r.plain_len)) `Seq.equal` plain /\
       B.as_seq m' (B.gsub dst (Secret.reveal r.total_len) (B.len dst `U32.sub` Secret.reveal r.total_len)) `Seq.equal` rem
     )
-  | _ -> True
+  | _ -> False
   end
 
 #push-options "--z3rlimit 256"
@@ -1350,11 +1352,40 @@ let decrypt'
 
 #pop-options
 
+#push-options "--z3rlimit 128"
 
 let decrypt
   #i s dst packet len cid_len
-= assume False;
-  UnsupportedAlgorithm
+=
+  let m0 = HST.get () in
+  let QUIC.Impl.Crypto.State hash_alg aead_alg e_traffic_secret e_initial_pn
+    aead_state iv hp_key bpn ctr_state = !*s
+  in
+  let last_pn = !* bpn in
+  let res = decrypt' aead_alg aead_state iv ctr_state hp_key packet len dst last_pn (FStar.Int.Cast.uint8_to_uint32 cid_len) in
+  let m1 = HST.get () in
+  if res = Success
+  then begin
+    let r = B.index dst 0ul in
+    let pn = r.pn in
+    let pn' = Secret.max last_pn pn in
+    B.upd bpn 0ul pn';
+    let m2 = HST.get () in
+    assert (B.modifies (footprint m0 s) m1 m2);
+    frame_header r.header pn  (footprint m0 s) m1 m2;
+    assert (
+      let k = derive_k i s m0 in
+      let iv = derive_iv i s m0 in
+      let pne = derive_pne i s m0 in
+      match Spec.decrypt i.aead_alg k iv pne (Secret.v last_pn) (U8.v cid_len) (B.as_seq m0 packet) with
+      | Spec.Success gh plain rem ->
+        B.as_seq m1 (B.gsub packet (Secret.reveal r.header_len) (Secret.reveal r.plain_len)) == plain
+      | _ -> False
+    )
+  end;
+  res
+
+#pop-options
 
 
 (*

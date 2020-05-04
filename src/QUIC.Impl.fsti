@@ -139,9 +139,6 @@ val initial_secrets (dst_client: B.buffer Secret.uint8)
     (ensures (fun h0 _ h1 ->
       B.(modifies (loc_buffer dst_client `loc_union` loc_buffer dst_server) h0 h1)))
 
-noextract
-let max (x y: nat) = if x >= y then x else y
-
 unfold
 let decrypt_post (i: index)
   (s:state i)
@@ -159,6 +156,7 @@ let decrypt_post (i: index)
     incrementable s h0)
   (ensures fun _ -> True)
 =
+  let max (x y: nat) : Tot nat = if x >= y then x else y in
   let k = derive_k i s h0 in
   let iv = derive_iv i s h0 in
   let pne = derive_pne i s h0 in
@@ -182,13 +180,14 @@ let decrypt_post (i: index)
       
       // Contents
       (
+      let fmt = B.as_seq h1 (B.gsub packet 0ul (Secret.reveal r.header_len)) in
       let plain =
-        S.slice (B.as_seq h1 packet) (Secret.v r.header_len)
-          (Secret.v r.header_len + Secret.v r.plain_len) in
+        B.as_seq h1 (B.gsub packet (Secret.reveal r.header_len) (Secret.reveal r.plain_len)) in
       let rem = B.as_seq h0 (B.gsub packet (Secret.reveal r.total_len) (B.len packet `U32.sub `Secret.reveal r.total_len)) in
       match Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
       | Spec.Success h' plain' rem' ->
         h' == g_header r.header h1 r.pn /\
+        fmt == QUIC.Spec.Header.Parse.format_header h' /\
         plain' == plain /\
         rem' == rem
       | _ -> False
