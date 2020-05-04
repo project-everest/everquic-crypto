@@ -58,14 +58,14 @@ let set_bitfield
 
 (* Instances *)
 
-
 let secrets_are_equal_32_2
   (x: uint32 { v x < pow2 2 })
   (y: uint32 { v y < pow2 2 })
 : Tot (z: uint32 {
     v z == (if v x = v y then 1 else 0)
   })
-= norm [delta_attr [(`%Aux.must_inline)]; iota; zeta; primops] (Aux.secrets_are_equal 2 x y)
+= Aux.secrets_are_equal' x y
+//  norm [delta_attr [(`%Aux.must_inline)]; iota; zeta; primops] (Aux.secrets_are_equal 2 x y)
 
 let secret_is_le_64
   (x: uint64)
@@ -93,8 +93,9 @@ let secrets_are_equal_62
 : Tot (z: uint64 {
     v z == (if v x = v y then 1 else 0)
   })
-= norm [delta_attr [(`%Aux.must_inline)]; iota; zeta; primops] (Aux.secrets_are_equal 62 x y)
+= // Aux.secrets_are_equal' x y
+  norm [delta_attr [(`%Aux.must_inline)]; iota; zeta; primops] (Aux.secrets_are_equal 62 x y)
 
-let min64 = Aux.min64
+let min64 x y = Aux.min64 x y
 
-let max64 = Aux.max64
+let max64 x y = Aux.max64 x y

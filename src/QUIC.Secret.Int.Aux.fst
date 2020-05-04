@@ -416,6 +416,43 @@ let max
 = let cond = secret_is_le n y x in
   (cond `mul` x) `add` (lognot_one_bit cond `mul` y)
 
+#push-options "--z3rlimit 32"
+
+[@"opaque_to_smt"]
+noextract
+inline_for_extraction
+let ff00_to_10
+  (#t: inttype { supported_type t })
+  (#sec: secrecy_level)
+  (x: int_t t sec { v x == 0 \/ v x == U.ones (bits t) })
+: Tot (y: int_t t sec { v y == (if v x = 0 then 0 else 1) })
+= logand_zeros (mk_int #t #sec 1);
+  logand_ones (mk_int #t #sec 1);
+  mk_int 1 `logand` x
+
+#pop-options
+
+[@"opaque_to_smt"]
+noextract
+inline_for_extraction
+let secrets_are_equal'
+  (#t: inttype { supported_type t })
+  (x: int_t t SEC)
+  (y: int_t t SEC)
+: Tot (z: int_t t SEC { v z == (if v x = v y then 1 else 0) })
+  (decreases (size))
+= ff00_to_10 (eq_mask x y)
+
+[@"opaque_to_smt"]
+noextract
+inline_for_extraction
+let secret_is_lt'
+  (#t: inttype { supported_type t })
+  (x: int_t t SEC)
+  (y: int_t t SEC)
+: Tot (z: int_t t SEC { v z == (if v x < v y then 1 else 0) })
+  (decreases (size))
+= ff00_to_10 (lt_mask x y)
 
 val min64
   (x y: uint64)
@@ -425,6 +462,11 @@ let min64
   x y
 =
   norm [delta_attr [(`%must_inline)]; iota; zeta; primops] (min 64 x y)
+
+(*
+let cond = secret_is_lt' x y in
+  (cond `mul` x) `add` (lognot_one_bit cond `mul` y)
+*)
 
 val max64
   (x y: uint64)
