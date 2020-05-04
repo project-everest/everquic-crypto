@@ -410,6 +410,9 @@ let encrypt
 
 #pop-options
 
+
+
+
 (*
 #push-options "--z3rlimit 256"
 inline_for_extraction
@@ -1055,10 +1058,356 @@ let p62: x:U64.t { U64.v x = pow2 62 } =
 
 #restart-solver
 
+
+unfold
+let payload_decrypt_pre
+  (a: ea)
+  (s: AEAD.state a)
+  (siv: B.buffer Secret.uint8)
+  (dst: B.buffer Secret.uint8)
+  (h: header { ~ (is_retry h) })
+  (pn: Ghost.erased (PN.packet_number_t))
+  (cipher_and_tag_len: Secret.uint32)
+  (m: HS.mem)
+: GTot Type0
+=
+  let gh = g_header h m pn in
+  let fmt = SParse.format_header gh in
+  let hlen = header_len h in
+
+  B.all_disjoint [
+    AEAD.footprint m s;
+    B.loc_buffer siv;
+    B.loc_buffer dst;
+  ] /\
+
+  AEAD.invariant m s /\
+  B.live m siv /\ B.length siv == 12 /\
+  Secret.v cipher_and_tag_len >= SAEAD.tag_length a /\
+  Secret.v hlen + Secret.v cipher_and_tag_len <= B.length dst /\
+  Secret.v cipher_and_tag_len < max_cipher_length /\
+  B.live m dst /\
+  B.as_seq m (B.gsub dst 0ul (Secret.reveal hlen)) `Seq.equal` Seq.seq_hide fmt
+
+unfold
+let payload_decrypt_post
+  (a: ea)
+  (s: AEAD.state a)
+  (siv: B.buffer Secret.uint8)
+  (dst: B.buffer Secret.uint8)
+  (h: header { ~ (is_retry h) })
+  (pn: G.erased PN.packet_number_t)
+  (cipher_and_tag_len: Secret.uint32)
+  (m: HS.mem)
+  (res: error_code)
+  (m' : HS.mem)
+: GTot Type0
+=
+  payload_decrypt_pre a s siv dst h pn cipher_and_tag_len m /\
+  begin
+    let bplain = B.gsub dst (Secret.reveal (header_len h)) (Secret.reveal cipher_and_tag_len `U32.sub` U32.uint_to_t (SAEAD.tag_length a)) in
+    B.modifies (B.loc_buffer bplain `B.loc_union` AEAD.footprint m s) m m' /\
+    AEAD.invariant m' s /\ AEAD.footprint m' s == AEAD.footprint m s /\
+    AEAD.preserves_freeable s m m' /\
+    AEAD.as_kv (B.deref m' s) == AEAD.as_kv (B.deref m s) /\
+    begin match res, Spec.payload_decrypt a (AEAD.as_kv (B.deref m s)) (B.as_seq m siv) (g_header h m pn) (B.as_seq m (B.gsub dst (Secret.reveal (header_len h)) (Secret.reveal cipher_and_tag_len))) with
+    | Success, Some plain ->
+True //      B.as_seq m' bplain `Seq.equal` plain
+    | AuthenticationFailure, None -> True
+    | _ -> False
+    end
+  end
+
+#push-options "--z3rlimit 32"
+
+let payload_decrypt
+  (a: ea)
+  (s: AEAD.state a)
+  (siv: B.buffer Secret.uint8)
+  (dst: B.buffer Secret.uint8)
+  (h: header { ~ (is_retry h) })
+  (pn: PN.packet_number_t)
+  (cipher_and_tag_len: Secret.uint32)
+: HST.Stack error_code
+  (requires (fun m ->
+    payload_decrypt_pre a s siv dst h pn cipher_and_tag_len m
+  ))
+  (ensures (fun m res m' ->
+    payload_decrypt_post a s siv dst h pn cipher_and_tag_len m res m'
+  ))
+= 
+  let m0 = HST.get () in
+  let hlen = header_len h in
+  QUIC.Impl.Header.Parse.header_len_correct h m0 pn;
+  let pn_len = pn_length h in
+  let gh = Ghost.hide (g_header h m0 pn) in
+  HST.push_frame ();
+  let m1 = HST.get () in
+  B.loc_unused_in_not_unused_in_disjoint m1;
+  let iv = B.alloca (Secret.to_u8 0uy) 12ul in
+  let cipher_len = cipher_and_tag_len `Secret.usub` Secret.hide 16ul in
+
+  (* EverCrypt currently does not support secret length encryption, so
+  whenever we need to define the arguments to EverCrypt.AEAD.encrypt,
+  we need to (locally there and only there) declassify the lengths of
+  the aad, plain, cipher and tag buffers. *)
+  let aad = B.sub dst 0ul (ADMITDeclassify.u32_to_UInt32 hlen) in
+  let cipher = B.sub dst (ADMITDeclassify.u32_to_UInt32 hlen) (ADMITDeclassify.u32_to_UInt32 cipher_len) in
+  let tag = B.sub dst (ADMITDeclassify.u32_to_UInt32 (hlen `Secret.add` cipher_len)) 16ul in
+
+  iv_for_encrypt_decrypt a siv iv gh pn_len pn;
+  let res = AEAD.decrypt #a s iv 12ul aad (ADMITDeclassify.u32_to_UInt32 hlen) cipher (ADMITDeclassify.u32_to_UInt32 cipher_len) tag cipher in
+  assert (B.as_seq m0 (B.gsub dst (Secret.reveal hlen) (Secret.reveal cipher_and_tag_len)) `Seq.equal` (B.as_seq m0 cipher `Seq.append` B.as_seq m0 tag));
+  HST.pop_frame ();
+  res
+
+#pop-options
+
+unfold
+let decrypt'_pre
+  (a: ea)
+  (aead: AEAD.state a)
+  (siv: B.buffer Secret.uint8)
+  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (hpk: B.buffer Secret.uint8)
+  (dst: B.buffer U8.t)
+  (dst_len: U32.t)
+  (dst_hdr: B.pointer result)
+  (last_pn: PN.last_packet_number_t)
+  (cid_len: short_dcid_len_t)
+  (m: HS.mem)
+: GTot Type0
+=
+  let a' = SAEAD.cipher_alg_of_supported_alg a in
+  B.all_disjoint [
+    AEAD.footprint m aead;
+    B.loc_buffer siv;
+    CTR.footprint m ctr;
+    B.loc_buffer hpk;
+    B.loc_buffer dst;
+    B.loc_buffer dst_hdr;
+  ] /\
+  AEAD.invariant m aead /\
+  B.live m siv /\ B.length siv == 12 /\
+  CTR.invariant m ctr /\
+  B.live m hpk /\ B.length hpk == Spec.Agile.Cipher.key_length a' /\
+  B.live m dst /\ B.length dst == U32.v dst_len /\
+  B.live m dst_hdr
+
+unfold
+let decrypt'_post
+  (a: ea)
+  (aead: AEAD.state a)
+  (siv: B.buffer Secret.uint8)
+  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (hpk: B.buffer Secret.uint8)
+  (dst: B.buffer U8.t)
+  (dst_len: U32.t)
+  (dst_hdr: B.pointer result)
+  (last_pn: PN.last_packet_number_t)
+  (cid_len: short_dcid_len_t)
+  (m: HS.mem)
+  (res: error_code)
+  (m' : HS.mem)
+: GTot Type0
+=
+  decrypt'_pre a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len m /\
+  AEAD.invariant m' aead /\ AEAD.footprint m' aead == AEAD.footprint m aead /\
+  AEAD.preserves_freeable aead m m' /\
+  AEAD.as_kv (B.deref m' aead) == AEAD.as_kv (B.deref m aead) /\
+  CTR.invariant m' ctr /\ CTR.footprint m' ctr == CTR.footprint m ctr /\
+  begin match res, Spec.decrypt a (AEAD.as_kv (B.deref m aead)) (B.as_seq m siv) (B.as_seq m hpk) (Secret.v last_pn) (U32.v cid_len) (B.as_seq m dst) with
+  | AuthenticationFailure, Spec.Failure ->
+    let r = B.deref m' dst_hdr in
+    Secret.v r.total_len <= B.length dst /\
+    B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer (B.gsub dst 0ul (Secret.reveal r.total_len))) m m'
+  | DecodeError, Spec.Failure ->
+    B.modifies B.loc_none m m'
+  | Success, Spec.Success h plain rem ->
+    let r = B.deref m' dst_hdr in
+    let h = r.header in
+    header_live h m' /\
+    r.header_len == header_len h /\
+    Secret.v r.plain_len == Seq.length plain /\
+    Secret.v r.header_len + Secret.v r.plain_len == Secret.v r.total_len /\
+    Secret.v r.total_len <= B.length dst /\ (
+      let dst_mod = B.gsub dst 0ul (Secret.reveal r.total_len) in
+      B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer dst_mod) m m' /\
+      B.as_seq m' dst `Seq.equal` (QUIC.Spec.Header.Parse.format_header (g_header h m' r.pn) `Seq.append` plain `Seq.append` rem)
+    )
+  | _ -> False
+  end
+
+(*
+#push-options "--z3rlimit 64"
+let decrypt'
+  (a: ea)
+  (aead: AEAD.state a)
+  (siv: B.buffer Secret.uint8)
+  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (hpk: B.buffer Secret.uint8)
+  (dst: B.buffer U8.t)
+  (dst_len: U32.t)
+  (dst_hdr: B.pointer result)
+  (last_pn: PN.last_packet_number_t)
+  (cid_len: short_dcid_len_t)
+: HST.Stack error_code
+  (requires (fun m ->
+    decrypt'_pre a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len m
+  ))
+  (ensures (fun m res m' ->
+    decrypt'_post a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len m res m'
+  ))
+= let m0 = HST.get () in
+  match QUIC.Impl.Header.header_decrypt a ctr hpk cid_len last_pn dst dst_len with
+  | QUIC.Impl.Header.H_Failure -> DecodeError
+  | QUIC.Impl.Header.H_Success h pn cipher_and_tag_len ->
+    let m1 = HST.get () in
+    let hlen = header_len h in
+    QUIC.Impl.Header.Parse.header_len_correct h m1 pn;
+    if is_retry h
+    then begin
+      let r = {
+        pn = pn;
+        header = h;
+        header_len = hlen;
+        plain_len = Secret.hide 0ul;
+        total_len = hlen;
+      } in
+      B.upd dst_hdr 0ul r;
+      let m2 = HST.get () in
+      QUIC.Impl.Header.Base.frame_header h pn (B.loc_buffer dst_hdr) m1 m2;
+      Success
+    end else begin
+      let res = SecretBuffer.with_whole_buffer_hide_weak_modifies
+        #error_code
+        dst
+        m1
+        (AEAD.footprint m0 aead `B.loc_union`
+          B.loc_buffer siv `B.loc_union`
+          CTR.footprint m0 ctr `B.loc_union`
+          B.loc_buffer hpk `B.loc_union`
+          B.loc_buffer dst_hdr)
+        (AEAD.footprint m0 aead)
+        true
+        (fun res cont m_ ->
+          res == Success /\
+          cont `Seq.equal` (
+            fmt `Seq.append`
+            Spec.payload_encrypt a (AEAD.as_kv (B.deref m0 aead)) (B.as_seq m0 siv) (g_header h m0 pn) (Seq.seq_reveal (B.as_seq m0 plain))) /\
+          AEAD.invariant m_ aead /\ AEAD.footprint m_ aead == AEAD.footprint m0 aead /\
+          AEAD.preserves_freeable aead m1 m_ /\
+          AEAD.as_kv (B.deref m_ aead) == AEAD.as_kv (B.deref m0 aead)
+        )
+        (fun _ bs -> 
+          let res = payload_encrypt a aead siv bs gh pn_len pn header_len plain plain_len in
+          let m_ = HST.get () in
+          assert (
+            let cont = B.as_seq m_ bs in
+            Seq.length fmt == Secret.v header_len /\
+            cont `Seq.equal` (Seq.slice cont 0 (Secret.v header_len) `Seq.append` Seq.slice cont (Secret.v header_len) (Seq.length cont))
+          );
+          res
+        )
+      in
+
+  
+      let res = payload_decrypt a aead siv dst h pn cipher_and_tag_len in
+      let plain_len = cipher_and_tag_len `Secret.sub` Secret.hide 16ul in
+      let r = {
+        pn = pn;
+        header = h;
+        header_len = hlen;
+        plain_len = plain_len;
+        total_len = hlen `Secret.add` plain_len;
+      } in
+      B.upd dst_hdr 0ul r;
+      res
+    end
+*)    
+
+
 let decrypt
   #i s dst packet len cid_len
 = assume False;
   UnsupportedAlgorithm
+
+
+(*
+
+
+
+let m0 = HST.get () in
+  let gh = Ghost.hide (g_header h m0 pn) in
+  let fmt = Ghost.hide (QUIC.Spec.Header.Parse.format_header gh) in
+  let header_len = header_len h in
+  QUIC.Impl.Header.Parse.header_len_correct h m0 pn;
+  QUIC.Impl.Header.Base.header_len_v h;
+  let isretry = is_retry h in
+
+  if isretry
+  then begin
+    let dummy_pn_len = Secret.to_u32 1ul in
+    let m3 = HST.get () in
+    assert (
+      Seq.slice (B.as_seq m3 dst) (Secret.v header_len) (B.length dst) `Seq.equal` Seq.seq_reveal (B.as_seq m0 plain)
+    );
+    QUIC.Impl.Header.header_encrypt a ctr hpk dst gh false true (public_header_len h) dummy_pn_len;
+    let m4 = HST.get () in
+    assert (B.as_seq m4 dst `Seq.equal` QUIC.Spec.Header.header_encrypt a (B.as_seq m0 hpk) gh (Seq.seq_reveal (B.as_seq m0 plain)));
+    Success
+  end
+  else begin
+    let m1 = HST.get () in
+    let pn_len = pn_length h in
+    let res = SecretBuffer.with_whole_buffer_hide_weak_modifies
+      #error_code
+      dst
+      m1
+      (AEAD.footprint m0 aead `B.loc_union`
+        B.loc_buffer siv `B.loc_union`
+        CTR.footprint m0 ctr `B.loc_union`
+        B.loc_buffer hpk `B.loc_union`
+        B.loc_buffer plain)
+      (AEAD.footprint m0 aead)
+      true
+      (fun res cont m_ ->
+        res == Success /\
+        cont `Seq.equal` (
+          fmt `Seq.append`
+          Spec.payload_encrypt a (AEAD.as_kv (B.deref m0 aead)) (B.as_seq m0 siv) (g_header h m0 pn) (Seq.seq_reveal (B.as_seq m0 plain))) /\
+        AEAD.invariant m_ aead /\ AEAD.footprint m_ aead == AEAD.footprint m0 aead /\
+        AEAD.preserves_freeable aead m1 m_ /\
+        AEAD.as_kv (B.deref m_ aead) == AEAD.as_kv (B.deref m0 aead)
+      )
+      (fun _ bs -> 
+        let res = payload_encrypt a aead siv bs gh pn_len pn header_len plain plain_len in
+        let m_ = HST.get () in
+        assert (
+          let cont = B.as_seq m_ bs in
+          Seq.length fmt == Secret.v header_len /\
+          cont `Seq.equal` (Seq.slice cont 0 (Secret.v header_len) `Seq.append` Seq.slice cont (Secret.v header_len) (Seq.length cont))
+        );
+        res
+      )
+    in
+    match res with
+    | Success ->
+      let m3 = HST.get () in
+      assert (
+        Seq.slice (B.as_seq m3 dst) (Secret.v header_len) (B.length dst) `Seq.equal` Spec.payload_encrypt a (AEAD.as_kv (B.deref m0 aead)) (B.as_seq m0 siv) gh (Seq.seq_reveal (B.as_seq m0 plain))
+      );
+      QUIC.Impl.Header.header_encrypt a ctr hpk dst gh (BShort? h) isretry (public_header_len h) pn_len;
+      let m4 = HST.get () in
+      assert (B.as_seq m4 dst `Seq.equal` QUIC.Spec.Header.header_encrypt a (B.as_seq m0 hpk) gh (Spec.payload_encrypt a (AEAD.as_kv (B.deref m0 aead)) (B.as_seq m0 siv) gh (Seq.seq_reveal (B.as_seq m0 plain))));
+      res
+    | _ ->
+      assert False;
+      res
+  end
+
+#pop-options
+
 
 (*
 

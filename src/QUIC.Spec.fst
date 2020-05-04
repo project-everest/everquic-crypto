@@ -53,6 +53,18 @@ let encrypt
 
 #restart-solver
 
+let payload_decrypt
+  (a: ea)
+  (k: AEAD.kv a)
+  (siv: iv_t a)
+  (h: header { ~ (is_retry h) })
+  (c: Seq.seq Secret.uint8 { 16 <= Seq.length c /\ Seq.length c < max_cipher_length })
+: GTot (option (AEAD.decrypted c))
+= 
+  let iv = iv_for_encrypt_decrypt a siv h in
+  let aad = Parse.format_header h in
+  AEAD.decrypt #a k iv (Seq.seq_hide aad) c
+
 let decrypt
   a k siv hpk last cid_len packet
 =
@@ -63,10 +75,8 @@ let decrypt
   | H.H_Success h c rem ->
     if is_retry h
     then Success h c rem
-    else    
-      let iv = iv_for_encrypt_decrypt a siv h in
-      let aad = Parse.format_header h in
-      match AEAD.decrypt #a k iv (Seq.seq_hide aad) (Seq.seq_hide c) with
+    else
+      match payload_decrypt a k siv h (Seq.seq_hide c) with
       | None -> Failure
       | Some plain -> Success h (Seq.seq_reveal plain) rem
 

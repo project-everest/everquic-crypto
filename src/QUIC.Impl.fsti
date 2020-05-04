@@ -113,6 +113,17 @@ val encrypt: #i:G.erased index -> (
       | _ ->
           False))
 
+// Callers allocate this type prior to calling decrypt. The contents are only
+// meaningful, and plain is only non-null, if the decryption was a success.
+noeq
+type result = {
+  pn: PN.packet_number_t;
+  header: header;
+  header_len: Secret.uint32;
+  plain_len: Secret.uint32;
+  total_len: Secret.uint32; (* NOTE: this does not include the tag *)
+}
+
 val initial_secrets (dst_client: B.buffer Secret.uint8)
   (dst_server: B.buffer Secret.uint8)
   (cid: B.buffer Secret.uint8)
@@ -127,17 +138,6 @@ val initial_secrets (dst_client: B.buffer Secret.uint8)
       B.(all_disjoint [ loc_buffer dst_client; loc_buffer dst_server; loc_buffer cid ])))
     (ensures (fun h0 _ h1 ->
       B.(modifies (loc_buffer dst_client `loc_union` loc_buffer dst_server) h0 h1)))
-
-// Callers allocate this type prior to calling decrypt. The contents are only
-// meaningful, and plain is only non-null, if the decryption was a success.
-noeq
-type result = {
-  pn: PN.packet_number_t;
-  header: header;
-  header_len: U32.t;
-  plain_len: n:U32.t;
-  total_len: n:U32.t
-}
 
 noextract
 let max (x y: nat) = if x >= y then x else y
@@ -173,19 +173,19 @@ let decrypt_post (i: index)
       Secret.v (g_last_packet_number (B.deref h1 s) h1) == max (Secret.v prev) (Secret.v r.pn) /\ (
 
       // Lengths
-      r.header_len == Secret.reveal (header_len r.header) /\
-      U32.v r.header_len + U32.v r.plain_len <= U32.v r.total_len /\
-      U32.v r.total_len <= B.length packet /\
-      B.(loc_includes (loc_buffer (B.gsub packet 0ul r.header_len)) (header_footprint r.header)) /\
+      r.header_len == header_len r.header /\
+      Secret.v r.header_len + Secret.v r.plain_len <= Secret.v r.total_len /\
+      Secret.v r.total_len <= B.length packet /\
+      B.(loc_includes (loc_buffer (B.gsub packet 0ul (Secret.reveal r.header_len))) (header_footprint r.header)) /\
       header_live r.header h1 /\
-      U32.v r.total_len <= B.length packet /\
+      Secret.v r.total_len <= B.length packet /\
       
       // Contents
       (
       let plain =
-        S.slice (B.as_seq h1 packet) (U32.v r.header_len)
-          (U32.v r.header_len + U32.v r.plain_len) in
-      let rem = B.as_seq h0 (B.gsub packet r.total_len (B.len packet `U32.sub `r.total_len)) in
+        S.slice (B.as_seq h1 packet) (Secret.v r.header_len)
+          (Secret.v r.header_len + Secret.v r.plain_len) in
+      let rem = B.as_seq h0 (B.gsub packet (Secret.reveal r.total_len) (B.len packet `U32.sub `Secret.reveal r.total_len)) in
       match Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
       | Spec.Success h' plain' rem' ->
         h' == g_header r.header h1 r.pn /\
@@ -197,7 +197,7 @@ let decrypt_post (i: index)
       Spec.Failure? (Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet))
     | AuthenticationFailure ->
       Spec.Failure? (Spec.decrypt i.aead_alg k iv pne (Secret.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
-      U32.v r.total_len <= B.length packet
+      Secret.v r.total_len <= B.length packet
     | _ ->
       False
   end
@@ -232,12 +232,12 @@ val decrypt: #i:G.erased index -> (
       begin match res with
       | Success ->
       B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+        loc_buffer (gsub packet 0ul (Secret.reveal r.total_len)) `loc_union` loc_buffer dst) h0 h1)
       | DecodeError ->
-        B.modifies (footprint_s h0 (B.deref h0 s) `B.loc_union` B.loc_buffer packet) h0 h1
+        B.modifies B.loc_none h0 h1
       | AuthenticationFailure ->
         B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+        loc_buffer (gsub packet 0ul (Secret.reveal r.total_len)) `loc_union` loc_buffer dst) h0 h1)
       | _ -> False
       end
     )
