@@ -75,7 +75,7 @@ let invariant_s #i h s =
   B.(all_live h [ buf iv; buf hp_key; buf pn ])  /\
   B.(all_disjoint [ CTR.footprint h ctr_state;
     AEAD.footprint h aead_state; loc_buffer iv; loc_buffer hp_key; loc_buffer pn ]) /\
-  // JP: automatic insertion of reveal does not work here
+  // : automatic insertion of reveal does not work here
   Secret.v initial_pn <= Secret.v (B.deref h pn) /\
   AEAD.as_kv (B.deref h aead_state) ==
     derive_secret i.hash_alg (G.reveal traffic_secret) label_key (Spec.Agile.AEAD.key_length aead_alg) /\
@@ -177,7 +177,7 @@ let derive_secret a dst dst_len secret label label_len =
   let info_len = U32.(1ul +^ 1ul +^ 1ul +^ 11ul +^ label_len32 +^ 1ul) in
   let info = B.alloca 0uy info_len in
 
-  // JP: best way to reason about this sort of code is to slice the buffer very thinly
+  // : best way to reason about this sort of code is to slice the buffer very thinly
   let info_z = B.sub info 0ul 1ul in
   let info_lb = B.sub info 1ul 1ul in
   let info_llen = B.sub info 2ul 1ul in

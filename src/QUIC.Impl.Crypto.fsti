@@ -23,7 +23,7 @@ let aead_alg = Spec.Agile.AEAD.alg
 /// index on two values.
 ///
 /// The record is here to limit the profileration of hide/reveal in the stateful
-/// functions, and to give easier projectors (ADL, JP).
+/// functions, and to give easier projectors (, ).
 type index = {
   hash_alg: ha;
   aead_alg: ea
@@ -157,7 +157,7 @@ val last_packet_number_of_state (#i: G.erased index) (s: state (G.reveal i)): HS
     ctr == g_last_packet_number (B.deref h0 s) h0 /\
     h0 == h1)
 
-// JP: we could be defensive and allow callers to pass potentially unsupported
+// : we could be defensive and allow callers to pass potentially unsupported
 // algorithms; however, this would require a lot more machinery as we would not
 // even be able to state the index type, since index currently has a refinement
 // that the two algorithms are supported. We would have to separate index into
@@ -174,7 +174,7 @@ let create_in_st (i:index) =
   } ->
   HST.ST error_code
     (requires fun h0 ->
-      // JP: we could require that ``dst`` point to NULL prior to calling
+      // : we could require that ``dst`` point to NULL prior to calling
       // ``create`` (otherwise, it's a memory leak). Other modules don't enforce
       // this (see AEAD) so for now, let's make the caller's life easier and not
       // demand anything.

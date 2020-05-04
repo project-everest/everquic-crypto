@@ -13,7 +13,7 @@ module HKDF = Spec.Agile.HKDF
 
 inline_for_extraction
 let prefix_l: List.Tot.llist U8.t 11 =
-  // JP: "tls13 quic "
+  // : "tls13 quic "
   [@inline_let]
   let l = [0x74uy; 0x6cuy; 0x73uy; 0x31uy; 0x33uy;
            0x20uy; 0x71uy; 0x75uy; 0x69uy; 0x63uy; 0x20uy] in
@@ -153,7 +153,7 @@ private let lemma_pow2_div (a:nat) (b:nat) (k:nat)
 
 #restart-solver
 
-// FIXME(adl) this proof is very flacky
+// FIXME() this proof is very flacky
 // Will be replaced by varint combinator, using bitfield for first 2 bits
 #push-options "--admit_smt_queries true"
 private let lemma_divrem3 (k:nat) (a:nat) (b:nat) (n:nat)
@@ -285,7 +285,7 @@ let lemma_varint_case3 (n:nat{n < pow2 62}) (suff:bytes)
   match b0 with
   | 3 -> assert(parse_varint_weak b == Some (n % 0x4000000000000000, 8, suff))
 
-// JP: tightened proofs up to here. Resetting options as before for the rest.
+// : tightened proofs up to here. Resetting options as before for the rest.
 #reset-options
 
 #push-options "--z3rlimit 60"

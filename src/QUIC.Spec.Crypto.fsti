@@ -17,7 +17,7 @@ let supported_aead = function
 type ha = a:HD.hash_alg{supported_hash a}
 type ea = a:AEAD.alg{supported_aead a}
 
-// JP: this is Spec.Agile.Cipher.key_length
+// : this is Spec.Agile.Cipher.key_length
 let ae_keysize (a:ea) =
   match a with
   | AEAD.AES128_GCM -> 16
@@ -30,7 +30,7 @@ let hashable (a:ha) (l:nat) = l <= HD.max_input_length a
 
 // AEAD plain and ciphertext. We want to guarantee that regardless
 // of the header size (max is 54), the neader + ciphertext + tag fits in a buffer
-// JP: perhaps cleaner with a separate lemma; any reason for putting this in a refinement?
+// : perhaps cleaner with a separate lemma; any reason for putting this in a refinement?
 let max_plain_length: n:nat {
   forall a. {:pattern AEAD.max_length a} n <= AEAD.max_length a
 } =

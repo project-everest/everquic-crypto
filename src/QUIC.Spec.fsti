@@ -21,7 +21,7 @@ let sub3 (n:nat{n = 0 \/ (n >= 4 /\ n <= 18)}) : nat4 = if n = 0 then 0 else n-3
 type qbytes (n:nat4) = lbytes (add3 n)
 *)
 
-// JP: seems appropriate for this module...?
+// seems appropriate for this module...?
 let _: squash (inversion header) = allow_inversion header
 
 noeq

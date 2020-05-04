@@ -7,7 +7,7 @@ module HKDF = Spec.Agile.HKDF
 inline_for_extraction
 noextract
 let prefix_l: List.Tot.llist U8.t 11 =
-  // JP: "tls13 quic "
+  // : "tls13 quic "
   [@inline_let]
   let l = [0x74uy; 0x6cuy; 0x73uy; 0x31uy; 0x33uy;
            0x20uy; 0x71uy; 0x75uy; 0x69uy; 0x63uy; 0x20uy] in
