@@ -193,6 +193,9 @@ let create_in_st (i:index) =
           B.(modifies (loc_buffer dst) h0 h1) /\
           B.fresh_loc (footprint h1 s) h0 h1 /\
 
+          g_traffic_secret (B.deref h1 s) == B.as_seq h0 traffic_secret /\ 
+          g_last_packet_number (B.deref h1 s) h1 == initial_pn /\
+
           g_initial_packet_number (B.deref h1 s) == initial_pn
       | _ ->
           False))

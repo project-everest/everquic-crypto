@@ -292,6 +292,9 @@ val create_in_core:
       B.(fresh_loc (loc_buffer pn') h0 h1) /\
       B.(fresh_loc (loc_addr_of_buffer s) h0 h1) /\
 
+      g_traffic_secret (B.deref h1 s) == B.as_seq h0 traffic_secret /\ 
+      g_last_packet_number (B.deref h1 s) h1 == initial_pn /\
+
       G.reveal initial_pn' == initial_pn)))
 
 #push-options "--z3rlimit 50"
