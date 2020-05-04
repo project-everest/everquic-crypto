@@ -1,4 +1,4 @@
-all: dist/test.exe
+all: test
 
 test: dist/test.exe
 	$<
