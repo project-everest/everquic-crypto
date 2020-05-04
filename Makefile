@@ -10,7 +10,7 @@ include Makefile.include
 
 EXCLUDE_MODULES=Spec.Old Impl.Old
 
-FST_FILES=$(filter-out $(addprefix src/QUIC.,$(addsuffix .fst,$(EXCLUDE_MODULES)) $(addsuffix .fsti,$(EXCLUDE_MODULES))),$(wildcard src/*.fst) $(wildcard src/*.fsti))
+FST_FILES=$(filter-out $(addprefix src/QUIC.,$(addsuffix .fst,$(EXCLUDE_MODULES)) $(addsuffix .fsti,$(EXCLUDE_MODULES))),$(wildcard src/*.fst) $(wildcard src/*.fsti)) test/QUICTest.fst
 
 ifndef NODEPEND
 ifndef MAKE_RESTARTS
