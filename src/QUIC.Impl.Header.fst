@@ -860,19 +860,17 @@ let max_cipher_length64 : (x: Secret.uint64 { Secret.v x == max_cipher_length })
   Secret.mk_int (norm [delta; iota; zeta; primops] (pow2 32 - header_len_bound))
 
 let secret_max_correct
-  (#t: Secret.inttype { Secret.supported_type t })
-  (x y: Secret.uint_t t Secret.SEC)
+  (x y: Secret.uint64)
 : Lemma
-  (Secret.v (Secret.max x y) == Spec.max (Secret.v x) (Secret.v y))
-  [SMTPat (Secret.max x y)]
+  (Secret.v (Secret.max64 x y) == Spec.max (Secret.v x) (Secret.v y))
+  [SMTPat (Secret.max64 x y)]
 = ()
 
 let secret_min_correct
-  (#t: Secret.inttype { Secret.supported_type t })
-  (x y: Secret.uint_t t Secret.SEC)
+  (x y: Secret.uint64)
 : Lemma
-  (Secret.v (Secret.min x y) == Spec.min (Secret.v x) (Secret.v y))
-  [SMTPat (Secret.min x y)]
+  (Secret.v (Secret.min64 x y) == Spec.min (Secret.v x) (Secret.v y))
+  [SMTPat (Secret.min64 x y)]
 = ()
 
 #push-options "--z3rlimit 1024 --query_stats --ifuel 3 --fuel 2 --z3cliopt smt.arith.nl=false"
@@ -921,7 +919,7 @@ let header_decrypt
     let rlen64 = Secret.cast_up Secret.U64 rlen in
     let clen64 = if has_payload_length h then payload_length h else rlen64 in
     let clen64_checked : Secret.uint64 =
-      Secret.max (Secret.min (Secret.min clen64 rlen64) (max_cipher_length64 `Secret.sub` Secret.hide 1uL)) (Secret.hide 16uL)
+      Secret.max64 (Secret.min64 (Secret.min64 clen64 rlen64) (max_cipher_length64 `Secret.sub` Secret.hide 1uL)) (Secret.hide 16uL)
     in
     assert_norm (16 < max_cipher_length);
     assert (Secret.v clen64_checked < max_cipher_length);

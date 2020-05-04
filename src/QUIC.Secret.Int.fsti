@@ -97,6 +97,7 @@ let logxor_spec'
 = logxor_spec a b
 
 inline_for_extraction
+noextract
 val lognot'
   (#t:inttype { supported_type t })
   (#l:secrecy_level)
@@ -206,16 +207,10 @@ val secrets_are_equal_62
     v z == (if v x = v y then 1 else 0)
   })
 
-inline_for_extraction
-noextract
-val min
-  (#t: inttype { supported_type t })
-  (x y: uint_t t SEC)
-: Tot (z: uint_t t SEC { v z == (if v x <= v y then v x else v y) })
+val min64
+  (x y: uint64)
+: Tot (z: uint64 { v z == (if v x <= v y then v x else v y) })
 
-inline_for_extraction
-noextract
-val max
-  (#t: inttype { supported_type t })
-  (x y: uint_t t SEC)
-: Tot (z: uint_t t SEC { v z == (if v y <= v x then v x else v y) })
+val max64
+  (x y: uint64)
+: Tot (z: uint64 { v z == (if v y <= v x then v x else v y) })

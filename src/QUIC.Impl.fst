@@ -853,7 +853,7 @@ let decrypt
   then begin
     let r = B.index dst 0ul in
     let pn = r.pn in
-    let pn' = Secret.max last_pn pn in
+    let pn' = Secret.max64 last_pn pn in
     B.upd bpn 0ul pn';
     let m2 = HST.get () in
     assert (B.modifies (footprint m0 s) m1 m2);
