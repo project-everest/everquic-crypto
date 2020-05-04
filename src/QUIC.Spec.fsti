@@ -10,20 +10,6 @@ module Cipher = Spec.Agile.Cipher
 module PN = QUIC.Spec.PacketNumber.Base
 module Secret = QUIC.Secret.Int
 
-(*
-type nat2 = n:nat{n < 4}
-type nat4 = n:nat{n < 16}
-type nat32 = n:nat{n < pow2 32}
-type nat62 = n:nat{n < pow2 62}
-
-let add3 (n:nat4) : n:nat{n=0 \/ (n >= 4 /\ n <= 18)} = if n = 0 then 0 else 3+n
-let sub3 (n:nat{n = 0 \/ (n >= 4 /\ n <= 18)}) : nat4 = if n = 0 then 0 else n-3
-type qbytes (n:nat4) = lbytes (add3 n)
-*)
-
-// seems appropriate for this module...?
-let _: squash (inversion header) = allow_inversion header
-
 noeq
 type h_result =
 | H_Success:

@@ -1,7 +1,6 @@
 module QUICTest
-module Q = QUIC.Impl
-module QS = QUIC.Spec
 module B = LowStar.Buffer
+module U62 = QUIC.UInt62
 module U32 = FStar.UInt32
 module U8 = FStar.UInt8
 module HST = FStar.HyperStack.ST
@@ -10,6 +9,8 @@ module L = FStar.List.Tot
 module Secret = QUIC.Secret.Int
 module PN = QUIC.Spec.PacketNumber.Base
 module Seq = QUIC.Secret.Seq
+module Q = QUIC
+module QS = QUIC.Spec
 
 (* declassification for post tests *)
 module ADMITDeclassify = Lib.RawIntTypes
@@ -159,7 +160,7 @@ let res =
   } =
     B.alloca_of_list _traffic_secret
   in
-  let initial_pn : Q.u62 = 0uL in
+  let initial_pn : U62.t = 0uL in
   used_in_not_unused_in_disjoint ();
   let plain : plain: B.buffer Secret.uint8 {
     B.length plain == plain_length

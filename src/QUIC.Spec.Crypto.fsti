@@ -5,6 +5,7 @@ module Seq = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
 module Secret = QUIC.Secret.Int
+module Cipher = Spec.Agile.Cipher
 
 let supported_hash = function
   | HD.SHA1 | HD.SHA2_256 | HD.SHA2_384 | HD.SHA2_512 -> true
@@ -16,6 +17,14 @@ let supported_aead = function
 
 type ha = a:HD.hash_alg{supported_hash a}
 type ea = a:AEAD.alg{supported_aead a}
+
+
+inline_for_extraction noextract
+let as_cipher_alg (a: ea): a:Cipher.cipher_alg {
+  Cipher.(a == AES128 \/ a == AES256 \/ a == CHACHA20)
+} =
+  AEAD.cipher_alg_of_supported_alg a
+
 
 // : this is Spec.Agile.Cipher.key_length
 let ae_keysize (a:ea) =
@@ -62,7 +71,7 @@ val label_hp: lbytes 2
 
 val derive_secret:
   a: ha ->
-  prk:Spec.Hash.Definitions.bytes_hash a ->
+  prk:HD.bytes_hash a ->
   label: bytes ->
   len: nat ->
   Pure (Seq.seq Secret.uint8)

@@ -262,3 +262,15 @@ let header_len_v
 : Lemma
   (Secret.v (header_len h) == U32.v (public_header_len h) + (if is_retry h then 0 else Secret.v (pn_length h)))
 = ()
+
+
+// Callers allocate this type prior to calling decrypt. The contents are only
+// meaningful, and plain is only non-null, if the decryption was a success.
+noeq
+type result = {
+  pn: PN.packet_number_t;
+  header: header;
+  header_len: Secret.uint32;
+  plain_len: Secret.uint32;
+  total_len: Secret.uint32; (* NOTE: this DOES include the tag *)
+}

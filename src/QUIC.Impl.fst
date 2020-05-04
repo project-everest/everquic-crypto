@@ -33,7 +33,7 @@ open LowStar.BufferOps
 //module HeaderS = QUIC.Spec.Header
 //module HeaderI = QUIC.Impl.Header
 
-#set-options "--z3rlimit 16"
+#set-options "--z3rlimit 64 --query_stats"
 
 #restart-solver
 
@@ -178,8 +178,6 @@ let payload_encrypt_post
   B.as_seq m' (B.gsub dst (Secret.reveal header_len) (B.len dst `U32.sub` Secret.reveal header_len)) `Seq.equal` Seq.seq_hide (Spec.payload_encrypt a (AEAD.as_kv (B.deref m s)) (B.as_seq m siv) h (Seq.seq_reveal (B.as_seq m plain))) /\
   res == Success
 
-#push-options "--z3rlimit 32"
-
 let payload_encrypt
   (a: ea)
   (s: AEAD.state a)
@@ -218,96 +216,12 @@ let payload_encrypt
   HST.pop_frame ();
   res
 
-#pop-options
+#push-options "--z3rlimit 128"
 
-unfold
-let encrypt'_pre
-  (a: ea)
-  (aead: AEAD.state a)
-  (siv: B.buffer Secret.uint8)
-  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
-  (hpk: B.buffer Secret.uint8)
-  (dst: B.buffer U8.t)
-  (h: header)
-  (pn: PN.packet_number_t)
-  (plain: B.buffer Secret.uint8)
-  (plain_len: Secret.uint32) // should be secret, because otherwise one can compute the packet number length
-  (m: HS.mem)
-: GTot Type0
-=
-  let a' = SAEAD.cipher_alg_of_supported_alg a in
-  B.all_disjoint [
-    AEAD.footprint m aead;
-    B.loc_buffer siv;
-    CTR.footprint m ctr;
-    B.loc_buffer hpk;
-    B.loc_buffer dst;
-    header_footprint h;
-    B.loc_buffer plain;
-  ] /\
-  AEAD.invariant m aead /\
-  B.live m siv /\ B.length siv == 12 /\
-  CTR.invariant m ctr /\
-  B.live m hpk /\ B.length hpk == Spec.Agile.Cipher.key_length a' /\
-  B.live m dst /\
-  header_live h m /\
-  B.live m plain /\ B.length plain == Secret.v plain_len /\
-  begin
-    if is_retry h
-    then
-      B.length plain == 0 /\
-      B.length dst == Secret.v (header_len h)
-    else
-      B.length dst == Secret.v (header_len h) + Secret.v plain_len + SAEAD.tag_length a /\
-      3 <= Secret.v plain_len /\ Secret.v plain_len < max_plain_length
-  end
+let dummy = ()
 
-unfold
-let encrypt'_post
-  (a: ea)
-  (aead: AEAD.state a)
-  (siv: B.buffer Secret.uint8)
-  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
-  (hpk: B.buffer Secret.uint8)
-  (dst: B.buffer U8.t)
-  (h: header)
-  (pn: PN.packet_number_t)
-  (plain: B.buffer Secret.uint8)
-  (plain_len: Secret.uint32)
-  (m: HS.mem)
-  (res: error_code)
-  (m' : HS.mem)
-: GTot Type0
-=
-  encrypt'_pre a aead siv ctr hpk dst h pn plain plain_len m /\
-  B.modifies (B.loc_buffer dst `B.loc_union` AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr) m m' /\
-  AEAD.invariant m' aead /\ AEAD.footprint m' aead == AEAD.footprint m aead /\
-  AEAD.preserves_freeable aead m m' /\
-  AEAD.as_kv (B.deref m' aead) == AEAD.as_kv (B.deref m aead) /\
-  CTR.invariant m' ctr /\ CTR.footprint m' ctr == CTR.footprint m ctr /\
-  B.as_seq m' dst `Seq.equal` Spec.encrypt a (AEAD.as_kv (B.deref m aead)) (B.as_seq m siv) (B.as_seq m hpk) (g_header h m pn) (Seq.seq_reveal (B.as_seq m plain)) /\
-  res == Success
-
-#push-options "--z3rlimit 64"
-
-let encrypt'
-  (a: ea)
-  (aead: AEAD.state a)
-  (siv: B.buffer Secret.uint8)
-  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
-  (hpk: B.buffer Secret.uint8)
-  (dst: B.buffer U8.t)
-  (h: header)
-  (pn: PN.packet_number_t)
-  (plain: B.buffer Secret.uint8)
-  (plain_len: Secret.uint32)
-: HST.Stack error_code
-  (requires (fun m ->
-    encrypt'_pre a aead siv ctr hpk dst h pn plain plain_len m
-  ))
-  (ensures (fun m res m' ->
-    encrypt'_post a aead siv ctr hpk dst h pn plain plain_len m res m'
-  ))
+let encrypt
+  a aead siv ctr hpk dst h pn plain plain_len
 = let m0 = HST.get () in
   let gh = Ghost.hide (g_header h m0 pn) in
   let fmt = Ghost.hide (QUIC.Spec.Header.Parse.format_header gh) in
@@ -387,163 +301,6 @@ let encrypt'
 
 #pop-options
 
-(* At this point I need to have access to the internal state *)
-friend QUIC.Impl.Crypto
-
-#push-options "--z3rlimit 64"
-
-let encrypt
-  #i s dst dst_pn h plain plain_len
-=
-  let m0 = HST.get () in
-  let QUIC.Impl.Crypto.State hash_alg aead_alg e_traffic_secret e_initial_pn
-    aead_state iv hp_key bpn ctr_state = !*s
-  in
-  let last_pn = !* bpn in
-  let pn = last_pn `Secret.add` Secret.to_u64 1uL in
-  B.upd bpn 0ul pn;
-  B.upd dst_pn 0ul pn;
-  let m1 = HST.get () in
-  assert (B.modifies (footprint m0 s `B.loc_union` B.loc_buffer dst_pn) m0 m1);
-  frame_header h pn  (footprint m0 s `B.loc_union` B.loc_buffer dst_pn) m0 m1;
-  encrypt' aead_alg aead_state iv ctr_state hp_key dst h pn plain (Secret.to_u32 plain_len)
-
-#pop-options
-
-
-/// Initial secrets
-/// ---------------
-
-// TODO: these three should be immutable buffers but we don't have const
-// pointers yet for HKDF.
-#push-options "--warn_error -272"
-let initial_salt: initial_salt:B.buffer U8.t {
-  B.length initial_salt = 20 /\
-  B.recallable initial_salt
-} =
-  [@inline_let]
-  let l = [
-    0xc3uy; 0xeeuy; 0xf7uy; 0x12uy; 0xc7uy; 0x2euy; 0xbbuy; 0x5auy;
-    0x11uy; 0xa7uy; 0xd2uy; 0x43uy; 0x2buy; 0xb4uy; 0x63uy; 0x65uy;
-    0xbeuy; 0xf9uy; 0xf5uy; 0x02uy
-  ] in
-  assert_norm (List.Tot.length l = 20);
-  B.gcmalloc_of_list HS.root l
-
-let server_in: server_in:B.buffer U8.t {
-  B.length server_in = 9 /\
-  B.recallable server_in
-} =
-  [@inline_let]
-  let l = [
-    0x73uy; 0x65uy; 0x72uy; 0x76uy; 0x65uy; 0x72uy; 0x20uy; 0x69uy; 0x6euy
-  ] in
-  assert_norm (List.Tot.length l = 9);
-  B.gcmalloc_of_list HS.root l
-
-let client_in: client_in:B.buffer U8.t {
-  B.length client_in = 9 /\
-  B.recallable client_in
-} =
-  [@inline_let]
-  let l = [
-    0x63uy; 0x6cuy; 0x69uy; 0x65uy; 0x6euy; 0x74uy; 0x20uy; 0x69uy; 0x6euy
-  ] in
-  assert_norm (List.Tot.length l = 9);
-  B.gcmalloc_of_list HS.root l
-#pop-options
-
-#push-options "--z3rlimit 64"
-
-let initial_secrets dst_client dst_server cid cid_len =
-  (**) let h0 = ST.get () in
-  (**) B.recall initial_salt;
-  (**) B.recall server_in;
-  (**) B.recall client_in;
-  assert_norm (Spec.Agile.Hash.(hash_length SHA2_256) = 32);
-
-  push_frame ();
-  (**) let h1 = ST.get () in
-  (**) let mloc = G.hide (B.(loc_buffer dst_client `loc_union`
-    loc_buffer dst_server `loc_union` loc_region_only true (HS.get_tip h1))) in
-
-  B.loc_unused_in_not_unused_in_disjoint h1;
-  let secret = B.alloca (Secret.to_u8 0uy) 32ul in
-  
-  (* we allocate a temporary buffer to copy the initial_salt,
-     server_in and client_in and then to hide it through
-     SecretBuffer.with_whole_buffer_hide_weak_modifies, because if we
-     directly hide those global buffers, then we won't be able to
-     prove that the livenesses of function arguments are preserved,
-     because they are not disjoint from the global buffers.  *)
-
-  let h15 = ST.get () in
-  B.loc_unused_in_not_unused_in_disjoint h15;
-  let tmp = B.alloca 0uy 20ul in
-  B.blit initial_salt 0ul tmp 0ul 20ul;
-  
-  (**) let h2 = ST.get () in
-
-  (**) hash_is_keysized_ Spec.Agile.Hash.SHA2_256;
-  let h25 = HST.get () in
-  SecretBuffer.with_whole_buffer_hide_weak_modifies
-    tmp
-    h25
-    (B.loc_buffer secret `B.loc_union` B.loc_buffer cid)
-    (B.loc_buffer secret)
-    false
-    (fun _ _ m -> True)
-    (fun _ bs ->
-      EverCrypt.HKDF.extract Spec.Agile.Hash.SHA2_256 secret bs 20ul
-        cid cid_len
-    );
-  (**) let h3 = ST.get () in
-  (**) B.(modifies_trans (G.reveal mloc) h1 h2 (G.reveal mloc) h3);
-
-  let tmp_client_in = B.sub tmp 0ul 9ul in
-  B.blit client_in 0ul tmp_client_in 0ul 9ul;
-  let h35 = ST.get () in
-  SecretBuffer.with_whole_buffer_hide_weak_modifies
-    tmp_client_in
-    h35
-    (B.loc_buffer secret `B.loc_union` B.loc_buffer dst_client)
-    (B.loc_buffer dst_client)
-    false
-    (fun _ _ m -> True)
-    (fun _ bs ->
-      EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_client secret 32ul bs 9ul 32ul
-    );
-  (**) let h4 = ST.get () in
-  (**) B.(modifies_trans (G.reveal mloc) h1 h3 (G.reveal mloc) h4);
-
-  let tmp_server_in = B.sub tmp 0ul 9ul in
-  B.blit server_in 0ul tmp_server_in 0ul 9ul;
-  let h45 = ST.get () in
-  SecretBuffer.with_whole_buffer_hide_weak_modifies
-    tmp_server_in
-    h45
-    (B.loc_buffer secret `B.loc_union` B.loc_buffer dst_server)
-    (B.loc_buffer dst_server)
-    false
-    (fun _ _ m -> True)
-    (fun _ bs ->
-      EverCrypt.HKDF.expand Spec.Agile.Hash.SHA2_256 dst_server secret 32ul bs 9ul 32ul
-    );
-  (**) let h5 = ST.get () in
-  (**) B.(modifies_trans (G.reveal mloc) h1 h4 (G.reveal mloc) h5);
-
-  pop_frame ();
-  (**) let h6 = ST.get () in
-  (**) B.modifies_fresh_frame_popped h0 h1
-  (**)   B.(loc_buffer dst_client `loc_union` loc_buffer dst_server) h5 h6
-
-let p62: x:U64.t { U64.v x = pow2 62 } =
-  assert_norm (pow2 62 = 4611686018427387904);
-  4611686018427387904UL
-
-#restart-solver
-
-
 unfold
 let payload_decrypt_pre
   (a: ea)
@@ -608,8 +365,6 @@ let payload_decrypt_post
     end
   end
 
-#push-options "--z3rlimit 32"
-
 let payload_decrypt
   (a: ea)
   (s: AEAD.state a)
@@ -649,109 +404,12 @@ let payload_decrypt
   HST.pop_frame ();
   res
 
-#pop-options
-
-unfold
-let decrypt'_pre
-  (a: ea)
-  (aead: AEAD.state a)
-  (siv: B.buffer Secret.uint8)
-  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
-  (hpk: B.buffer Secret.uint8)
-  (dst: B.buffer U8.t)
-  (dst_len: U32.t)
-  (dst_hdr: B.pointer result)
-  (last_pn: PN.last_packet_number_t)
-  (cid_len: short_dcid_len_t)
-  (m: HS.mem)
-: GTot Type0
-=
-  let a' = SAEAD.cipher_alg_of_supported_alg a in
-  B.all_disjoint [
-    AEAD.footprint m aead;
-    B.loc_buffer siv;
-    CTR.footprint m ctr;
-    B.loc_buffer hpk;
-    B.loc_buffer dst;
-    B.loc_buffer dst_hdr;
-  ] /\
-  AEAD.invariant m aead /\
-  B.live m siv /\ B.length siv == 12 /\
-  CTR.invariant m ctr /\
-  B.live m hpk /\ B.length hpk == Spec.Agile.Cipher.key_length a' /\
-  B.live m dst /\ B.length dst == U32.v dst_len /\
-  B.live m dst_hdr
-
-unfold
-let decrypt'_post
-  (a: ea)
-  (aead: AEAD.state a)
-  (siv: B.buffer Secret.uint8)
-  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
-  (hpk: B.buffer Secret.uint8)
-  (dst: B.buffer U8.t)
-  (dst_len: U32.t)
-  (dst_hdr: B.pointer result)
-  (last_pn: PN.last_packet_number_t)
-  (cid_len: short_dcid_len_t)
-  (m: HS.mem)
-  (res: error_code)
-  (m' : HS.mem)
-: GTot Type0
-=
-  decrypt'_pre a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len m /\
-  AEAD.invariant m' aead /\ AEAD.footprint m' aead == AEAD.footprint m aead /\
-  AEAD.preserves_freeable aead m m' /\
-  AEAD.as_kv (B.deref m' aead) == AEAD.as_kv (B.deref m aead) /\
-  CTR.invariant m' ctr /\ CTR.footprint m' ctr == CTR.footprint m ctr /\
-  begin match res, Spec.decrypt a (AEAD.as_kv (B.deref m aead)) (B.as_seq m siv) (B.as_seq m hpk) (Secret.v last_pn) (U32.v cid_len) (B.as_seq m dst) with
-  | AuthenticationFailure, Spec.Failure ->
-    let r = B.deref m' dst_hdr in
-    Secret.v r.total_len <= B.length dst /\
-    B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer (B.gsub dst 0ul (Secret.reveal r.total_len))) m m'
-  | DecodeError, Spec.Failure ->
-    B.modifies B.loc_none m m'
-  | Success, Spec.Success gh plain rem ->
-    let r = B.deref m' dst_hdr in
-    let h = r.header in
-    header_live h m' /\
-    gh == g_header h m' r.pn /\
-    r.header_len == header_len h /\
-    Secret.v r.plain_len == Seq.length plain /\
-    Secret.v r.header_len + Secret.v r.plain_len <= Secret.v r.total_len /\
-    Secret.v r.total_len <= B.length dst /\
-    B.loc_buffer (B.gsub dst 0ul (public_header_len h)) `B.loc_includes` header_footprint h /\
-    (
-      B.modifies (AEAD.footprint m aead `B.loc_union` CTR.footprint m ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer (B.gsub dst 0ul (Secret.reveal r.total_len))) m m' /\
-      B.as_seq m' (B.gsub dst 0ul (Secret.reveal r.header_len)) `Seq.equal` QUIC.Spec.Header.Parse.format_header (g_header h m' r.pn) /\
-      B.as_seq m' (B.gsub dst (Secret.reveal r.header_len) (Secret.reveal r.plain_len)) `Seq.equal` plain /\
-      B.as_seq m' (B.gsub dst (Secret.reveal r.total_len) (B.len dst `U32.sub` Secret.reveal r.total_len)) `Seq.equal` rem
-    )
-  | _ -> False
-  end
-
 #push-options "--z3rlimit 256"
 
 #restart-solver
 
-let decrypt'
-  (a: ea)
-  (aead: AEAD.state a)
-  (siv: B.buffer Secret.uint8)
-  (ctr: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
-  (hpk: B.buffer Secret.uint8)
-  (dst: B.buffer U8.t)
-  (dst_len: U32.t)
-  (dst_hdr: B.pointer result)
-  (last_pn: PN.last_packet_number_t)
-  (cid_len: short_dcid_len_t)
-: HST.Stack error_code
-  (requires (fun m ->
-    decrypt'_pre a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len m
-  ))
-  (ensures (fun m res m' ->
-    decrypt'_post a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len m res m'
-  ))
+let decrypt
+  a aead siv ctr hpk dst dst_len dst_hdr last_pn cid_len
 = let m0 = HST.get () in
   match QUIC.Impl.Header.header_decrypt a ctr hpk cid_len last_pn dst dst_len with
   | QUIC.Impl.Header.H_Failure -> DecodeError
@@ -834,40 +492,5 @@ let decrypt'
         (AEAD.footprint m1 aead `B.loc_union` CTR.footprint m1 ctr `B.loc_union` B.loc_buffer dst_hdr `B.loc_union` B.loc_buffer (B.gsub dst (Secret.reveal hlen) (B.len dst `U32.sub` Secret.reveal hlen))) m1 m3;
       res
     end
-
-#pop-options
-
-#push-options "--z3rlimit 128"
-
-let decrypt
-  #i s dst packet len cid_len
-=
-  let m0 = HST.get () in
-  let QUIC.Impl.Crypto.State hash_alg aead_alg e_traffic_secret e_initial_pn
-    aead_state iv hp_key bpn ctr_state = !*s
-  in
-  let last_pn = !* bpn in
-  let res = decrypt' aead_alg aead_state iv ctr_state hp_key packet len dst last_pn (FStar.Int.Cast.uint8_to_uint32 cid_len) in
-  let m1 = HST.get () in
-  if res = Success
-  then begin
-    let r = B.index dst 0ul in
-    let pn = r.pn in
-    let pn' = Secret.max64 last_pn pn in
-    B.upd bpn 0ul pn';
-    let m2 = HST.get () in
-    assert (B.modifies (footprint m0 s) m1 m2);
-    frame_header r.header pn  (footprint m0 s) m1 m2;
-    assert (
-      let k = derive_k i s m0 in
-      let iv = derive_iv i s m0 in
-      let pne = derive_pne i s m0 in
-      match Spec.decrypt i.aead_alg k iv pne (Secret.v last_pn) (U8.v cid_len) (B.as_seq m0 packet) with
-      | Spec.Success gh plain rem ->
-        B.as_seq m1 (B.gsub packet (Secret.reveal r.header_len) (Secret.reveal r.plain_len)) == plain
-      | _ -> False
-    )
-  end;
-  res
 
 #pop-options
