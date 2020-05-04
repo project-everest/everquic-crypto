@@ -70,7 +70,7 @@ let header_encrypt
     let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
     r
 
-#push-options "--z3rlimit 128"
+#push-options "--z3rlimit 256 --query_stats --z3cliopt smt.arith.nl=false"
 
 #restart-solver
 
@@ -188,7 +188,9 @@ let header_decrypt_aux
           })
         end
 
-#push-options "--z3rlimit 32 --max_fuel 1"
+#push-options "--z3rlimit 64 --max_fuel 1"
+
+#restart-solver
 
 let header_decrypt_aux_post
   (a:ea)
@@ -198,6 +200,7 @@ let header_decrypt_aux_post
 : Lemma
   (requires (Some? (header_decrypt_aux a hpk cid_len packet)))
   (ensures (
+    Some? (header_decrypt_aux a hpk cid_len packet) /\ (
     let Some r = header_decrypt_aux a hpk cid_len packet in
     Seq.length r.packet == Seq.length packet /\
     Seq.length packet > 0 /\ (
@@ -216,7 +219,7 @@ let header_decrypt_aux_post
       r.pn_offset + r.pn_len + 1 <= Seq.length r.packet /\
       Seq.slice r.packet (r.pn_offset + r.pn_len + 1) (Seq.length r.packet) `Seq.equal` Seq.slice packet (r.pn_offset + r.pn_len + 1) (Seq.length packet) /\
       True
-  )))))
+  ))))))
 =let Some r = header_decrypt_aux a hpk cid_len packet in
   let f = Seq.index packet 0 in
   let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
@@ -306,10 +309,10 @@ let header_decrypt_aux_post_parse
 
 #pop-options
 
-#push-options "--z3rlimit 128"
-
 let max (a: nat) (b: nat) : Tot (c: nat { c >= a /\ c >= b /\ (c <= a \/ c <= b) }) = if a <= b then b else a
 let min (a: nat) (b: nat) : Tot (c: nat { c <= a /\ c <= b /\ (c >= a \/ c >= b) }) = if b <= a then b else a
+
+#push-options "--z3rlimit 256"
 
 #restart-solver
 

@@ -783,3 +783,10 @@ let parse_header_exists
     LP.parser_kind_prop_equiv (PN.parse_packet_number_kind' pn_len)  (PN.parse_packet_number last' pn_len);
     assert (Some? (LP.parse (PN.parse_packet_number last' pn_len) (Seq.slice x consumed (Seq.length x))))
   end
+
+let parse_header_exists_recip
+  cid_len last x
+=
+  let cid_len' = U32.uint_to_t cid_len in
+  let last' = Secret.to_u64 (U64.uint_to_t last) in
+  lp_parse_header_eq cid_len' last' x

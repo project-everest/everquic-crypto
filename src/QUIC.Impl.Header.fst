@@ -491,7 +491,7 @@ let header_decrypt_aux_ct
           })
         end
 
-#push-options "--z3rlimit 256"
+#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats"
 
 #restart-solver
 
@@ -722,6 +722,11 @@ let header_decrypt_aux_ct_secret_preserving_not_retry
 
 #pop-options
 
+type header_decrypt_aux_result =
+  | HD_Failure
+  | HD_Success_Retry
+  | HD_Success_NotRetry
+
 let header_decrypt_aux
   (a: ea)
   (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
@@ -729,7 +734,7 @@ let header_decrypt_aux
   (cid_len: short_dcid_len_t)
   (dst: B.buffer U8.t)
   (dst_len: U32.t)
-: HST.Stack bool
+: HST.Stack header_decrypt_aux_result
   (requires (fun m ->
     let l = B.length dst in
     B.all_live m [B.buf k; B.buf dst] /\
@@ -739,14 +744,16 @@ let header_decrypt_aux
       [ CTR.footprint m s; B.loc_buffer k; B.loc_buffer dst] /\
     B.length dst == U32.v dst_len
   ))
-  (ensures (fun m res m' ->
+  (ensures (fun m rs m' ->
     CTR.invariant m' s /\
     CTR.footprint m s == CTR.footprint m' s /\ (
-    match res, Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst) with
-    | false, None ->
+    match rs, Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst) with
+    | HD_Failure, None ->
       B.modifies B.loc_none m m'
-    | true, Some res ->
+    | HD_Failure, _ -> False
+    | _, Some res ->
       res.Spec.packet == B.as_seq m' dst /\
+      res.Spec.is_retry == (HD_Success_Retry? rs) /\
       (if res.Spec.is_retry
       then B.modifies B.loc_none m m'
       else
@@ -758,22 +765,180 @@ let header_decrypt_aux
   )))
 = let m = HST.get () in
   if dst_len = 0ul
-  then false
+  then HD_Failure
   else
     let f = B.index dst 0ul in
     let isshort = BF.uint8.BF.get_bitfield f 7 8 = 0uy in
     let isretry = not isshort && (BF.uint8.BF.get_bitfield f 4 6 = 3uy) in
     if isretry
-    then true
+    then HD_Success_Retry
     else match ParseImpl.putative_pn_offset cid_len dst dst_len with
-    | None -> false
+    | None -> HD_Failure
     | Some pn_offset ->
       if dst_len `U32.lt` (pn_offset `U32.add` 20ul)
-      then false
+      then HD_Failure
       else begin
         header_decrypt_aux_ct_secret_preserving_not_retry a s k cid_len isshort pn_offset dst;
-        true
+        HD_Success_NotRetry
       end
+
+let max_cipher_length64 : (x: Secret.uint64 { Secret.v x == max_cipher_length }) =
+  Secret.mk_int (norm [delta; iota; zeta; primops] (pow2 32 - header_len_bound))
+
+let secret_max_correct
+  (#t: Secret.inttype { Secret.supported_type t })
+  (x y: Secret.uint_t t Secret.SEC)
+: Lemma
+  (Secret.v (Secret.max x y) == Spec.max (Secret.v x) (Secret.v y))
+  [SMTPat (Secret.max x y)]
+= ()
+
+let secret_min_correct
+  (#t: Secret.inttype { Secret.supported_type t })
+  (x y: Secret.uint_t t Secret.SEC)
+: Lemma
+  (Secret.v (Secret.min x y) == Spec.min (Secret.v x) (Secret.v y))
+  [SMTPat (Secret.min x y)]
+= ()
+
+#push-options "--z3rlimit 1024 --query_stats --ifuel 3 --fuel 2 --z3cliopt smt.arith.nl=false"
+
+#restart-solver
+
+let header_decrypt
+  a s k cid_len last dst dst_len
+=
+  let m = HST.get () in
+  assert (B.length dst == 0 ==> None? (Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst)));
+  let aux = header_decrypt_aux a s k cid_len dst dst_len in
+  let m1 = HST.get () in
+  Classical.move_requires (Parse.parse_header_exists (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
+  Classical.move_requires (Parse.parse_header_exists_recip (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
+  match aux with
+  | HD_Failure -> H_Failure
+  | HD_Success_Retry ->
+    (* In the Retry case, header_decrypt_aux did nothing, so we need
+       to check here that the header can be parsed. *)
+    Spec.header_decrypt_aux_post a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst);
+    if None? (ParseImpl.putative_pn_offset cid_len dst dst_len)
+    then H_Failure
+    else begin
+      Spec.header_decrypt_aux_post_parse a (B.as_seq m k) (U32.v cid_len) (Secret.v last) (B.as_seq m dst);
+      Parse.lemma_header_parsing_post (U32.v cid_len) (Secret.v last) (B.as_seq m1 dst);
+      let (h, pn) = ParseImpl.read_header dst dst_len cid_len last in
+      H_Success h pn (Secret.to_u32 0ul)
+    end
+  | _ ->
+    (* In other cases, header_decrypt_aux already checked
+       that the header can be parsed. *)
+    Spec.header_decrypt_aux_post a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst);
+    Spec.header_decrypt_aux_post_parse a (B.as_seq m k) (U32.v cid_len) (Secret.v last) (B.as_seq m dst);
+    Parse.lemma_header_parsing_post (U32.v cid_len) (Secret.v last) (B.as_seq m1 dst);
+    let (h, pn) = ParseImpl.read_header dst dst_len cid_len last in
+    let m2 = HST.get () in
+    ParseImpl.header_len_correct h m2 pn;
+    let hlen = header_len h in
+    assert (Seq.length (Parse.format_header (g_header h m2 pn)) == Secret.v hlen);
+    assert (Secret.v hlen <= B.length dst);
+    let rlen = Secret.hide dst_len `Secret.usub` hlen in
+    let hlen64 = Secret.cast_up Secret.U64 hlen in
+    let rlen64 = Secret.cast_up Secret.U64 rlen in
+    let clen64 = if has_payload_length h then payload_length h else rlen64 in
+    let clen64_checked : Secret.uint64 =
+      Secret.max (Secret.min (Secret.min clen64 rlen64) (max_cipher_length64 `Secret.sub` Secret.hide 1uL)) (Secret.hide 16uL)
+    in
+    assert_norm (16 < max_cipher_length);
+    assert (Secret.v clen64_checked < max_cipher_length);
+    assert (Secret.v clen64_checked <= Secret.v rlen);
+    assert_norm (max_cipher_length < pow2 32);
+    let clen32 = Secret.cast_down Secret.U32 clen64_checked in
+    let bh = Ghost.hide (B.gsub dst 0ul (Secret.reveal hlen)) in
+    let brem = Ghost.hide (B.gsub dst (Secret.reveal hlen) (Secret.reveal rlen)) in
+    let bc = Ghost.hide (B.gsub brem 0ul (Secret.reveal clen32)) in
+    let b3 = Ghost.hide (B.gsub brem (Secret.reveal clen32) (Secret.reveal rlen `U32.sub` Secret.reveal clen32)) in
+    assert (B.as_seq m2 bh == B.as_seq m1 bh);
+    assert (B.as_seq m1 bh == Parse.format_header (g_header h m2 pn));
+    assert (B.disjoint bh brem);
+    assert (B.as_seq m2 brem == B.as_seq m1 brem);
+    assert (B.as_seq m1 brem == B.as_seq m brem);
+    assert (B.as_seq m2 bc == B.as_seq m1 bc);
+    assert (B.as_seq m1 bc == B.as_seq m bc);
+    assert (B.as_seq m2 b3 == B.as_seq m1 b3);
+    assert (B.as_seq m1 b3 == B.as_seq m b3);
+    assert (B.as_seq m2 dst `Seq.equal` (B.as_seq m2 bh `Seq.append` B.as_seq m2 bc `Seq.append` B.as_seq m2 b3));
+    H_Success h pn clen32
+
+#pop-options
+
+(*
+  if aux = HD_Failure
+  then begin
+    H_Failure
+  end else begin
+    let m1 = HST.get () in
+
+    
+    
+    let can_parse_stmt () : GTot bool =
+      match aux with
+      | HD_Success_NotRetry ->
+        begin match Parse.putative_pn_offset (U32.v cid_len) (B.as_seq m1 dst) with
+        | None -> false
+        | Some pn_off -> pn_off + 4 <= B.length dst
+        end
+      | HD_Success_Retry ->
+        Some? (Parse.putative_pn_offset (U32.v cid_len) (B.as_seq m1 dst))
+    in
+    let can_parse_prf () : Lemma
+      (Parse.H_Success? (Parse.parse_header (U32.v cid_len) (Secret.v last) (B.as_seq m1 dst)) <==> can_parse_stmt ())
+    =
+    in
+    can_parse_prf ();
+    let can_parse : (x: bool { x == can_parse_stmt () }) =
+      if aux = HD_Success_Retry
+      then 
+      else true
+    in
+    if not can_parse
+    then H_Failure
+    else begin
+      Spec.header_decrypt_aux_post_parse a (B.as_seq m k) (U32.v cid_len) (Secret.v last) (B.as_seq m dst);
+      let h = ParseImpl.read_header dst dst_len in
+      if 
+      assume False;
+      H_Failure
+    end
+  end
+
+(*
+
+
+
+    let can_parse : (x: bool {
+      x == true <==>
+        begin match Parse.putative_pn_offset (U32.v cid_len) (B.as_seq m1 dst) with
+        | None -> False
+        | Some pn_offset -> pn_offset + (if HD_Success_Retry? aux then 0 else 4) <= B.length dst
+        end
+    }) =
+    if aux = HD_Success_NotRetry
+    then true
+    else begin
+      (* for Retry packets, header_decrypt_aux did nothing (no header
+         protection needed), so we need to check whether we can parse the
+         message here *)
+      Some? (ParseImpl.putative_pn_offset cid_len dst dst_len)
+    end
+    in
+    if can_parse
+    then begin
+      assume False;
+      H_Failure
+    end else
+      H_Failure
+  end
+
+#pop-options
 
 (*
 

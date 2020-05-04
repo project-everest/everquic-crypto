@@ -10,6 +10,33 @@ module BF = LowParse.BitFields
 
 inline_for_extraction
 noextract
+val usub
+  (#t: inttype { unsigned t })
+  (#sec: secrecy_level)
+  (x: uint_t t sec)
+  (y: uint_t t sec { v y <= v x })
+: Tot (z: uint_t t sec { v z == v x - v y })
+
+inline_for_extraction
+noextract
+val cast_up
+  (#t1: inttype { unsigned t1 })
+  (t2: inttype { unsigned t2 /\ bits t1 <= bits t2 })
+  (#sec: secrecy_level)
+  (x: uint_t t1 sec)
+: Tot (y: uint_t t2 SEC { v y == v x })
+
+inline_for_extraction
+noextract
+val cast_down
+  (#t1: inttype { unsigned t1 })
+  (t2: inttype { unsigned t2 })
+  (#sec: secrecy_level)
+  (x: uint_t t1 sec { v x < pow2 (bits t2) } )
+: Tot (y: uint_t t2 SEC { v y == v x })
+
+inline_for_extraction
+noextract
 val hide
   (#t: inttype { unsigned t })
   (#sec: secrecy_level)
@@ -178,3 +205,17 @@ val secrets_are_equal_62
 : Tot (z: uint64 {
     v z == (if v x = v y then 1 else 0)
   })
+
+inline_for_extraction
+noextract
+val min
+  (#t: inttype { supported_type t })
+  (x y: uint_t t SEC)
+: Tot (z: uint_t t SEC { v z == (if v x <= v y then v x else v y) })
+
+inline_for_extraction
+noextract
+val max
+  (#t: inttype { supported_type t })
+  (x y: uint_t t SEC)
+: Tot (z: uint_t t SEC { v z == (if v y <= v x then v x else v y) })

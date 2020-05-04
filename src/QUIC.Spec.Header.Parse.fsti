@@ -142,3 +142,15 @@ val parse_header_exists
   (ensures (
     H_Success? (parse_header cid_len last x)
   ))
+
+val parse_header_exists_recip
+  (cid_len: nat { cid_len <= 20 })
+  (last: nat { last + 1 < pow2 62 })
+  (x:bytes)
+: Lemma
+  (requires (
+    H_Success? (parse_header cid_len last x)
+  ))
+  (ensures (
+    Some? (putative_pn_offset cid_len x)
+  ))

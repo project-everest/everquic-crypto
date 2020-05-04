@@ -1,5 +1,17 @@
 module QUIC.Secret.Int
 
+let usub
+  #t #sec x y
+= x `sub` y
+
+let cast_up
+  #t1 t2 #sec x
+= cast t2 SEC x
+
+let cast_down
+  #t1 t2 #sec x
+= cast t2 SEC x
+
 let hide
   #t #sec x
 = cast t SEC x
@@ -260,3 +272,19 @@ let secrets_are_equal_64_2
 let secrets_are_equal_62
   x y
 = (secrets_are_equal 62 x y)
+
+#push-options "--z3rlimit 16"
+
+let min
+  #t x y
+=
+  let cond = secret_is_le (bits t) x y in
+  (cond `mul` x) `add` (lognot_one_bit cond `mul` y)
+
+let max
+  #t x y
+=
+  let cond = secret_is_le (bits t) y x in
+  (cond `mul` x) `add` (lognot_one_bit cond `mul` y)
+
+#pop-options
