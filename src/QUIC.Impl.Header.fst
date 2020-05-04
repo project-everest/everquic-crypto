@@ -594,6 +594,8 @@ let header_decrypt_aux_ct_secret_preserving_not_retry_spec
     Spec.pn_len = Secret.v pn_len;
   }
 
+#push-options "--z3rlimit 32"
+
 let header_decrypt_aux_ct_secret_preserving_not_retry_spec_correct
   (a:ea)
   (hpk: SCipher.key (SAEAD.cipher_alg_of_supported_alg a))
@@ -617,7 +619,39 @@ let header_decrypt_aux_ct_secret_preserving_not_retry_spec_correct
 : Lemma
   (header_decrypt_aux_ct a hpk cid_len (Seq.seq_reveal packet) == Some (header_decrypt_aux_ct_secret_preserving_not_retry_spec a hpk cid_len packet is_short pn_offset))
 = assert (Some? (header_decrypt_aux_ct a hpk cid_len (Seq.seq_reveal packet)));
-  assume False
+  let ppacket = Seq.seq_reveal packet in
+  let f = Seq.index packet 0 in
+  let pf = Seq.index ppacket 0 in
+  assert (pf == Secret.reveal f);
+  let is_short = (BF.get_bitfield #8 (Secret.v f) 7 8 = 0) in
+  let Some pn_offset = Parse.putative_pn_offset cid_len ppacket in
+  let sample_offset = pn_offset + 4 in
+  let psample = Seq.slice ppacket sample_offset (sample_offset + 16) in
+  let sample = Seq.slice packet sample_offset (sample_offset + 16) in
+  assert (psample == Seq.seq_reveal sample);
+  let mask = Spec.block_of_sample (SAEAD.cipher_alg_of_supported_alg a) hpk sample in
+  let pmask = Seq.seq_reveal mask in
+  let protected_bits = if is_short then 5 else 4 in
+  let pf' = U8.uint_to_t (BF.set_bitfield (U8.v pf) 0 protected_bits (BF.get_bitfield (U8.v pf `FStar.UInt.logxor` U8.v (Seq.index pmask 0)) 0 protected_bits)) in
+  let f' = Secret.set_bitfield f 0ul (U32.uint_to_t protected_bits) (Secret.get_bitfield (f `Secret.logxor` Seq.index mask 0) 0ul (U32.uint_to_t protected_bits)) in
+  assert (pf' == Secret.reveal f');
+  let packet' = Seq.cons f' (Seq.slice packet 1 (Seq.length packet)) in
+  let ppacket' = Seq.cons pf' (Seq.slice ppacket 1 (Seq.length ppacket)) in
+  assert (ppacket' `Seq.equal` Seq.seq_reveal packet');
+  let ppn_len = BF.get_bitfield (U8.v pf') 0 2 in
+  let pn_len = Secret.get_bitfield f' 0ul 2ul in
+  assert (Secret.v pn_len == ppn_len);
+  let ppnmask_ct = Lemmas.and_inplace (Seq.slice pmask 1 5) (pn_sizemask_ct ppn_len) 0 in
+  let pnmask_ct = Lemmas.secret_and_inplace (Seq.slice mask 1 5) (Seq.seq_hide #Secret.U8 (pn_sizemask_ct ppn_len)) 0 in
+  Lemmas.secret_and_inplace_eq  (Seq.slice mask 1 5) (Seq.seq_hide #Secret.U8 (pn_sizemask_ct ppn_len)) 0;
+  assert (ppnmask_ct == Seq.seq_reveal pnmask_ct);
+  Lemmas.secret_xor_inplace_eq packet' pnmask_ct pn_offset
+
+#pop-options
+
+#push-options "--z3rlimit 256 --query_stats --z3cliopt smt.arith.nl=false --fuel 2 --ifuel 1"
+
+#restart-solver
 
 inline_for_extraction
 let header_decrypt_aux_ct_secret_preserving_not_retry'
@@ -652,7 +686,47 @@ let header_decrypt_aux_ct_secret_preserving_not_retry'
     CTR.footprint m s == CTR.footprint m' s /\
     (header_decrypt_aux_ct_secret_preserving_not_retry_spec a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst) is_short (U32.v pn_offset)).Spec.packet == Seq.seq_reveal (B.as_seq m' dst)
   ))
-= admit ()
+= let m0 = HST.get () in
+  let f = B.index dst 0ul in
+  let sample_offset = pn_offset `U32.add` 4ul in
+  let sample = B.sub dst sample_offset 16ul in
+  HST.push_frame ();
+  let m1 = HST.get () in
+  B.loc_unused_in_not_unused_in_disjoint m1;
+  let mask = B.alloca (Secret.to_u8 0uy) 16ul in
+  assert (B.loc_disjoint (B.loc_buffer mask) (B.loc_buffer dst `B.loc_union` CTR.footprint m0 s));
+  let m2 = HST.get () in
+  B.loc_unused_in_not_unused_in_disjoint m2;
+  let pn_sm = B.alloca (Secret.to_u8 0uy) 4ul in
+  assert (B.loc_disjoint (B.loc_buffer mask) (B.loc_buffer pn_sm));
+  assert (B.loc_disjoint (B.loc_buffer pn_sm) (B.loc_buffer dst `B.loc_union` CTR.footprint m0 s));
+  let m3 = HST.get () in
+  let gsample = Ghost.hide (Seq.slice (B.as_seq m0 dst) (U32.v sample_offset) (U32.v sample_offset + 16)) in
+  assert (B.as_seq m3 sample == Ghost.reveal gsample);
+  block_of_sample (SAEAD.cipher_alg_of_supported_alg a) mask s k sample;
+  let m4 = HST.get () in
+  let gmask = Ghost.hide (Spec.block_of_sample (SAEAD.cipher_alg_of_supported_alg a) (B.as_seq m0 k) gsample) in
+  assert (B.as_seq m4 mask == Ghost.reveal gmask);
+  let protected_bits = if is_short then 5ul else 4ul in
+  let mask0 = B.index mask 0ul in
+  let f' = Secret.set_bitfield f 0ul protected_bits (Secret.get_bitfield (f `Secret.logxor` mask0) 0ul protected_bits) in
+  B.upd dst 0ul f';
+  let m5 = HST.get () in
+  let gpacket' = Ghost.hide (Seq.cons f' (Seq.slice (B.as_seq m0 dst) 1 (B.length dst))) in
+  assert (Ghost.reveal gpacket' `Seq.equal` B.as_seq m5 dst);
+  let pn_len = Secret.get_bitfield f' 0ul 2ul in
+  pn_sizemask pn_sm (Secret.cast_up Secret.U32 pn_len `Secret.add` Secret.hide 1ul);
+  let pnmask = B.sub mask 1ul 4ul in
+  Lemmas.op_inplace pnmask pn_sm 4ul 0ul (Secret.logand #Secret.U8 #Secret.SEC);
+  let m6 = HST.get () in
+  let gpnmask = Ghost.hide (Lemmas.secret_and_inplace (Seq.slice gmask 1 5) (Seq.seq_hide #Secret.U8 (pn_sizemask_ct (Secret.v pn_len))) 0) in
+  assert (Ghost.reveal gpnmask == B.as_seq m6 pnmask);
+  Lemmas.op_inplace dst pnmask 4ul pn_offset (Secret.logxor #Secret.U8 #Secret.SEC);
+  HST.pop_frame ();
+  let m7 = HST.get () in
+  assert (B.as_seq m7 dst == Lemmas.secret_xor_inplace gpacket' gpnmask (U32.v pn_offset))
+
+#pop-options
 
 #push-options "--z3rlimit 32 --query_stats"
 
