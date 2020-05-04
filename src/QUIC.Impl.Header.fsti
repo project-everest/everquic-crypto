@@ -165,7 +165,10 @@ let header_decrypt_post
     B.loc_buffer (B.gsub dst 0ul (public_header_len h)) `B.loc_includes` header_footprint h /\
     B.modifies (B.loc_buffer (B.gsub dst 0ul (Secret.reveal (header_len h))) `B.loc_union` CTR.footprint m s) m m' /\
     Seq.length gcipher == Secret.v cipher_len /\
-    B.as_seq m' dst `Seq.equal` (Parse.format_header gh `Seq.append` gcipher `Seq.append` grem)
+    B.as_seq m' dst `Seq.equal` (Parse.format_header gh `Seq.append` gcipher `Seq.append` grem) /\
+    B.as_seq m' (B.gsub dst 0ul (Secret.reveal (header_len h))) == Parse.format_header gh /\
+    B.as_seq m' (B.gsub dst (Secret.reveal (header_len h)) (Secret.reveal cipher_len)) == gcipher /\
+    B.as_seq m' (B.gsub dst (Secret.reveal (header_len h) `U32.add` Secret.reveal cipher_len) (B.len dst `U32.sub` (Secret.reveal (header_len h) `U32.add` Secret.reveal cipher_len))) == grem
   | _ -> False
   end
 

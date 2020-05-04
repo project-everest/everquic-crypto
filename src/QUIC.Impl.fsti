@@ -121,7 +121,7 @@ type result = {
   header: header;
   header_len: Secret.uint32;
   plain_len: Secret.uint32;
-  total_len: Secret.uint32; (* NOTE: this does not include the tag *)
+  total_len: Secret.uint32; (* NOTE: this DOES include the tag *)
 }
 
 val initial_secrets (dst_client: B.buffer Secret.uint8)

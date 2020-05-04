@@ -826,6 +826,8 @@ let header_decrypt
       Spec.header_decrypt_aux_post_parse a (B.as_seq m k) (U32.v cid_len) (Secret.v last) (B.as_seq m dst);
       Parse.lemma_header_parsing_post (U32.v cid_len) (Secret.v last) (B.as_seq m1 dst);
       let (h, pn) = ParseImpl.read_header dst dst_len cid_len last in
+      let m2 = HST.get () in
+      ParseImpl.header_len_correct h m2 pn;
       H_Success h pn (Secret.to_u32 0ul)
     end
   | _ ->
