@@ -9,6 +9,5 @@ bool QUICTest_is_equal (uint8_t * b1, uint8_t * b2, uint32_t len) {
 }
 
 int main () {
-  QUICTest_test ();
-  return EXIT_SUCCESS;
+  return QUICTest_test ();
 }

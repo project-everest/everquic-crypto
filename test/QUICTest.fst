@@ -139,11 +139,12 @@ let used_in_not_unused_in_disjoint
 
 module Cast = FStar.Int.Cast
 
-let test () : HST.ST unit
+let test () : HST.ST C.exit_code
   (requires (fun _ -> True))
   (ensures (fun _ _ _ -> True))
 = 
-  HST.push_frame ();
+HST.push_frame ();
+let res =
   used_in_not_unused_in_disjoint ();
   let st_enc : B.pointer (B.pointer_or_null (Q.state_s idx)) =
     B.alloca B.null 1ul
@@ -209,20 +210,20 @@ let test () : HST.ST unit
   used_in_not_unused_in_disjoint ();
   let r = Q.create_in idx HS.root st_enc (Secret.hide initial_pn) traffic_secret in
   if not (is_success "create_in st_enc" r)
-  then ()
+  then C.EXIT_FAILURE
   else begin
     let st_enc = B.index st_enc 0ul in
     let h = HST.get () in
     let h0 = h in
     let r = Q.encrypt #j st_enc enc_dst enc_dst_pn hdr plain plain_len in
     if not (is_success "encrypt" r)
-    then ()
+    then C.EXIT_FAILURE
     else begin
       let pn = B.index enc_dst_pn 0ul in
       used_in_not_unused_in_disjoint ();
       let r = Q.create_in idx HS.root st_dec (Secret.hide initial_pn) traffic_secret in
       if not (is_success "create_in st_dec" r)
-      then ()
+      then C.EXIT_FAILURE
       else begin
         let st_dec = B.index st_dec 0ul in
         let h1 = HST.get () in
@@ -233,25 +234,27 @@ let test () : HST.ST unit
         QS.lemma_encrypt_correct j.Q.aead_alg (Q.derive_k j st_enc h0)  (Q.derive_iv j st_enc h0) (Q.derive_pne j st_enc h0) (Q.g_header hdr h0 pn) (U8.v dcil8) (Secret.v (Q.g_last_packet_number (B.deref h1 st_dec) h1)) (Seq.seq_reveal (B.as_seq h0 plain));
         assert (r == E.Success);
         if not (is_success "decrypt" r)
-        then ()
+        then C.EXIT_FAILURE
         else begin
           let res = B.index dec_dst 0ul in
           if not (check_is_true "pn" (ADMITDeclassify.u64_to_UInt64 res.Q.pn = ADMITDeclassify.u64_to_UInt64 pn))
-          then ()
+          then C.EXIT_FAILURE
           else if not (check_is_true "header_len" (ADMITDeclassify.u32_to_UInt32 res.Q.header_len = hdr_len))
-          then ()
+          then C.EXIT_FAILURE
           else if not (check_is_true "plain_len" (ADMITDeclassify.u32_to_UInt32 res.Q.plain_len = plain_len))
-          then ()
+          then C.EXIT_FAILURE
           else if not (check_is_true "total_len" (ADMITDeclassify.u32_to_UInt32 res.Q.total_len = enc_dst_len))
-          then ()
+          then C.EXIT_FAILURE
           else
             let plain' = B.sub enc_dst hdr_len plain_len in
             let chk = is_equal plain' plain plain_len in
-            let _ = check_is_true "plain" chk in
-            ()
+            if not (check_is_true "plain" chk)
+            then C.EXIT_FAILURE
+            else C.EXIT_SUCCESS
         end
       end
     end
-  end;
-  HST.pop_frame ();
-  ()
+  end
+in  
+HST.pop_frame ();
+res
