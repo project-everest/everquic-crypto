@@ -1,5 +1,4 @@
 module QUIC.Spec.PacketNumber
-open QUIC.Spec.Base
 open QUIC.Spec.PacketNumber.Lemmas
 open LowParse.Spec.Combinators
 open LowParse.Spec.BoundedInt
@@ -12,28 +11,13 @@ module U32 = FStar.UInt32
 module U16 = FStar.UInt16
 module U8 = FStar.UInt8
 
-inline_for_extraction
-let bound_npn
-  (pn_len: packet_number_length_t)
-: Tot (x: U64.t { U64.v x == bound_npn' (U32.v pn_len - 1) })
-= FStar.UInt.shift_left_value_lemma #64 1 (8 `op_Multiply` U32.v pn_len);
-  1uL `U64.shift_left` (8ul `U32.mul` pn_len)
+module Secret = QUIC.Secret.Int
 
-let reduce_pn' pn_len pn = pn % (bound_npn' pn_len)
-
-module BF = LowParse.BitFields
-
-inline_for_extraction
-let reduce_pn
-  (pn_len: packet_number_length_t)
-  (pn: uint62_t)
-: Tot (b: bounded_integer (U32.v pn_len) { U32.v b == reduce_pn' (U32.v pn_len - 1) (U64.v pn) })
-= [@inline_let]
-  let _ =
-    assert_norm (pow2 32 == 4294967296);
-    BF.get_bitfield_eq #64 (U64.v pn) 0 (8 `op_Multiply` U32.v pn_len)
-  in
-  Cast.uint64_to_uint32 (BF.uint64.BF.get_bitfield_gen pn 0ul (8ul `U32.mul` pn_len))
+let reduce_pn'
+  (pn_len: nat { pn_len < 4 })
+  (pn: nat)
+: GTot nat
+= pn % (bound_npn' pn_len)
 
 let in_window_self (pn_len: nat { pn_len < 4 }) (pn:nat) : Lemma
   (in_window pn_len pn (if pn = 0 then 0 else pn - 1))
@@ -85,103 +69,119 @@ let lemma_uniqueness_in_window (pn_len: nat { pn_len < 4 }) (last: nat { last < 
     let low = max (last+2-h/2) 0 in
     lemma_mod_plus_injective h low (x-low) (y-low)
 
-val lemma_parse_pn_correct : (pn_len: nat { pn_len < 4 }) -> last:nat{last+1 < pow2 62} -> (pn: nat { pn < U64.v uint62_bound }) -> Lemma
+val lemma_parse_pn_correct : (pn_len: nat { pn_len < 4 }) -> last:nat{last+1 < pow2 62} -> (pn: nat { pn < U64.v U62.bound }) -> Lemma
   (requires in_window pn_len last pn)
   (ensures expand_pn' pn_len last (reduce_pn' pn_len pn) = pn)
 
 let lemma_parse_pn_correct pn_len last pn =
   lemma_uniqueness_in_window pn_len last pn (expand_pn' pn_len last (reduce_pn' pn_len pn))
 
-#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 64"
-
-let expand_pn
-  (pn_len: packet_number_length_t)
-  (last: last_packet_number_t)
-  (npn: bounded_integer (U32.v pn_len))
-: Tot (pn: uint62_t { U64.v pn == expand_pn' (U32.v pn_len - 1) (U64.v last) (U32.v npn) })
-= let open FStar.Mul in
-  let open FStar.Math.Lemmas in
-  let expected : uint62_t = last `U64.add` 1uL in
-  let bound = bound_npn pn_len in
-  let bound_2 = bound `U64.shift_right` 1ul in
-  FStar.UInt.shift_right_value_lemma #64 (U64.v bound) 1;
-  assert (U64.v bound_2 == U64.v bound / 2);
-  let candidate = replace_modulo expected bound (Cast.uint32_to_uint64 npn) in
-  if bound_2 `U64.lte` expected
-     && candidate `U64.lte` (expected `U64.sub` bound_2)
-     && candidate `U64.lt` (uint62_bound `U64.sub` bound) then // the test for overflow (candidate < pow2 62 - bound) is not present in draft 22.
-//    let _ = lemma_mod_plus candidate 1 bound in
-    candidate `U64.add` bound
-  else if candidate `U64.gt` (expected `U64.add` bound_2)
-          && candidate `U64.gte` bound then // in draft 22 the test for underflow (candidate >= bound) uses a strict inequality, which makes it impossible to expand npn to 0
-//    let _ = lemma_mod_plus candidate (-1) bound in
-    candidate `U64.sub` bound
-  else candidate
-#pop-options
+#push-options "--z3rlimit 16"
 
 inline_for_extraction
 let synth_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-  (npn: bounded_integer (U32.v pn_len))
-: Tot (pn: packet_number_t last pn_len { U64.v pn == expand_pn' (U32.v pn_len - 1) (U64.v last) (U32.v npn) })
-= expand_pn pn_len last npn
+  (npn: bounded_integer (Secret.v pn_len))
+: GTot (packet_number_t' last pn_len)
+= Secret.to_u64 (U64.uint_to_t (expand_pn' (Secret.v pn_len - 1) (Secret.v last) (U32.v npn)))
 
-let parse_packet_number
-  (last: last_packet_number_t)
-  (pn_len: packet_number_length_t)
-: Tot (parser (parse_bounded_integer_kind (U32.v pn_len)) (packet_number_t last pn_len) )
-= parse_bounded_integer (U32.v pn_len) `parse_synth` synth_packet_number last pn_len
+#pop-options
 
-inline_for_extraction
 let synth_packet_number_recip
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-  (pn: packet_number_t last pn_len)
-: Tot  (bounded_integer (U32.v pn_len))
-= reduce_pn pn_len pn
+  (pn: packet_number_t' last pn_len)
+: GTot  (bounded_integer (Secret.v pn_len))
+= U32.uint_to_t (reduce_pn' (Secret.v pn_len - 1) (Secret.v pn))
+
+#push-options "--z3rlimit 512"
+
+let synth_packet_number_injective
+  (last: last_packet_number_t)
+  (pn_len: packet_number_length_t)
+: Lemma
+  (synth_injective #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len))
+  [SMTPat 
+    (synth_injective #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len))
+  ]
+= synth_inverse_intro' #(packet_number_t' last pn_len) #(bounded_integer (Secret.v pn_len)) (synth_packet_number_recip last pn_len) (synth_packet_number last pn_len) (fun pn -> ());
+  synth_inverse_synth_injective #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len)
 
 let synth_packet_number_recip_inverse
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
 : Lemma
-  (synth_inverse (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len))
-//  [SMTPat (synth_inverse (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len))] // TODO: WHY WHY WHY does this pattern not trigger?
-= synth_inverse_intro' #(bounded_integer (U32.v pn_len)) #(packet_number_t last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len) (fun pn ->
-    lemma_parse_pn_correct (U32.v pn_len - 1) (U64.v last) (U64.v pn)
+  (synth_inverse #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len))
+  [SMTPat (synth_inverse #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len))]
+= synth_inverse_intro' #(bounded_integer (Secret.v pn_len)) #(packet_number_t' last pn_len) (synth_packet_number last pn_len) (synth_packet_number_recip last pn_len) (fun pn ->
+    lemma_parse_pn_correct (Secret.v pn_len - 1) (Secret.v last) (Secret.v pn)
   )
+
+#pop-options
+
+
+let parse_reduced_pn
+  (pn_len: packet_number_length_t)
+  ()
+: GTot (parser parse_packet_number_kind (bounded_integer (Secret.v pn_len)))
+= weaken parse_packet_number_kind (parse_bounded_integer (Secret.v pn_len))
+
+let parse_packet_number
+  (last: last_packet_number_t)
+  (pn_len: packet_number_length_t)
+: Tot (parser parse_packet_number_kind (packet_number_t' last pn_len) )
+= lift_parser (parse_reduced_pn pn_len) `parse_synth` synth_packet_number last pn_len
+
+let parse_packet_number_kind'_correct
+  last pn_len
+= let p = parse_bounded_integer (Secret.v pn_len) `parse_synth` synth_packet_number last pn_len in
+  let f
+    (input: bytes)
+  : Lemma
+    (parse (parse_packet_number last pn_len) input == parse p input)
+  = parse_synth_eq
+      (lift_parser (parse_reduced_pn pn_len))
+      (synth_packet_number last pn_len)
+      input;
+    parse_synth_eq
+      (parse_bounded_integer (Secret.v pn_len))
+      (synth_packet_number last pn_len)
+      input
+  in
+  Classical.forall_intro f;
+  parser_kind_prop_ext (total_constant_size_parser_kind (Secret.v pn_len)) (parse_packet_number last pn_len) p
+
+let serialize_reduced_pn
+  (pn_len: packet_number_length_t)
+  (x: unit)
+: GTot (serializer (parse_reduced_pn pn_len ()))
+= serialize_weaken parse_packet_number_kind (serialize_bounded_integer (Secret.v pn_len))
 
 let serialize_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
 : Tot (serializer (parse_packet_number last pn_len))
-= synth_packet_number_recip_inverse last pn_len;
-  serialize_synth
-    _
+= serialize_synth
+    (lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last pn_len)
-    (serialize_bounded_integer (U32.v pn_len))
+    (lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last pn_len)
     ()
 
-#push-options "--z3rlimit 16"
-
 let serialize_packet_number_ext
   last1 last2 pn_len pn
-= synth_packet_number_recip_inverse last1 pn_len;
-  synth_packet_number_recip_inverse last2 pn_len;
-  serialize_synth_eq 
-    _
+= serialize_synth_eq 
+    (lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last1 pn_len)
-    (serialize_bounded_integer (U32.v pn_len))
+    (lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last1 pn_len)
     ()
     pn;
   serialize_synth_eq 
-    _
+    (lift_parser (parse_reduced_pn pn_len))
     (synth_packet_number last2 pn_len)
-    (serialize_bounded_integer (U32.v pn_len))
+    (lift_serializer (serialize_reduced_pn pn_len))
     (synth_packet_number_recip last2 pn_len)
     ()
     pn
-
-#pop-options

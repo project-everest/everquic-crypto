@@ -26,7 +26,7 @@ let lemma_replace_modulo_bound_aux (k:nat) (a:nat) (b:nat) (u:nat)
   pow2_plus u (k-u)
 #pop-options
 
-#push-options "--z3rlimit 512"
+#push-options "--z3rlimit 1024"
 
 #restart-solver
 let lemma_replace_modulo_bound (a mod_pow new_mod up_pow:nat) : Lemma
@@ -46,16 +46,44 @@ module U64 = FStar.UInt64
 
 #restart-solver
 
+module Secret = QUIC.Secret.Int
+module U = FStar.UInt
+  
+let logand_mask (#n:pos) (a:U.uint_t n) (m:nat{m <= n})
+: Lemma (pow2 m <= pow2 n /\ U.logand #n a (pow2 m - 1) == a % pow2 m)
+= if m = 0
+  then U.logand_lemma_1 a
+  else if m = n
+  then begin
+    FStar.Math.Lemmas.small_mod a (pow2 n);
+    U.logand_lemma_2 a
+  end
+  else U.logand_mask a m
+
+#pop-options
+
+#push-options "--z3rlimit 2048"
+
+#restart-solver
+
 inline_for_extraction
-let replace_modulo (a: U64.t { U64.v a < pow2 62 }) (b new_mod: U64.t) : Pure U64.t
-  (requires U64.v b > 0 /\ U64.v new_mod < U64.v b)
-  (ensures fun res -> U64.v res == replace_modulo' (U64.v a) (U64.v b) (U64.v new_mod))
+let replace_modulo
+  (a: Secret.uint64 { Secret.v a < pow2 62 })
+  (b_size: FStar.Ghost.erased nat { b_size <= 64 })
+  (b_mask: Secret.uint64 { Secret.v b_mask == pow2 b_size - 1 })
+  (new_mod: Secret.uint64)
+: Pure Secret.uint64
+  (requires Secret.v new_mod < pow2 (b_size))
+  (ensures fun res -> Secret.v res == replace_modulo' (Secret.v a) (pow2 (b_size)) (Secret.v new_mod))
 =
   let open FStar.Math.Lemmas in
   [@inline_let] let _ =
-    lemma_mod_plus (U64.v new_mod) (U64.v a / U64.v b) (U64.v b);
-    small_mod (U64.v new_mod) (U64.v b)
+    lemma_mod_plus (Secret.v new_mod) (Secret.v a / pow2 b_size) (pow2 b_size);
+    Secret.logand_spec a b_mask;
+    logand_mask #64 (Secret.v a) b_size;
+    small_mod (Secret.v new_mod) (pow2 b_size);
+    lemma_mod_lt (Secret.v a) (pow2 b_size)
   in
-  (a `U64.sub` (a `U64.rem` b)) `U64.add` new_mod
+  (a `Secret.sub` (a `Secret.logand` b_mask)) `Secret.add` new_mod
 
 #pop-options

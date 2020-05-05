@@ -8,7 +8,9 @@ test: dist/test.exe
 
 include Makefile.include
 
-FST_FILES=$(wildcard src/*.fst) $(wildcard src/*.fsti)
+EXCLUDE_MODULES=Spec.Old Impl.Old
+
+FST_FILES=$(filter-out $(addprefix src/QUIC.,$(addsuffix .fst,$(EXCLUDE_MODULES)) $(addsuffix .fsti,$(EXCLUDE_MODULES))),$(wildcard src/*.fst) $(wildcard src/*.fsti)) test/QUICTest.fst
 
 ifndef NODEPEND
 ifndef MAKE_RESTARTS
@@ -33,7 +35,7 @@ clean: clean-dist
 # ------------
 
 %.checked:
-	$(FSTAR) --hint_file hints/$(notdir $*).hints $(notdir $*) && touch -c $@
+	$(FSTAR) $(notdir $*) && touch -c $@
 
 %.krml:
 	$(FSTAR) --codegen Kremlin \
@@ -62,7 +64,7 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	  -bundle LowStar.* \
 	  -bundle Prims,C.Failure,C,C.String,C.Loops,Spec.Loops,C.Endianness,FStar.*[rename=EverQuic_Kremlib] \
 	  -bundle 'Meta.*,Hacl.*,Vale.*,Spec.*,Lib.*,EverCrypt,EverCrypt.*[rename=EverQuic_EverCrypt]' \
-	  -bundle 'QUIC.Impl=QUIC.*[rename=EverQuic]'
+	  -bundle 'QUIC+QUIC.Impl.Header.Base=QUIC.\*[rename=EverQuic,rename-prefix]'
 
 dist/libeverquic.a: dist/Makefile.basic
 	$(MAKE) -C dist -f Makefile.basic
