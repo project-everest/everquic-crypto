@@ -47,14 +47,19 @@ RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C
 RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star compile-gcc-compatible
 WORKDIR ..
 
+# Install emacs F* mode
+ADD --chown=test package/fstar.sh bin/fstar.sh
+ADD --chown=test package/init.el .emacs.d/init.el
+ADD --chown=test package/install-fstar-mode.el .emacs.d/install-fstar-mode.el
+RUN emacs --script .emacs.d/install-fstar-mode.el
+
+# Add the project files proper
+RUN mkdir quic-crypto
 WORKDIR quic-crypto
-ADD src/*.fst src/*.fsti src/
-ADD Makefile Makefile
-ADD Makefile.include Makefile.include
-ADD README.md README.md
-ADD test/main.c test/QUICTest.fst test/Makefile test/
-RUN su -c 'chown -R test:test src test Makefile* README.md'
-RUN su -c 'chown test:test .'
+ADD --chown=test src/*.fst src/*.fsti src/Makefile src/
+ADD --chown=test Makefile Makefile
+ADD --chown=test Makefile.include Makefile.include
+ADD --chown=test README.md README.md
+ADD --chown=test test/main.c test/QUICTest.fst test/Makefile test/
 
 ENTRYPOINT ["/bin/bash", "--login"]
-
