@@ -6,9 +6,9 @@ NAME=quic-crypto
 ARCHIVE=$NAME.tar
 
 ln -s .. $NAME
-tar cf $ARCHIVE $NAME/src/QUIC*.fst $NAME/src/QUIC*.fsti $NAME/test/* $NAME/Makefile*
+tar cf $ARCHIVE $NAME/src/QUIC*.fst $NAME/src/QUIC*.fsti $NAME/test/* $NAME/Makefile* $NAME/README.md
 rm $NAME
 ln -s . $NAME
-tar rf $ARCHIVE $NAME/Dockerfile $NAME/README
+tar rf $ARCHIVE $NAME/Dockerfile
 rm $NAME
 bzip2 $ARCHIVE

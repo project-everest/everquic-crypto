@@ -38,16 +38,27 @@ RUN su -c 'apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA
 RUN echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic main" | su -c 'tee /etc/apt/sources.list.d/mono-official-stable.list'
 RUN su -c 'apt-get update'
 RUN su -c 'apt-get install --no-install-recommends --yes mono-devel'
-RUN env OTHERFLAGS='--admit_smt_queries true' ./everest -j $EVEREST_THREADS hacl-star make
+#RUN env OTHERFLAGS='--admit_smt_queries true' ./everest -j $EVEREST_THREADS hacl-star make
 ENV FSTAR_HOME $HOME/everest/FStar
 ENV KREMLIN_HOME $HOME/everest/kremlin
 ENV QD_HOME $HOME/everest/quackyducky
 ENV HACL_HOME $HOME/everest/hacl-star
+ENV MLCRYPTO_HOME $HOME/everest/MLCrypto
+RUN ./everest -j $EVEREST_THREADS MLCrypto make
+ENV VALE_HOME $HOME/everest/vale
+RUN echo export PATH=$HOME/everest/z3/bin:$PATH | tee --append .bash_profile .profile .bashrc
+RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star vale-fst
+RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star compile-evercrypt-external-headers
 WORKDIR ..
 
 WORKDIR quic-crypto
-#ADD src src
-#ADD Makefile Makefile
-#ADD Makefile.include Makefile.include	
-ADD README README
+ADD src/*.fst src/*.fsti src/
+ADD Makefile Makefile
+ADD Makefile.include Makefile.include	
+ADD README.md README.md
+ADD test/main.c test/QUICTest.fst test/Makefile test/
+RUN su -c 'chown -R test:test src test Makefile* README.md'
+RUN su -c 'chown test:test .'
+
+ENTRYPOINT ["/bin/bash", "--login"]
 
