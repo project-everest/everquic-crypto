@@ -1,5 +1,0 @@
-HOW TO BUILD THE DOCKER IMAGE
-
-The Docker image MUST be built with the parent directory as context
-
-docker build -f ./Dockerfile ..
