@@ -24,7 +24,7 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # Install OCaml
 ENV OPAMYES 1
-RUN opam init --disable-sandboxing --compiler=4.05.0
+RUN opam init --disable-sandboxing --compiler=4.09.1
 RUN opam env --set-switch | tee --append .profile .bashrc .bash_profile
 
 # Clone and build Everest
