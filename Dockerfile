@@ -1,24 +1,24 @@
+# This Dockerfile is intended for the end user.
+# Our CI system is using another one in .docker/build
+
 FROM ubuntu:focal
 
+# Install the dependencies of Project Everest
 RUN apt-get update
-# RUN env DEBIAN_FRONTEND=noninteractive apt-get --yes --no-install-recommends install tzdata
 RUN apt-get --yes --no-install-recommends install software-properties-common dirmngr gpg-agent
-# RUN add-apt-repository ppa:avsm/ppa
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
 RUN echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | tee /etc/apt/sources.list.d/mono-official-stable.list
 RUN apt-get update
-RUN apt-get --yes install --no-install-recommends opam emacs gcc binutils make m4 git time gnupg ca-certificates mono-devel
+RUN apt-get --yes install --no-install-recommends opam emacs gcc binutils make m4 git time gnupg ca-certificates mono-devel sudo
+
+# Create a new user and give them sudo rights
 RUN useradd -d /home/test test
+RUN echo 'test ALL=NOPASSWD: ALL' >> /etc/sudoers
 RUN mkdir /home/test
 RUN chown test:test /home/test
-RUN echo auth sufficient pam_succeed_if.so use_uid user = test > su.new
-RUN cat /etc/pam.d/su >> su.new
-RUN mv su.new /etc/pam.d/su
-
 USER test
 ENV HOME /home/test
 WORKDIR $HOME
-# RUN su -c echo test
 
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -27,7 +27,7 @@ ENV OPAMYES 1
 RUN opam init --disable-sandboxing --compiler=4.09.1
 RUN opam env --set-switch | tee --append .profile .bashrc .bash_profile
 
-# Clone and build Everest
+# Clone and build Project Everest
 ARG EVEREST_THREADS=1
 RUN git clone https://github.com/project-everest/everest.git
 WORKDIR everest
@@ -42,7 +42,6 @@ ENV HACL_HOME $HOME/everest/hacl-star
 ENV MLCRYPTO_HOME $HOME/everest/MLCrypto
 ENV VALE_HOME $HOME/everest/vale
 RUN env OTHERFLAGS='--admit_smt_queries true' ./everest -j $EVEREST_THREADS FStar make kremlin make quackyducky make
-# RUN ./everest -j $EVEREST_THREADS MLCrypto make
 RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star vale-fst
 RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star compile-gcc-compatible
 WORKDIR ..
