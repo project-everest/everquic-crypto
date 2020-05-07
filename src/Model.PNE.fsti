@@ -150,15 +150,17 @@ val encrypt :
   (#l:pne_plain_length) ->
   (n:pne_plain u l) ->
   (s:sample) ->
-9  ST (pne_cipher l)
+  ST (pne_cipher l)
   (requires fun h0 ->
     fresh_sample s st h0)
   (ensures fun h0 c h1 ->
     B.modifies (footprint st) h0 h1 /\
     (is_safe j ==>
       table st h1 == Seq.snoc (table st h0) (Entry s #l n c)) /\
-    (~(is_safe j) ==>
-      c == Spec.header_encrypt encrypt )
+    True
+// FIXME(adl) need to merge Tahina's branch with QUIC.Spec.Header.Public
+//    (~(is_safe j) ==>
+//      c == Spec.header_encrypt encrypt )
   )
 
 val decrypt :
