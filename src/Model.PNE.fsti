@@ -17,6 +17,7 @@ open Model.Helpers
 /// ------------------------------
 
 type id = I.pne_id
+type alg = I.ca
 
 let is_safe (i:id) =
   I.is_pne_honest i && I.ideal_PRF
@@ -27,7 +28,7 @@ type safe_id =
 type unsafe_id =
   i:id{not (is_safe i)}
 
-/// QUIC packet sampling
+/// QUIC payload sampling
 /// --------------------
 
 let sample_length = 16
@@ -51,29 +52,35 @@ noeq type pne_plain_pkg =
     pne_plain_pkg
 
 // JP: not sure why we don't have the same mechanism as for Model.AEAD with the index for `info`
-let info = pne_plain_pkg
+noeq type info' = {
+  calg: alg;
+  plain: pne_plain_pkg;
+}
 
-let pne_plain (u:info) (j:id) (l:pne_plain_length) =
-  PNEPlainPkg?.pne_plain u j l
+let info (j:id) =
+  info:info'{I.pne_id_ginfo j == info.calg}
+
+let pne_plain (#j:id) (u:info j) (l:pne_plain_length) =
+  PNEPlainPkg?.pne_plain u.plain j l
 
 noeq
-type entry (j:id) (u:info) =
+type entry (#j:id) (u:info j) =
   | Entry :
     s:sample ->
     #l:pne_plain_length ->
-    n:pne_plain u j l ->
+    n:pne_plain u l ->
     c:pne_cipher l ->
-    entry j u
+    entry u
 
-val pne_state : (j:id) -> (u:info) -> Type0
+val pne_state : (#j:id) -> (u:info j) -> Type0
 
-val table : (#j:id) -> (#u:info) -> (st:pne_state j u) -> (h:mem) -> GTot (Seq.seq (entry j u))
+val table : (#j:id) -> (#u:info j) -> (st:pne_state u) -> (h:mem) -> GTot (Seq.seq (entry u))
 
-val footprint : #j:id -> #u:info -> st:pne_state j u -> B.loc
+val footprint : #j:id -> #u:info j -> st:pne_state u -> B.loc
 
-val invariant: #j:id -> #u:info -> st:pne_state j u -> mem -> Type0
+val invariant: #j:id -> #u:info j -> st:pne_state u -> mem -> Type0
 
-val frame_invariant: #j:id -> #u:info -> st:pne_state j u -> l:B.loc -> h0:mem -> h1:mem -> Lemma
+val frame_invariant: #j:id -> #u:info j -> st:pne_state u -> l:B.loc -> h0:mem -> h1:mem -> Lemma
   (requires (
     invariant st h0 /\
     B.modifies l h0 h1 /\
@@ -81,7 +88,7 @@ val frame_invariant: #j:id -> #u:info -> st:pne_state j u -> l:B.loc -> h0:mem -
   (ensures (
     invariant st h1))
 
-val frame_table: #j:safe_id -> #u:info -> st:pne_state j u ->
+val frame_table: #j:safe_id -> #u:info j -> st:pne_state u ->
   r:B.loc -> h0:mem -> h1:mem ->
   Lemma
     (requires
@@ -89,81 +96,78 @@ val frame_table: #j:safe_id -> #u:info -> st:pne_state j u ->
       r `B.loc_disjoint` (footprint st))
     (ensures table st h1 == table st h0)
 
-let sample_filter (j:id) (u:info) (s:sample) (e:entry j u) : bool =
+let sample_filter (#j:id) (u:info j) (s:sample) (e:entry u) : bool =
   Entry?.s e `lbytes_eq` s
 
-let entry_for_sample (#j:id) (#u:info) (s:sample) (st:pne_state j u) (h:mem) :
-  GTot (option (entry j u)) =
-  Seq.find_l (sample_filter j u s) (table st h)
+let entry_for_sample (#j:id) (#u:info j) (s:sample) (st:pne_state u) (h:mem) :
+  GTot (option (entry u)) =
+  Seq.find_l (sample_filter u s) (table st h)
 
-let fresh_sample (#j:id) (#u:info) (s:sample) (st:pne_state j u) (h:mem) :
+let fresh_sample (#j:id) (#u:info j) (s:sample) (st:pne_state u) (h:mem) :
   GTot bool =
   None? (entry_for_sample s st h)
 
-let find_sample (#j:id) (#u:info) (s:sample) (st:pne_state j u) (h:mem) :
+let find_sample (#j:id) (#u:info j) (s:sample) (st:pne_state u) (h:mem) :
   GTot bool =
   Some? (entry_for_sample s st h)
 
-let sample_cipher_filter (j:id) (u:info) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (e:entry j u) : bool =
+let sample_cipher_filter (j:id) (u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (e:entry u) : bool =
   Entry?.s e `lbytes_eq` s && Entry?.l e = l && Entry?.c e `lbytes_eq` c
 
-let entry_for_sample_cipher (#j:id) (#u:info) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state j u) (h:mem) :
-  GTot (option (entry j u)) =
+let entry_for_sample_cipher (#j:id) (#u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state u) (h:mem) :
+  GTot (option (entry u)) =
   Seq.find_l (sample_cipher_filter j u s #l c) (table st h)
 
-let find_sample_cipher (#j:id) (#u:info) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state j u) (h:mem) :
+let find_sample_cipher (#j:id) (#u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state u) (h:mem) :
   GTot bool =
   Some? (entry_for_sample_cipher s #l c st h)
 
-let sample_cipherpad_filter (j:id) (u:info) (s:sample) (cp:pne_cipherpad) (e:entry j u) : bool =
+let sample_cipherpad_filter (#j:id) (#u:info j) (s:sample) (cp:pne_cipherpad) (e:entry u) : bool =
   Entry?.s e `lbytes_eq` s && clip_cipherpad cp (Entry?.l e) `lbytes_eq` Entry?.c e
 
-let entry_for_sample_cipherpad (#j:id) (#u:info) (s:sample) (cp:pne_cipherpad) (st:pne_state j u) (h:mem) :
-  GTot (option (entry j u)) =
-  Seq.find_l (sample_cipherpad_filter j u s cp) (table st h)
+let entry_for_sample_cipherpad (#j:id) (#u:info j) (s:sample) (cp:pne_cipherpad) (st:pne_state u) (h:mem) :
+  GTot (option (entry u)) =
+  Seq.find_l (sample_cipherpad_filter s cp) (table st h)
 
-let find_sample_cipherpad (#j:id) (#u:info) (s:sample) (cp:pne_cipherpad) (st:pne_state j u) (h:mem) :
+let find_sample_cipherpad (#j:id) (#u:info j) (s:sample) (cp:pne_cipherpad) (st:pne_state u) (h:mem) :
   GTot bool =
   Some? (entry_for_sample_cipher s cp st h)
 
-val create (j:id) (u:info) : ST (pne_state j u)
+val create (j:id) (u:info j) : ST (pne_state u)
   (requires fun _ -> True)
   (ensures fun h0 st h1 ->
     invariant st h1 /\
-
     B.modifies B.loc_none h0 h1 /\
     B.fresh_loc (footprint st) h0 h1 /\
     B.(loc_includes (loc_pne_region ()) (footprint st)) /\
 
     (I.ideal_PRF && I.is_pne_honest j ==> table st h1 == Seq.empty))
 
-// JP: how can I write a proper functional specification here? I need to:
-// - generate a block of padding
-// - take the pn_offset to know where to find the mask
-// - the pn_offset depends on the cidlen
-// - cidlen is not available
 val encrypt :
   (#j:id) ->
-  (#u:info) ->
-  (st:pne_state j u) ->
+  (#u:info j) ->
+  (st:pne_state u) ->
   (#l:pne_plain_length) ->
-  (n:pne_plain u j l) ->
+  (n:pne_plain u l) ->
   (s:sample) ->
-  ST (pne_cipher l)
+9  ST (pne_cipher l)
   (requires fun h0 ->
     fresh_sample s st h0)
   (ensures fun h0 c h1 ->
     B.modifies (footprint st) h0 h1 /\
     (is_safe j ==>
-      table st h1 == Seq.snoc (table st h0) (Entry s #l n c)))
+      table st h1 == Seq.snoc (table st h0) (Entry s #l n c)) /\
+    (~(is_safe j) ==>
+      c == Spec.header_encrypt encrypt )
+  )
 
 val decrypt :
   (#j:id) ->
-  (#u:info) ->
-  (st:pne_state j u) ->
+  (#u:info j) ->
+  (st:pne_state u) ->
   (cp:pne_cipherpad) ->
   (s:sample) ->
-  ST (l:pne_plain_length & pne_plain u j l)
+  ST (l:pne_plain_length & pne_plain u l)
   (requires fun h0 -> True)
   (ensures fun h0 (|l, n|) h1 ->
     modifies_none h0 h1 /\

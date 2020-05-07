@@ -24,6 +24,12 @@ type ha = a:HD.hash_alg{is_supported_hash a}
 type ea = a:AE.alg{is_supported_aead a}
 type ca = a:C.cipher_alg{is_supported_cipher a}
 
+let cipher_of_aead (a:ea) =
+  match a with
+  | AE.AES128_GCM -> C.AES128
+  | AE.AES256_GCM -> C.AES256
+  | AE.CHACHA20_POLY1305 -> C.CHACHA20
+
 val id: eqtype
 inline_for_extraction
 val is_honest: id -> bool
