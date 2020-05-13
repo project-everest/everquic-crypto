@@ -27,3 +27,16 @@ val serialize_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
 : Tot (serializer (parse_packet_number last pn_len))
+
+val serialize_packet_number_ext
+  (last1 last2: last_packet_number_t)
+  (pn_len: packet_number_length_t)
+  (pn: uint62_t)
+: Lemma
+  (requires (
+    in_window (U32.v pn_len - 1) (U64.v last1) (U64.v pn) /\
+    in_window (U32.v pn_len - 1) (U64.v last2) (U64.v pn)
+  ))
+  (ensures (
+    serialize (serialize_packet_number last1 pn_len) pn == serialize (serialize_packet_number last2 pn_len) pn
+  ))

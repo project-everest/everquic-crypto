@@ -363,6 +363,8 @@ let parse_header_body
   | (| Long, (| (), (| Retry, () |) |) |) ->
     (| _, parse_common_long `nondep_then` parse_bounded_vlbytes 0 20 |)
 
+#pop-options
+
 [@filter_bitsum'_t_attr]
 inline_for_extraction
 noextract
@@ -393,6 +395,8 @@ let serialize_payload_length_pn
 : Tot (serializer (parse_payload_length_pn last pn_length))
 = (serialize_varint `serialize_filter` payload_and_pn_length_prop pn_length) `serialize_nondep_then` serialize_packet_number last pn_length
 
+#push-options "--z3rlimit 64 --max_fuel 8 --max_ifuel 8 --initial_fuel 8 --initial_ifuel 8"
+
 let serialize_header_body
   (short_dcid_len: short_dcid_len_t)
   (last: last_packet_number_t)
@@ -409,6 +413,8 @@ let serialize_header_body
     serialize_common_long `serialize_nondep_then` serialize_payload_length_pn last pn_length
   | (| Long, (| (), (| Retry, () |) |) |) ->
     serialize_common_long `serialize_nondep_then` serialize_bounded_vlbytes 0 20
+
+#pop-options
 
 let serialize_header
   (short_dcid_len: short_dcid_len_t)
@@ -477,6 +483,8 @@ module LL = LowParse.Spec.BitSum
 
 (* Properties of the serializer *)
 
+#push-options "--z3rlimit 128 --max_fuel 4 --initial_fuel 4"
+
 let serialize_header_ext
   (cid_len1 cid_len2: short_dcid_len_t)
   (last1 last2: last_packet_number_t)
@@ -489,7 +497,63 @@ let serialize_header_ext
   (ensures (
     serialize (serialize_header cid_len1 last1) x == serialize (serialize_header cid_len2 last2) x
   ))
-= admit ()
+= serialize_header_eq cid_len1 last1 x;
+  serialize_header_eq cid_len2 last2 x;
+  let tg = first_byte_of_header cid_len1 last1 x in
+  assert (tg == first_byte_of_header cid_len2 last2 x);
+  match x with
+  | MShort spin key_phase dcid pn_length packet_number ->
+    assert_norm (first_byte_of_header cid_len1 last1 (MShort spin key_phase dcid pn_length packet_number) == (| Short, (| (), ((if spin then 1uy else 0uy), (| (), ((if key_phase then 1uy else 0uy), (| pn_length, () |) ) |) ) |) |) );
+    assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len1 last1 (MShort spin key_phase dcid pn_length packet_number)) == (| Short, (| (), (| (), (| pn_length, () |) |) |) |) );
+    assert (cid_len1 == cid_len2);
+    serialize_nondep_then_eq (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v cid_len1))) (serialize_packet_number last1 pn_length) (dcid, packet_number);
+    serialize_nondep_then_eq (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v cid_len2))) (serialize_packet_number last2 pn_length) (dcid, packet_number);
+    serialize_packet_number_ext last1 last2 pn_length packet_number
+  | MLong version dcid scid spec ->
+    begin match spec with
+    | MInitial token payload_length packet_number_length packet_number ->
+      assert_norm (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number)) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number))) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number)) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number))) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn last1 packet_number_length) ((version, (dcid, scid)), (token, (plpnl, packet_number)));
+      serialize_nondep_then_eq (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) (serialize_payload_length_pn last1 packet_number_length) (token, (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last1 packet_number_length) (plpnl, packet_number);
+      serialize_nondep_then_eq serialize_common_long (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn last2 packet_number_length) ((version, (dcid, scid)), (token, (plpnl, packet_number)));
+      serialize_nondep_then_eq (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) (serialize_payload_length_pn last2 packet_number_length) (token, (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last2 packet_number_length) (plpnl, packet_number);
+      serialize_packet_number_ext last1 last2 packet_number_length packet_number
+    | MHandshake payload_length packet_number_length packet_number ->
+      assert_norm (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number)) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number))) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number)) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number))) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last1 packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last1 packet_number_length) (plpnl, packet_number);
+      serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last2 packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last2 packet_number_length) (plpnl, packet_number);
+      serialize_packet_number_ext last1 last2 packet_number_length packet_number
+    | MZeroRTT payload_length packet_number_length packet_number ->
+      assert_norm (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number)) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number))) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number)) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number))) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last1 packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last1 packet_number_length) (plpnl, packet_number);
+      serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last2 packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last2 packet_number_length) (plpnl, packet_number);
+      serialize_packet_number_ext last1 last2 packet_number_length packet_number
+    | MRetry unused odcid ->
+      assert_norm (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MRetry unused odcid)) == (| Long, (| (), (| Retry, (unused, ()) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len1 last1 (MLong version dcid scid (MRetry unused odcid))) == (| Long, (| (), (| Retry, () |) |) |) );
+      assert_norm (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MRetry unused odcid)) == (| Long, (| (), (| Retry, (unused, ()) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header cid_len2 last2 (MLong version dcid scid (MRetry unused odcid))) == (| Long, (| (), (| Retry, () |) |) |) )
+    end
+
+#pop-options
 
 (* Fulfill the interface *)
 
@@ -539,11 +603,133 @@ let format_header_is_short h =
 
 #pop-options
 
-let format_header_is_retry h = admit ()
+let first_byte_is_retry
+  (k: bitsum'_type first_byte)
+: GTot bool
+= match k with
+  | (| Long, (| (), (| Retry, (unused, ()) |) |) |) -> true
+  | _ -> false
 
-let format_header_pn_length h = admit ()
+let first_byte_is_retry_correct
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (is_retry h <==> first_byte_is_retry (first_byte_of_header short_dcid_len last h))
+= ()
 
-let pn_offset h = admit ()
+let repr_of_pn_length
+  (x: packet_number_length_t)
+: Tot (y: enum_repr packet_number_length {
+    list_mem x (list_map fst packet_number_length) /\
+    y == enum_repr_of_key packet_number_length x
+  })
+= assert_norm (pow2 8 == 256);
+  Cast.uint32_to_uint8 (x `U32.sub` 1ul)
+
+#push-options "--z3rlimit 512 --max_fuel 8 --initial_fuel 8 --max_ifuel 8 --initial_ifuel 8"
+
+#restart-solver
+
+let format_header_is_retry h =
+  parse_header_prop_intro h;
+  let dl = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq dl last h;
+  let tg = first_byte_of_header dl last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec x;
+  assert (Seq.index (format_header h) 0 == x);
+  assert (is_retry h <==> (
+    uint8.get_bitfield (Seq.index (format_header h) 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Long <: U8.t) /\
+    uint8.get_bitfield (Seq.index (format_header h) 0) 4 6 == (LowParse.Spec.Enum.enum_repr_of_key long_packet_type Retry <: U8.t)
+  ))
+
+#restart-solver
+
+let format_header_pn_length h =
+  parse_header_prop_intro h;
+  let dl = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq dl last h;
+  let tg = first_byte_of_header dl last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec x;
+  assert (Seq.index (format_header h) 0 == x);
+  let pnl_k = pn_length h in
+  let pnl_r = repr_of_pn_length pnl_k in
+  assert (list_mem pnl_k (list_map fst packet_number_length));
+  assert (pnl_r == enum_repr_of_key packet_number_length pnl_k); 
+  assert (
+    uint8.get_bitfield (Seq.index (format_header h) 0) 0 2 ==
+    (pnl_r <: U8.t)
+  )
+
+#pop-options
+
+val pn_offset'
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (h: header' short_dcid_len last )
+: Ghost nat
+  (requires (~ (is_retry h)))
+  (ensures (fun n ->
+    let s = serialize (serialize_header short_dcid_len last) h in
+    0 < n /\
+    n + U32.v (pn_length h) == Seq.length s /\
+    S.slice s n (S.length s) `S.equal` serialize (serialize_packet_number last (pn_length h)) (packet_number h)
+  ))
+
+#push-options "--z3rlimit 1024 --query_stats --max_fuel 4 --initial_fuel 4"
+
+#restart-solver
+
+let pn_offset'
+  short_dcid_len last h
+= serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec x;
+  match h with
+  | MShort spin key_phase dcid packet_number_length packet_number ->
+    assert_norm (first_byte_of_header short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number) == (| Short, (| (), ((if spin then 1uy else 0uy), (| (), ((if key_phase then 1uy else 0uy), (| packet_number_length, () |) ) |) ) |) |) );
+    assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number)) == (| Short, (| (), (| (), (| packet_number_length, () |) |) |) |) ) ;
+    serialize_nondep_then_eq (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v short_dcid_len))) (serialize_packet_number last packet_number_length) (dcid, packet_number);
+    serialize_length (serialize_packet_number last packet_number_length) packet_number;
+    1 + S.length (serialize (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v short_dcid_len))) dcid)
+  | MLong version dcid scid spec ->
+    begin match spec with
+    | MInitial token payload_length packet_number_length packet_number ->
+      assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number)) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number))) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn last packet_number_length) ((version, (dcid, scid)), (token, (plpnl, packet_number)));
+      serialize_nondep_then_eq (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) (serialize_payload_length_pn last packet_number_length) (token, (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last packet_number_length) (plpnl, packet_number);
+      serialize_length (serialize_packet_number last packet_number_length) packet_number;
+      1 + S.length (serialize serialize_common_long (version, (dcid, scid))) + S.length (serialize (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) token) + S.length (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl)
+    | MHandshake payload_length packet_number_length packet_number ->
+      assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number)) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number))) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last packet_number_length) (plpnl, packet_number);
+      serialize_length (serialize_packet_number last packet_number_length) packet_number;
+      1 + S.length (serialize serialize_common_long (version, (dcid, scid))) + S.length (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl)
+    | MZeroRTT payload_length packet_number_length packet_number ->
+      assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number)) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number))) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last packet_number_length) (plpnl, packet_number);
+      serialize_length (serialize_packet_number last packet_number_length) packet_number;
+      1 + S.length (serialize serialize_common_long (version, (dcid, scid))) + S.length (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl)
+    end
+
+#pop-options
+
+let pn_offset h =
+  pn_offset' (U32.uint_to_t (dcid_len h)) (last_packet_number h) h
 
 (* From https://tools.ietf.org/html/draft-ietf-quic-tls-23#section-5.4.2 *)
 
@@ -589,9 +775,217 @@ let putative_pn_offset cid_len x =
             | None -> None
             | Some (_, consumed4) -> Some (consumed1 + consumed2 + consumed3 + consumed4)
 
-let putative_pn_offset_frame cid_len x1 x2 = admit ()
+#push-options "--z3rlimit 512"
 
-let putative_pn_offset_correct h cid_len = admit ()
+#restart-solver
+
+let putative_pn_offset_frame
+  cid_len x1 x2
+= let Some off = putative_pn_offset cid_len x1 in
+  parse_u8_spec' x1;
+  parse_u8_spec' x2;
+  parser_kind_prop_equiv parse_u8_kind parse_u8;
+  let hd1 = Seq.index x1 0 in
+  let is_short = uint8.get_bitfield hd1 7 8 = 0uy in
+  let number_of_protected_bits = if is_short then 5 else 4 in
+  let hd2 = Seq.index x2 0 in
+  BF.get_bitfield_get_bitfield (U8.v hd1) number_of_protected_bits 8 (7 - number_of_protected_bits) (8 - number_of_protected_bits);
+  BF.get_bitfield_get_bitfield (U8.v hd2) number_of_protected_bits 8 (7 - number_of_protected_bits) (8 - number_of_protected_bits);
+  assert (uint8.get_bitfield hd1 7 8 == uint8.get_bitfield hd2 7 8);
+  let x1_1 = Seq.slice x1 1 (Seq.length x1) in
+  let x2_1 = Seq.slice x2 1 (Seq.length x2) in
+  let x'1 = Seq.slice x1_1 0 (off - 1) in
+  if is_short
+  then begin
+    parse_strong_prefix (parse_flbytes cid_len) x1_1 x'1;
+    parse_strong_prefix (parse_flbytes cid_len) x'1 x2_1
+  end else begin
+    let packet_type = uint8.get_bitfield hd1 4 6 in
+    BF.get_bitfield_get_bitfield (U8.v hd1) 4 8 0 2;
+    BF.get_bitfield_get_bitfield (U8.v hd2) 4 8 0 2;
+    assert (packet_type == uint8.get_bitfield hd2 4 6);
+    parse_strong_prefix parse_common_long x1_1 (Seq.slice x1_1 0 (off - 1));
+    parse_strong_prefix parse_common_long (Seq.slice x2_1 0 (off - 1)) x2_1;
+    let Some (_, consumed2) = parse parse_common_long x1_1 in
+    let x1_2 = Seq.slice x1_1 consumed2 (Seq.length x1_1) in
+    let x2_2 = Seq.slice x2_1 consumed2 (Seq.length x2_1) in
+    assert (Seq.slice (Seq.slice x1_1 0 (off - 1)) consumed2 (off - 1) == Seq.slice (Seq.slice x2_1 0 (off - 1)) consumed2 (off - 1));
+    if packet_type = 0uy
+    then begin
+      let x'2 = Seq.slice x1_2 0 (off - 1 - consumed2) in
+      parse_strong_prefix
+        (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len))
+        x1_2 x'2;
+      parse_strong_prefix
+        (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len))
+        x'2 x2_2          
+    end;
+    let consumed3 =
+      if packet_type = 0uy
+      then let Some (_, consumed3) = parse (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) x1_2 in consumed3
+      else 0
+    in
+    let x1_3 = Seq.slice x1_2 consumed3 (Seq.length x1_2) in
+    let x2_3 = Seq.slice x2_2 consumed3 (Seq.length x2_2) in
+    assert (Seq.slice (Seq.slice x1_2 0 (off - 1 - consumed2)) consumed3 (off - 1 - consumed2) == Seq.slice (Seq.slice x2_2 0 (off - 1 - consumed2)) consumed3 (off - 1 - consumed2));
+    let x'3 = Seq.slice x1_3 0 (off - 1 - consumed2 - consumed3) in
+    parse_strong_prefix parse_varint x1_3 x'3;
+    parse_strong_prefix parse_varint x'3 x2_3
+  end
+
+#pop-options
+
+val format_header_is_initial: h: header -> Lemma
+  ((MLong? h /\ MInitial? (MLong?.spec h))  <==> (
+    BF.get_bitfield (U8.v (S.index (format_header h) 0)) 7 8 == 1 /\
+    BF.get_bitfield (U8.v (S.index (format_header h) 0)) 4 6 == 0
+  ))
+
+#push-options "--z3rlimit 256 --max_fuel 8 --initial_fuel 8 --max_ifuel 8 --initial_ifuel 8"
+
+#restart-solver
+
+let format_header_is_initial h =
+  parse_header_prop_intro h;
+  let dl = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  serialize_header_eq dl last h;
+  let tg = first_byte_of_header dl last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec x;
+  assert (Seq.index (format_header h) 0 == x);
+  assert ((MLong? h /\ MInitial? (MLong?.spec h)) <==> (
+    uint8.get_bitfield (Seq.index (format_header h) 0) 7 8 == (LowParse.Spec.Enum.enum_repr_of_key header_form Long <: U8.t) /\
+    uint8.get_bitfield (Seq.index (format_header h) 0) 4 6 == (LowParse.Spec.Enum.enum_repr_of_key long_packet_type Initial <: U8.t)
+  ))
+
+#pop-options
+
+#push-options "--z3rlimit 1024 --max_fuel 4 --initial_fuel 4 --query_stats"
+
+#restart-solver
+
+let putative_pn_offset_correct h cid_len =
+  let x = format_header h in
+  let short_dcid_len : short_dcid_len_t = U32.uint_to_t (dcid_len h) in
+  let last : last_packet_number_t = last_packet_number h in
+  parse_header_prop_intro h;
+  serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let kt = bitsum'_key_of_t first_byte tg in
+  let hd = synth_bitsum'_recip first_byte tg in
+  LI.serialize_u8_spec hd;
+  parse_serialize serialize_u8 hd;
+  parse_strong_prefix parse_u8 (serialize serialize_u8 hd) (serialize serialize_u8 hd `S.append` serialize (serialize_header_body short_dcid_len last kt) (mk_header_body short_dcid_len last tg h));
+  assert (parse parse_u8 x == Some (hd, 1));
+  let x1 = S.slice x 1 (Seq.length x) in
+  assert (x1 `S.equal` serialize (serialize_header_body short_dcid_len last kt) (mk_header_body short_dcid_len last tg h));
+  format_header_is_short h;
+  assert (MShort? h <==> uint8.get_bitfield hd 7 8 = 0uy);
+  if uint8.get_bitfield hd 7 8 = 0uy
+  then begin
+    assert (MShort? h);
+    assert (cid_len == dcid_len h);
+    assert (cid_len <= 20);
+    let MShort spin key_phase dcid packet_number_length packet_number = h in
+    assert_norm (first_byte_of_header short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number) == (| Short, (| (), ((if spin then 1uy else 0uy), (| (), ((if key_phase then 1uy else 0uy), (| packet_number_length, () |) ) |) ) |) |) );
+    assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number)) == (| Short, (| (), (| (), (| packet_number_length, () |) |) |) |) );
+//    assert (x1 == serialize (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes cid_len) `serialize_nondep_then` serialize_packet_number last (MShort?.packet_number_length h)) (MShort?.dcid h, MShort?.packet_number h));
+    serialize_nondep_then_eq (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes cid_len)) (serialize_packet_number last (MShort?.packet_number_length h)) (MShort?.dcid h, MShort?.packet_number h);
+    assert (serialize (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes cid_len)) (MShort?.dcid h) == serialize (serialize_flbytes cid_len) (MShort?.dcid h));
+    parse_serialize (serialize_flbytes cid_len) (MShort?.dcid h);
+    parse_strong_prefix (parse_flbytes cid_len) (serialize (serialize_flbytes cid_len) (MShort?.dcid h)) x1;
+    assert (parse (parse_flbytes cid_len) x1 == Some (MShort?.dcid h, S.length (serialize (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes cid_len)) (MShort?.dcid h))));
+    assert (putative_pn_offset cid_len x = Some (1 + S.length (serialize (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes cid_len)) (MShort?.dcid h))));
+    assert_norm (pn_offset' short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number) == 1 + S.length (serialize (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v short_dcid_len))) dcid));
+    ()
+  end else begin
+    assert (MLong? h);
+    let MLong version dcid scid spec = h in
+    format_header_is_retry h;
+    assert (is_retry h <==> uint8.get_bitfield hd 4 6 == 3uy);
+    assert (~ (MRetry? spec));
+    format_header_is_initial h;
+    assert (MInitial? spec <==> uint8.get_bitfield hd 4 6 == 0uy);
+    if uint8.get_bitfield hd 4 6 = 0uy
+    then begin
+      assert (MInitial? spec);
+      let MInitial token payload_length packet_number_length packet_number = spec in
+      assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number)) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number))) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+      let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+      serialize_nondep_then_eq serialize_common_long (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn last packet_number_length) ((version, (dcid, scid)), (token, (plpnl, packet_number)));
+      parse_serialize serialize_common_long (version, (dcid, scid));
+      parse_strong_prefix parse_common_long (serialize serialize_common_long (version, (dcid, scid))) x1;
+      let consumed2 = S.length (serialize serialize_common_long (version, (dcid, scid))) in
+      assert (parse parse_common_long x1 == Some ((version, (dcid, scid)), consumed2));
+      let x2 = S.slice x1 consumed2 (S.length x1) in
+      assert (x2 `S.equal` serialize (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn last packet_number_length) (token, (plpnl, packet_number)));
+      serialize_nondep_then_eq (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) (serialize_payload_length_pn last packet_number_length) (token, (plpnl, packet_number));
+      parse_serialize (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) token;
+      parse_strong_prefix (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) (serialize (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) token) x2;
+      let consumed3 = S.length (serialize (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) token) in
+      assert (parse (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) x2 == Some (token, consumed3));
+      let x3 = S.slice x2 consumed3 (S.length x2) in
+      assert (x3 `S.equal` serialize (serialize_payload_length_pn last packet_number_length) (plpnl, packet_number));
+      serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last packet_number_length) (plpnl, packet_number);
+      assert (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl == serialize serialize_varint plpnl);
+      parse_serialize serialize_varint plpnl;
+      parse_strong_prefix parse_varint (serialize serialize_varint plpnl) x3;
+      let consumed4 = S.length (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl) in
+      assert (consumed4 == S.length (serialize serialize_varint plpnl));
+      assert (parse parse_varint x3 == Some (plpnl, consumed4));
+      assert (putative_pn_offset cid_len x = Some (1 + consumed2 + consumed3 + consumed4));
+      assert_norm (pn_offset' short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number)) == 1 + consumed2 + consumed3 + consumed4)
+    end else
+      match spec with
+      | MHandshake payload_length packet_number_length packet_number ->
+        assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number)) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+        assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number))) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+        let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+        serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+        parse_serialize serialize_common_long (version, (dcid, scid));
+        parse_strong_prefix parse_common_long (serialize serialize_common_long (version, (dcid, scid))) x1;
+        let consumed2 = S.length (serialize serialize_common_long (version, (dcid, scid))) in
+        assert (parse parse_common_long x1 == Some ((version, (dcid, scid)), consumed2));
+        let x2 = S.slice x1 consumed2 (S.length x1) in
+        assert (x2 `S.equal` serialize (serialize_payload_length_pn last packet_number_length) (plpnl, packet_number));
+        let x3 = S.slice x2 0 (S.length x2) in
+        assert (x3 `S.equal` x2);
+        serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last packet_number_length) (plpnl, packet_number);
+        assert (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl == serialize serialize_varint plpnl);
+        parse_serialize serialize_varint plpnl;
+        parse_strong_prefix parse_varint (serialize serialize_varint plpnl) x3;
+        let consumed4 = S.length (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl) in
+        assert (consumed4 == S.length (serialize serialize_varint plpnl));
+        assert (parse parse_varint x3 == Some (plpnl, consumed4));
+        assert (putative_pn_offset cid_len x = Some (1 + consumed2 + consumed4));
+        assert_norm (pn_offset' short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number)) == 1 + consumed2 + 0 + consumed4)
+      | MZeroRTT payload_length packet_number_length packet_number ->
+        assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number)) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+        assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number))) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+        let plpnl : (plpnl : uint62_t { payload_and_pn_length_prop packet_number_length plpnl }) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+        serialize_nondep_then_eq serialize_common_long (serialize_payload_length_pn last packet_number_length) ((version, (dcid, scid)), (plpnl, packet_number));
+        parse_serialize serialize_common_long (version, (dcid, scid));
+        parse_strong_prefix parse_common_long (serialize serialize_common_long (version, (dcid, scid))) x1;
+        let consumed2 = S.length (serialize serialize_common_long (version, (dcid, scid))) in
+        assert (parse parse_common_long x1 == Some ((version, (dcid, scid)), consumed2));
+        let x2 = S.slice x1 consumed2 (S.length x1) in
+        assert (x2 `S.equal` serialize (serialize_payload_length_pn last packet_number_length) (plpnl, packet_number));
+        let x3 = S.slice x2 0 (S.length x2) in
+        assert (x3 `S.equal` x2);
+        serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) (serialize_packet_number last packet_number_length) (plpnl, packet_number);
+        assert (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl == serialize serialize_varint plpnl);
+        parse_serialize serialize_varint plpnl;
+        parse_strong_prefix parse_varint (serialize serialize_varint plpnl) x3;
+        let consumed4 = S.length (serialize (serialize_varint `serialize_filter` payload_and_pn_length_prop packet_number_length) plpnl) in
+        assert (consumed4 == S.length (serialize serialize_varint plpnl));
+        assert (parse parse_varint x3 == Some (plpnl, consumed4));
+        assert (putative_pn_offset cid_len x = Some (1 + consumed2 + consumed4));
+        assert_norm (pn_offset' short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number)) == 1 + consumed2 + 0 + consumed4)
+  end
+
+#pop-options
 
 let parse_header cid_len last b =
   match parse (lp_parse_header (U32.uint_to_t cid_len) (U64.uint_to_t last)) b with
@@ -637,3 +1031,244 @@ let lemma_header_parsing_safe
     assert (parse_header cid_len last b2 == H_Success h1 c1);
     Seq.lemma_split b2 consumed;
     assert (b1 == b2)
+    
+#pop-options
+
+let header_len'
+  (h: header)
+: GTot nat
+= match h with
+  | MShort spin phase cid packet_number_length pn ->
+    1 + FB.length cid + U32.v packet_number_length
+  | MLong version dcid scid spec ->
+    7 + FB.length dcid + FB.length scid +
+    begin match spec with
+    | MInitial token payload_length packet_number_length pn ->
+      S.length (serialize (serialize_bounded_varint 0 token_max_len) (FB.len token)) + FB.length token + S.length (serialize serialize_varint (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)) + U32.v packet_number_length
+    | MZeroRTT payload_length packet_number_length pn ->
+      S.length (serialize serialize_varint (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)) + U32.v packet_number_length
+    | MHandshake payload_length packet_number_length pn ->
+      S.length (serialize serialize_varint (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)) + U32.v packet_number_length
+    | MRetry unused odcid ->
+      1 + FB.length odcid
+    end
+
+let length_serialize_common_long
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+: Lemma
+  (Seq.length (serialize serialize_common_long (version, (dcid, scid))) == 6 + FB.length dcid + FB.length scid)
+= serialize_nondep_then_eq serialize_u32 (serialize_bounded_vlbytes 0 20 `serialize_nondep_then` serialize_bounded_vlbytes 0 20) (version, (dcid, scid));
+  serialize_length serialize_u32 version;
+  serialize_nondep_then_eq (serialize_bounded_vlbytes 0 20) (serialize_bounded_vlbytes 0 20) (dcid, scid);
+  length_serialize_bounded_vlbytes 0 20 dcid;
+  length_serialize_bounded_vlbytes 0 20 scid
+
+let length_serialize_payload_length_pn
+  (last: last_packet_number_t)
+  (pn_length: packet_number_length_t)
+  (payload_and_pn_length: parse_filter_refine (payload_and_pn_length_prop pn_length))
+  (pn: packet_number_t last pn_length)
+: Lemma
+  (Seq.length (serialize (serialize_payload_length_pn last pn_length) (payload_and_pn_length, pn)) == Seq.length (serialize serialize_varint payload_and_pn_length) + U32.v pn_length)
+= serialize_nondep_then_eq (serialize_varint `serialize_filter` payload_and_pn_length_prop pn_length) (serialize_packet_number last pn_length) (payload_and_pn_length, pn);
+  serialize_length (serialize_packet_number last pn_length) pn
+
+#push-options "--z3rlimit 1024 --query_stats --max_fuel 4 --initial_fuel 4"
+
+#restart-solver
+
+let header_len'_correct'_short
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (spin: bool)
+  (key_phase: bool)
+  (dcid: vlbytes 0 20)
+  (packet_number_length: packet_number_length_t)
+  (packet_number: uint62_t)
+: Lemma
+  (requires (let h = MShort spin key_phase dcid packet_number_length packet_number in
+    parse_header_prop short_dcid_len last h
+  ))
+  (ensures (
+    let h = MShort spin key_phase dcid packet_number_length packet_number in
+    header_len' h == S.length (serialize (serialize_header short_dcid_len last) h)
+  ))
+= 
+  let h = MShort spin key_phase dcid packet_number_length packet_number in
+  serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  serialize_length LI.serialize_u8 x;
+  assert_norm (first_byte_of_header short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number) == (| Short, (| (), ((if spin then 1uy else 0uy), (| (), ((if key_phase then 1uy else 0uy), (| packet_number_length, () |) ) |) ) |) |) );
+  assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MShort spin key_phase dcid packet_number_length packet_number)) == (| Short, (| (), (| (), (| packet_number_length, () |) |) |) |) ) ;
+  serialize_nondep_then_eq (serialize_weaken (strong_parser_kind 0 20 None) (serialize_flbytes (U32.v short_dcid_len))) (serialize_packet_number last packet_number_length) (dcid, packet_number);
+  serialize_length (serialize_flbytes (U32.v short_dcid_len)) dcid;
+  serialize_length (serialize_packet_number last packet_number_length) packet_number
+
+#restart-solver
+
+let header_len'_correct'_long_initial
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (token: vlbytes 0 token_max_len)
+  (payload_length: uint62_t)
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 })
+  (packet_number: uint62_t)
+: Lemma
+  (requires (
+    let h = MLong version dcid scid (MInitial token payload_length packet_number_length packet_number) in
+    parse_header_prop short_dcid_len last h
+  ))
+  (ensures (
+    let h = MLong version dcid scid (MInitial token payload_length packet_number_length packet_number) in
+    header_len' h == S.length (serialize (serialize_header short_dcid_len last) h)
+  ))
+=
+  let h = MLong version dcid scid (MInitial token payload_length packet_number_length packet_number) in
+  serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  serialize_length LI.serialize_u8 x;
+  let kt : bitsum'_key_type first_byte = (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number)) == (| Long, (| (), (| Initial, (| (), (| packet_number_length, () |) |) |) |) |) );
+  assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MInitial token payload_length packet_number_length packet_number))) == kt );
+  let plpnl : parse_filter_refine (payload_and_pn_length_prop packet_number_length) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+  let pn : packet_number_t last packet_number_length = packet_number in
+  length_serialize_nondep_then serialize_common_long (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) `serialize_nondep_then` serialize_payload_length_pn last packet_number_length) (version, (dcid, scid)) (token, (plpnl, pn));
+  length_serialize_common_long version dcid scid;
+  length_serialize_nondep_then (serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len)) (serialize_payload_length_pn last packet_number_length) token (plpnl, pn);
+  length_serialize_bounded_vlgenbytes 0 token_max_len (serialize_bounded_varint 0 token_max_len) token;
+  length_serialize_payload_length_pn last packet_number_length plpnl pn
+
+let header_len'_correct'_long_handshake
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (payload_length: uint62_t)
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 })
+  (packet_number: uint62_t)
+: Lemma
+  (requires (
+    let h = MLong version dcid scid (MHandshake payload_length packet_number_length packet_number) in
+    parse_header_prop short_dcid_len last h
+  ))
+  (ensures (
+    let h = MLong version dcid scid (MHandshake payload_length packet_number_length packet_number) in
+    header_len' h == S.length (serialize (serialize_header short_dcid_len last) h)
+  ))
+=
+  let h = MLong version dcid scid (MHandshake payload_length packet_number_length packet_number) in
+  serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  serialize_length LI.serialize_u8 x;
+  let kt : bitsum'_key_type first_byte = (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number)) == (| Long, (| (), (| Handshake, (| (), (| packet_number_length, () |) |) |) |) |) );
+  assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MHandshake payload_length packet_number_length packet_number))) == kt );
+  let plpnl : parse_filter_refine (payload_and_pn_length_prop packet_number_length) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+  let pn : packet_number_t last packet_number_length = packet_number in
+  length_serialize_nondep_then serialize_common_long (serialize_payload_length_pn last packet_number_length) (version, (dcid, scid)) (plpnl, pn);
+  length_serialize_common_long version dcid scid;
+  length_serialize_payload_length_pn last packet_number_length plpnl pn
+
+let header_len'_correct'_long_zeroRTT
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (payload_length: uint62_t)
+  (packet_number_length: packet_number_length_t { U64.v payload_length + U32.v packet_number_length < pow2 62 })
+  (packet_number: uint62_t)
+: Lemma
+  (requires (
+    let h = MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number) in
+    parse_header_prop short_dcid_len last h
+  ))
+  (ensures (
+    let h = MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number) in
+    header_len' h == S.length (serialize (serialize_header short_dcid_len last) h)
+  ))
+=
+  let h = MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number) in
+  serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  serialize_length LI.serialize_u8 x;
+  let kt : bitsum'_key_type first_byte = (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number)) == (| Long, (| (), (| ZeroRTT, (| (), (| packet_number_length, () |) |) |) |) |) );
+  assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MZeroRTT payload_length packet_number_length packet_number))) == kt );
+  let plpnl : parse_filter_refine (payload_and_pn_length_prop packet_number_length) = payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length in
+  let pn : packet_number_t last packet_number_length = packet_number in
+  length_serialize_nondep_then serialize_common_long (serialize_payload_length_pn last packet_number_length) (version, (dcid, scid)) (plpnl, pn);
+  length_serialize_common_long version dcid scid;
+  length_serialize_payload_length_pn last packet_number_length plpnl pn
+
+let header_len'_correct'_long_retry
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (version: U32.t)
+  (dcid: vlbytes 0 20)
+  (scid: vlbytes 0 20)
+  (unused: bitfield 4)
+  (odcid: vlbytes 0 20)
+: Lemma
+  (requires (
+    let h = MLong version dcid scid (MRetry unused odcid) in
+    parse_header_prop short_dcid_len last h
+  ))
+  (ensures (
+    let h = MLong version dcid scid (MRetry unused odcid) in
+    header_len' h == S.length (serialize (serialize_header short_dcid_len last) h)
+  ))
+=
+  let h = MLong version dcid scid (MRetry unused odcid) in
+  serialize_header_eq short_dcid_len last h;
+  let tg = first_byte_of_header short_dcid_len last h in
+  let x = synth_bitsum'_recip first_byte tg in
+  serialize_length LI.serialize_u8 x;
+  let kt : bitsum'_key_type first_byte = (| Long, (| (), (| Retry, () |) |) |) in
+  assert_norm (first_byte_of_header short_dcid_len last (MLong version dcid scid (MRetry unused odcid)) == (| Long, (| (), (| Retry, (unused, ()) |) |) |) );
+  assert_norm (bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len last (MLong version dcid scid (MRetry unused odcid))) == kt );
+  length_serialize_nondep_then serialize_common_long (serialize_bounded_vlbytes 0 20) (version, (dcid, scid)) odcid;
+  length_serialize_common_long version dcid scid;
+  length_serialize_bounded_vlbytes 0 20 odcid
+
+let header_len'_correct'
+  (short_dcid_len: short_dcid_len_t)
+  (last: last_packet_number_t)
+  (h: header' short_dcid_len last)
+: Lemma
+  (header_len' h == S.length (serialize (serialize_header short_dcid_len last) h))
+= match h with
+  | MShort spin key_phase dcid packet_number_length packet_number ->
+    header_len'_correct'_short short_dcid_len last spin key_phase dcid packet_number_length packet_number
+  | MLong version dcid scid spec ->
+    begin match spec with
+    | MInitial token payload_length packet_number_length packet_number ->
+      header_len'_correct'_long_initial short_dcid_len last version dcid scid token payload_length packet_number_length packet_number
+    | MHandshake payload_length packet_number_length packet_number ->
+      header_len'_correct'_long_handshake short_dcid_len last version dcid scid payload_length packet_number_length packet_number
+    | MZeroRTT payload_length packet_number_length packet_number ->
+      header_len'_correct'_long_zeroRTT short_dcid_len last version dcid scid payload_length packet_number_length packet_number
+    | MRetry unused odcid ->
+      header_len'_correct'_long_retry short_dcid_len last version dcid scid unused odcid
+    end
+
+#pop-options
+
+let header_len'_correct
+  (h: header)
+: Lemma
+  (header_len' h == header_len h)
+= 
+  let short_dcid_len = U32.uint_to_t (dcid_len h) in
+  let last = last_packet_number h in
+  header_len'_correct' short_dcid_len last h

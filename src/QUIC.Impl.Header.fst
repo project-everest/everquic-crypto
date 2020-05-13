@@ -66,10 +66,123 @@ let validate_header_body_cases
 
 #pop-options
 
+(* I can no longer use mk_filter_bitsum'_t' and similar automatic
+   destructors/constructors by normalization, because these would
+   branch on pn_len, which would no longer be constant-time. So I use
+   tactics to structurally build (i.e. in a syntax-directed way)
+   tailored destructors in a convenient way without the tedium of
+   providing arguments every time. *)
+
+module T = FStar.Tactics
+module BF = LowParse.BitFields
+
+inline_for_extraction
+let is_fixed_bit
+  (x: BF.bitfield uint8 1)
+: Tot (y: bool { y == list_mem x (list_map snd fixed_bit) })
+= x = 1uy
+
+inline_for_extraction
+let key_of_fixed_bit
+  (x: enum_repr fixed_bit) 
+: Tot (y: enum_key fixed_bit { y == enum_key_of_repr fixed_bit x })
+= ()
+
+inline_for_extraction
+let are_reserved_bits
+  (x: LowParse.BitFields.bitfield uint8 2)
+: Tot (y: bool { y == list_mem x (list_map snd reserved_bits) })
+= x = 0uy
+
+inline_for_extraction
+let key_of_reserved_bits
+  (x: enum_repr reserved_bits)
+: Tot (y: enum_key reserved_bits { y == enum_key_of_repr reserved_bits x })
+= ()
+
+(* this is constant-time, no longer branches on pn_len *)
+inline_for_extraction
+let is_packet_number_length
+  (x: BF.bitfield uint8 2)
+: Tot (y: bool { y == list_mem x (list_map snd packet_number_length) })
+= true
+
+(* this is constant-time, no longer branches on pn_len *)
+inline_for_extraction
+let key_of_packet_number_length
+  (x: enum_repr packet_number_length)
+: Tot (y: enum_key packet_number_length { y == enum_key_of_repr packet_number_length x })
+= Cast.uint8_to_uint32 x `U32.add` 1ul
+
+inline_for_extraction
+noextract
+let filter_rrpp
+: filter_bitsum'_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`are_reserved_bits);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`is_packet_number_length);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`filter_bitsum'_bitstop uint8)
+  )
+
+module L = FStar.List.Tot
+
+let append_l_nil (#t: Type) (l: list t) : Tot (squash (l == l `L.append` [])) =
+  L.append_l_nil l
+
 let filter_first_byte'
 : (filter_bitsum'_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_filter_bitsum'_t' first_byte)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`filter_bitsum'_bitsum'_intro);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* long *)
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.exact (`is_fixed_bit);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitsum'_intro);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* initial *)
+  T.exact_with_ref (`filter_rrpp);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`filter_rrpp);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* Handshake *)
+  T.exact_with_ref (`filter_rrpp);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* Retry *)
+  T.apply (`filter_bitsum'_bitfield);
+  T.exact_with_ref (`filter_bitsum'_bitstop uint8);
+  T.apply (`filter_bitsum'_bitsum'_nil);
+  T.apply (`append_l_nil);
+  T.apply (`filter_bitsum'_bitsum'_cons);
+  (* short *)
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.exact (`is_fixed_bit);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitfield);
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`are_reserved_bits);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`filter_bitsum'_bitfield);
+  T.apply (`filter_bitsum'_bitsum_gen);
+  T.apply (`is_packet_number_length);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`filter_bitsum'_bitstop uint8);
+  T.apply (`filter_bitsum'_bitsum'_nil);
+  T.apply (`append_l_nil)
+  )
 
 inline_for_extraction
 let filter_first_byte
@@ -78,12 +191,68 @@ let filter_first_byte
 : Tot (filter_bitsum'_t first_byte)
 = coerce (filter_bitsum'_t first_byte) filter_first_byte'
 
+(* same here *)
+
+inline_for_extraction
+noextract
+let validate_rrpp
+: LL.validate_bitsum_cases_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.exact (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`LL.validate_bitsum_cases_bitstop uint8)
+)
+
 inline_for_extraction
 noextract
 let mk_validate_header_body_cases'
 : LL.validate_bitsum_cases_t first_byte
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (LL.mk_validate_bitsum_cases_t' first_byte)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`LL.validate_bitsum_cases_bitsum'_intro);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* long *)
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitsum'_intro);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* initial *)
+  T.exact_with_ref (`validate_rrpp);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`validate_rrpp);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* Handshake *)
+  T.exact_with_ref (`validate_rrpp);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* Retry *)
+  T.apply (`LL.validate_bitsum_cases_bitfield);
+  T.exact_with_ref (`LL.validate_bitsum_cases_bitstop uint8);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_nil);
+  T.apply (`append_l_nil);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_cons);
+  (* short *)
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitfield);
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`LL.validate_bitsum_cases_bitfield);
+  T.apply (`LL.validate_bitsum_cases_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`LL.validate_bitsum_cases_bitstop uint8);
+  T.apply (`LL.validate_bitsum_cases_bitsum'_nil);
+  T.apply (`append_l_nil)
+  )
 
 inline_for_extraction
 noextract
@@ -112,12 +281,64 @@ let validate_header
 
 module Impl = QUIC.Impl.Base
 
+(* same here *)
+
+inline_for_extraction
+noextract
+let destr_rrpp
+: destr_bitsum'_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.exact (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`destr_bitsum'_bitstop uint8)
+)
+
 inline_for_extraction
 noextract
 let destr_first_byte
-: (destr_bitsum'_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_destr_bitsum'_t first_byte)
+: (destr_bitsum'_t first_byte <: Type u#1)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`destr_bitsum'_bitsum_intro);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* long *)
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitsum_intro);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* initial *)
+  T.exact_with_ref (`destr_rrpp);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`destr_rrpp);
+  T.apply (`destr_bitsum'_bitsum_cons);
+  (* Handshake *)
+  T.exact_with_ref (`destr_rrpp);
+  T.apply (`destr_bitsum'_bitsum_cons_nil);
+  (* Retry *)
+  T.apply (`destr_bitsum'_bitfield);
+  T.exact_with_ref (`destr_bitsum'_bitstop uint8);
+  T.apply (`destr_bitsum'_bitsum_cons_nil);
+  (* short *)
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.exact (`key_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitfield);
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.apply (`key_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`destr_bitsum'_bitfield);
+  T.apply (`destr_bitsum'_bitsum_gen);
+  T.apply (`key_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`destr_bitsum'_bitstop uint8)
+  )
 
 inline_for_extraction
 noextract
@@ -128,7 +349,7 @@ let read_header_body_t
   (tg: bitsum'_type first_byte)
 : Tot (Type u#0)
 = (len: U32.t) ->
-  HST.Stack (Impl.header & uint62_t)
+  HST.Stack (option (Impl.header & uint62_t))
   (requires (fun h ->
     let p = dsnd (parse_header_body cid_len last (bitsum'_key_of_t first_byte tg)) in
     LL.valid_pos (lp_parse_header cid_len last) h sl 0ul len /\
@@ -136,17 +357,18 @@ let read_header_body_t
     LL.valid_pos p h sl 1ul len /\
     LL.contents (lp_parse_header cid_len last) h sl 0ul == (header_synth cid_len last).f tg (LL.contents p h sl 1ul)
   ))
-  (ensures (fun h (x, pn) h' ->
+  (ensures (fun h res h' ->
+    let hd = LL.contents (lp_parse_header cid_len last) h sl 0ul in
     B.modifies B.loc_none h h' /\
-    begin
-      let hd = LL.contents (lp_parse_header cid_len last) h sl 0ul in
-      Impl.header_live x h' /\
-      LL.loc_slice_from_to sl 0ul len `B.loc_includes` Impl.header_footprint x /\
-      Impl.g_header x h' pn == hd
+    (None? res <==> ((~ (Spec.is_retry hd)) /\ U32.v len + 4 > U32.v sl.LL.len)) /\
+    begin match res with
+      | None -> True
+      | Some (x, pn) ->
+        Impl.header_live x h' /\
+        LL.loc_slice_from_to sl 0ul len `B.loc_includes` Impl.header_footprint x /\
+        Impl.g_header x h' pn == hd
     end
   ))
-
-module BF = LowParse.BitFields
 
 #push-options "--z3rlimit 64 --z3cliopt smt.arith.nl=false --using_facts_from '*,-FStar.Int.Cast' --query_stats --max_fuel 9 --initial_fuel 9 --max_ifuel 9 --initial_ifuel 9 --query_stats"
 
@@ -161,13 +383,17 @@ let read_header_body_short
 = fun len ->
     let h0 = HST.get () in
     assert_norm (bitsum'_key_of_t first_byte (| Short, (| (), (spin, (| (), (key_phase, (| pn_length, () |) ) |) ) |) |) == (| Short, (| (), (| (), (| pn_length, () |) |) |) |) );
-    LL.valid_nondep_then h0 (weaken (strong_parser_kind 0 20 None) (parse_flbytes (U32.v cid_len))) (parse_packet_number last pn_length) sl 1ul;
-    LL.valid_weaken (strong_parser_kind 0 20 None) (parse_flbytes (U32.v cid_len)) h0 sl 1ul;
-    LB.valid_flbytes_elim h0 (U32.v cid_len) sl 1ul;
-    let pos = LB.jump_flbytes (U32.v cid_len) cid_len sl 1ul in
-    let dcid = B.sub sl.LL.base 1ul (pos `U32.sub` 1ul) in
-    let pn = read_packet_number last pn_length sl pos in
-    Impl.BShort (spin = 1uy) (key_phase = 1uy) dcid cid_len pn_length, pn
+    if (sl.LL.len `U32.sub` len) `U32.lt` 4ul
+    then None
+    else begin
+      LL.valid_nondep_then h0 (weaken (strong_parser_kind 0 20 None) (parse_flbytes (U32.v cid_len))) (parse_packet_number last pn_length) sl 1ul;
+      LL.valid_weaken (strong_parser_kind 0 20 None) (parse_flbytes (U32.v cid_len)) h0 sl 1ul;
+      LB.valid_flbytes_elim h0 (U32.v cid_len) sl 1ul;
+      let pos = LB.jump_flbytes (U32.v cid_len) cid_len sl 1ul in
+      let dcid = B.sub sl.LL.base 1ul (pos `U32.sub` 1ul) in
+      let pn = read_packet_number last pn_length sl pos in
+      Some (Impl.BShort (spin = 1uy) (key_phase = 1uy) dcid cid_len pn_length, pn)
+    end
 
 #pop-options
 
@@ -198,7 +424,7 @@ let read_header_body_long_retry
     let odcid = LB.get_vlbytes_contents 0 20 sl pos3 in
     let odcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos3 in
     let spec = Impl.BRetry unused odcid odcid_len in
-    Impl.BLong version dcid dcid_len scid scid_len spec, last (* dummy, this packet does not have a packet number *)
+    Some (Impl.BLong version dcid dcid_len scid scid_len spec, last (* dummy, this packet does not have a packet number *) )
 
 #pop-options
 
@@ -215,28 +441,32 @@ let read_header_body_long_initial
 = fun len ->
     let h0 = HST.get () in
     assert_norm (bitsum'_key_of_t first_byte (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) == (| Long, (| (), (| Initial, (| (), (| pn_length, () |) |) |) |) |) );
-    LL.valid_nondep_then h0 parse_common_long (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len) `nondep_then` parse_payload_length_pn last pn_length) sl 1ul;
-    LL.valid_nondep_then h0 parse_u32 (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20) sl 1ul;
-    let version = LJ.read_u32 sl 1ul in
-    let pos1 = LJ.jump_u32 sl 1ul in
-    LL.valid_nondep_then h0 (parse_bounded_vlbytes 0 20) (parse_bounded_vlbytes 0 20) sl pos1;
-    let dcid = LB.get_vlbytes_contents 0 20 sl pos1 in
-    let dcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos1 in
-    let pos2 = LB.jump_bounded_vlbytes 0 20 sl pos1 in
-    let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
-    let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
-    let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
-    LL.valid_nondep_then h0 (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) (parse_payload_length_pn last pn_length) sl pos3;
-    let token = LB.get_bounded_vlgenbytes_contents 0 token_max_len (read_bounded_varint 0 token_max_len) (jump_bounded_varint 0 token_max_len) sl pos3 in
-    let token_len = LB.bounded_vlgenbytes_payload_length 0 token_max_len (read_bounded_varint 0 token_max_len) sl pos3 in
-    let pos4 = LB.jump_bounded_vlgenbytes 0 token_max_len (jump_bounded_varint 0 token_max_len) (read_bounded_varint 0 token_max_len) sl pos3 in
-    LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos4;
-    let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos4 in
-    let pos5 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos4 in
-    let pn = read_packet_number last pn_length sl pos5 in
-//    assert (LL.loc_slice_from_to sl 0ul len `B.loc_includes` B.loc_buffer token);
-    let spec = Impl.BInitial (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length token token_len in
-    Impl.BLong version dcid dcid_len scid scid_len spec, pn
+    if (sl.LL.len `U32.sub` len) `U32.lt` 4ul
+    then None
+    else begin
+      LL.valid_nondep_then h0 parse_common_long (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len) `nondep_then` parse_payload_length_pn last pn_length) sl 1ul;
+      LL.valid_nondep_then h0 parse_u32 (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20) sl 1ul;
+      let version = LJ.read_u32 sl 1ul in
+      let pos1 = LJ.jump_u32 sl 1ul in
+      LL.valid_nondep_then h0 (parse_bounded_vlbytes 0 20) (parse_bounded_vlbytes 0 20) sl pos1;
+      let dcid = LB.get_vlbytes_contents 0 20 sl pos1 in
+      let dcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos1 in
+      let pos2 = LB.jump_bounded_vlbytes 0 20 sl pos1 in
+      let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
+      let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
+      let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
+      LL.valid_nondep_then h0 (parse_bounded_vlgenbytes 0 token_max_len (parse_bounded_varint 0 token_max_len)) (parse_payload_length_pn last pn_length) sl pos3;
+      let token = LB.get_bounded_vlgenbytes_contents 0 token_max_len (read_bounded_varint 0 token_max_len) (jump_bounded_varint 0 token_max_len) sl pos3 in
+      let token_len = LB.bounded_vlgenbytes_payload_length 0 token_max_len (read_bounded_varint 0 token_max_len) sl pos3 in
+      let pos4 = LB.jump_bounded_vlgenbytes 0 token_max_len (jump_bounded_varint 0 token_max_len) (read_bounded_varint 0 token_max_len) sl pos3 in
+      LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos4;
+      let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos4 in
+      let pos5 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos4 in
+      let pn = read_packet_number last pn_length sl pos5 in
+      //    assert (LL.loc_slice_from_to sl 0ul len `B.loc_includes` B.loc_buffer token);
+      let spec = Impl.BInitial (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length token token_len in
+      Some (Impl.BLong version dcid dcid_len scid scid_len spec, pn)
+    end
 
 #pop-options
 
@@ -253,23 +483,27 @@ let read_header_body_long_handshake
 = fun len ->
     let h0 = HST.get () in
     assert_norm (bitsum'_key_of_t first_byte (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) == (| Long, (| (), (| Handshake, (| (), (| pn_length, () |) |) |) |) |) );
-    LL.valid_nondep_then h0 parse_common_long (parse_payload_length_pn last pn_length) sl 1ul;
-    LL.valid_nondep_then h0 parse_u32 (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20) sl 1ul;
-    let version = LJ.read_u32 sl 1ul in
-    let pos1 = LJ.jump_u32 sl 1ul in
-    LL.valid_nondep_then h0 (parse_bounded_vlbytes 0 20) (parse_bounded_vlbytes 0 20) sl pos1;
-    let dcid = LB.get_vlbytes_contents 0 20 sl pos1 in
-    let dcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos1 in
-    let pos2 = LB.jump_bounded_vlbytes 0 20 sl pos1 in
-    let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
-    let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
-    let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
-    LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos3;
-    let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos3 in
-    let pos4 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos3 in
-    let pn = read_packet_number last pn_length sl pos4 in
-    let spec = Impl.BHandshake (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length in
-    Impl.BLong version dcid dcid_len scid scid_len spec, pn
+    if (sl.LL.len `U32.sub` len) `U32.lt` 4ul
+    then None
+    else begin
+      LL.valid_nondep_then h0 parse_common_long (parse_payload_length_pn last pn_length) sl 1ul;
+      LL.valid_nondep_then h0 parse_u32 (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20) sl 1ul;
+      let version = LJ.read_u32 sl 1ul in
+      let pos1 = LJ.jump_u32 sl 1ul in
+      LL.valid_nondep_then h0 (parse_bounded_vlbytes 0 20) (parse_bounded_vlbytes 0 20) sl pos1;
+      let dcid = LB.get_vlbytes_contents 0 20 sl pos1 in
+      let dcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos1 in
+      let pos2 = LB.jump_bounded_vlbytes 0 20 sl pos1 in
+      let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
+      let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
+      let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
+      LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos3;
+      let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos3 in
+      let pos4 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos3 in
+      let pn = read_packet_number last pn_length sl pos4 in
+      let spec = Impl.BHandshake (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length in
+      Some (Impl.BLong version dcid dcid_len scid scid_len spec, pn)
+    end
 
 #restart-solver
 
@@ -282,23 +516,27 @@ let read_header_body_long_ZeroRTT
 = fun len ->
     let h0 = HST.get () in
     assert_norm (bitsum'_key_of_t first_byte (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) == (| Long, (| (), (| ZeroRTT, (| (), (| pn_length, () |) |) |) |) |) );
-    LL.valid_nondep_then h0 parse_common_long (parse_payload_length_pn last pn_length) sl 1ul;
-    LL.valid_nondep_then h0 parse_u32 (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20) sl 1ul;
-    let version = LJ.read_u32 sl 1ul in
-    let pos1 = LJ.jump_u32 sl 1ul in
-    LL.valid_nondep_then h0 (parse_bounded_vlbytes 0 20) (parse_bounded_vlbytes 0 20) sl pos1;
-    let dcid = LB.get_vlbytes_contents 0 20 sl pos1 in
-    let dcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos1 in
-    let pos2 = LB.jump_bounded_vlbytes 0 20 sl pos1 in
-    let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
-    let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
-    let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
-    LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos3;
-    let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos3 in
-    let pos4 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos3 in
-    let pn = read_packet_number last pn_length sl pos4 in
-    let spec = Impl.BZeroRTT (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length in
-    Impl.BLong version dcid dcid_len scid scid_len spec, pn
+    if (sl.LL.len `U32.sub` len) `U32.lt` 4ul
+    then None
+    else begin
+      LL.valid_nondep_then h0 parse_common_long (parse_payload_length_pn last pn_length) sl 1ul;
+      LL.valid_nondep_then h0 parse_u32 (parse_bounded_vlbytes 0 20 `nondep_then` parse_bounded_vlbytes 0 20) sl 1ul;
+      let version = LJ.read_u32 sl 1ul in
+      let pos1 = LJ.jump_u32 sl 1ul in
+      LL.valid_nondep_then h0 (parse_bounded_vlbytes 0 20) (parse_bounded_vlbytes 0 20) sl pos1;
+      let dcid = LB.get_vlbytes_contents 0 20 sl pos1 in
+      let dcid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos1 in
+      let pos2 = LB.jump_bounded_vlbytes 0 20 sl pos1 in
+      let scid = LB.get_vlbytes_contents 0 20 sl pos2 in
+      let scid_len = LB.bounded_vlbytes_payload_length 0 20 sl pos2 in
+      let pos3 = LB.jump_bounded_vlbytes 0 20 sl pos2 in
+      LL.valid_nondep_then h0 (parse_varint `parse_filter` payload_and_pn_length_prop pn_length) (parse_packet_number last pn_length) sl pos3;
+      let payload_and_pn_length = LC.read_filter read_varint (payload_and_pn_length_prop pn_length) sl pos3 in
+      let pos4 = LC.jump_filter jump_varint (payload_and_pn_length_prop pn_length) sl pos3 in
+      let pn = read_packet_number last pn_length sl pos4 in
+      let spec = Impl.BZeroRTT (payload_and_pn_length `U64.sub` Cast.uint32_to_uint64 pn_length) pn_length in
+      Some (Impl.BLong version dcid dcid_len scid scid_len spec, pn)
+    end
 
 inline_for_extraction
 noextract
@@ -362,7 +600,7 @@ let read_header
       sl
       0ul;
     let r = LJ.read_u8 sl 0ul in
-    let (res, pn) = destr_first_byte
+    let res = destr_first_byte
       (read_header_body_t sl cid_len last)
       (fun _ cond dt df len' -> if cond then dt () len' else df () len')
       (read_header_body sl cid_len last)
@@ -370,19 +608,97 @@ let read_header
       len
     in
     lemma_header_parsing_post (U32.v cid_len) (U64.v last) (LL.bytes_of_slice_from h0 sl 0ul);
-    Some (res, pn, len)
+    match res with
+    | None -> None
+    | Some (res, pn) -> Some (res, pn, len)
   end
+
+#pop-options
 
 module HS = FStar.HyperStack
 module LW = LowParse.Low.Writers.Instances
 
-[@filter_bitsum'_t_attr]
+(* same as destr_first_byte here *)
+
+inline_for_extraction
+let repr_of_reserved_bits
+  (x: enum_key reserved_bits)
+: Tot (y: enum_repr reserved_bits { y == enum_repr_of_key reserved_bits x })
+= 0uy
+
+(* this is constant-time, no longer branches on pn_len *)
+inline_for_extraction
+let repr_of_packet_number_length
+  (x: enum_key packet_number_length)
+: Tot (y: enum_repr packet_number_length { y == enum_repr_of_key packet_number_length x })
+= assert_norm (pow2 8 == 256);
+//  FStar.Math.Lemmas.small_mod (U32.v (x `U32.sub` 1ul)) (pow2 8);
+  Cast.uint32_to_uint8 ((x <: packet_number_length_t) `U32.sub` 1ul) <: U8.t
+
+inline_for_extraction
+noextract
+let synth_rrpp
+: synth_bitsum'_recip_t rrpp
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.exact (`repr_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.apply (`repr_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8)
+)
+
+inline_for_extraction
+let repr_of_fixed_bit
+  (x: enum_key fixed_bit) 
+: Tot (y: enum_repr fixed_bit { y == enum_repr_of_key fixed_bit x })
+= 1uy
+
 inline_for_extraction
 noextract
 let synth_first_byte
-: synth_bitsum'_recip_t first_byte
-= norm [primops; iota; zeta; delta_attr [`%filter_bitsum'_t_attr]]
-  (mk_synth_bitsum'_recip first_byte)
+: (synth_bitsum'_recip_t first_byte)
+= _ by (
+  let open FStar.Tactics in
+  T.apply (`synth_bitsum'_recip_BitSum_intro);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* long *)
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.exact (`repr_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitSum_intro);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* initial *)
+  T.exact_with_ref (`synth_rrpp);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* ZeroRTT *)
+  T.exact_with_ref (`synth_rrpp);
+  T.apply (`synth_bitsum'_recip_BitSum_cons);
+  (* Handshake *)
+  T.exact_with_ref (`synth_rrpp);
+  T.apply (`synth_bitsum'_recip_BitSum_cons_nil);
+  (* Retry *)
+  T.apply (`synth_bitsum'_recip_BitField);
+  T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8);
+  T.apply (`synth_bitsum'_recip_BitSum_cons_nil);
+  (* short *)
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.exact (`repr_of_fixed_bit);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitField);
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.apply (`repr_of_reserved_bits);
+  let _ = T.intro () in
+  T.apply (`synth_bitsum'_recip_BitField);
+  T.apply (`synth_bitsum'_recip_BitSum_gen);
+  T.apply (`repr_of_packet_number_length);
+  let _ = T.intro () in
+  T.exact_with_ref (`synth_bitsum'_recip_BitStop uint8)
+  )
+
+#push-options "--z3rlimit 64 --max_fuel 4 --initial_fuel 4"
 
 inline_for_extraction
 noextract
@@ -405,7 +721,7 @@ let swrite_header_short
     (parse_header_kind' cid_len last).parser_kind_subkind == Some ParserStrong /\
     B.loc_disjoint (B.loc_buffer cid) (LW.loc_slice_from out 0ul)
   })
-: Tot (w: LW.swriter (serialize_header cid_len last) h0 0 out 0ul {
+: Tot (w: LW.swriter (serialize_header cid_len last) h0 (4 - U32.v pn_len) out 0ul {
     LW.swvalue w == g_header (BShort spin phase cid cid_len pn_len) h0 pn
   })
 = [@inline_let]
@@ -422,12 +738,12 @@ let swrite_header_short
     assert_norm (first_byte_of_header cid_len last (g_header (BShort spin phase cid cid_len pn_len) h0 pn) == tg)
   in
   [@inline_let]
-  let s : LW.swriter (serialize_header_body cid_len last k) h0 0 out 0ul =
-    LW.swrite_weaken (strong_parser_kind 0 20 None) (LW.swrite_flbytes h0 out 0ul cid_len cid) `LW.swrite_nondep_then` LW.swrite_leaf (write_packet_number last pn_len) h0 out 0ul pn
+  let s : LW.swriter (serialize_header_body cid_len last k) h0 _ out 0ul =
+    LW.swrite_weaken (strong_parser_kind 0 20 None) (LW.swrite_flbytes h0 out 0ul cid_len cid) `LW.swrite_nondep_then` swrite_packet_number last pn_len pn h0 out 0ul
   in
   LW.swrite_bitsum
     h0
-    0
+    _
     out
     0ul
     #parse_u8_kind
@@ -446,6 +762,8 @@ let swrite_header_short
     (serialize_header_body cid_len last)
     tg
     s
+
+#pop-options
 
 inline_for_extraction
 noextract
@@ -486,10 +804,12 @@ let swrite_payload_length_pn
   (pn: packet_number_t last pn_length)
   (h0: HS.mem)
   (out: LW.slice (B.trivial_preorder _) (B.trivial_preorder _))
-: Tot (w: LW.swriter (serialize_payload_length_pn last pn_length) h0 0 out 0ul {
+: Tot (w: LW.swriter (serialize_payload_length_pn last pn_length) h0 (4 - U32.v pn_length) out 0ul {
     LW.swvalue w == (payload_and_pn_length, pn)
   })
-= (payload_and_pn_length_prop pn_length `LW.swrite_filter` LW.swrite_leaf (LC.leaf_writer_strong_of_serializer32 serialize_varint ()) h0 out 0ul payload_and_pn_length) `LW.swrite_nondep_then` LW.swrite_leaf (write_packet_number last pn_length) h0 out 0ul pn
+= (payload_and_pn_length_prop pn_length `LW.swrite_filter` LW.swrite_leaf (LC.leaf_writer_strong_of_serializer32 serialize_varint ()) h0 out 0ul payload_and_pn_length) `LW.swrite_nondep_then` swrite_packet_number last pn_length pn h0 out 0ul
+
+#push-options "--z3rlimit 128 --max_fuel 4 --initial_fuel 4"
 
 inline_for_extraction
 noextract
@@ -527,7 +847,7 @@ let swrite_header_long_initial
     (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
     B.loc_disjoint ((B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) `B.loc_union` B.loc_buffer token) (LW.loc_slice_from out 0ul)
   })
-: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 (4 - U32.v packet_number_length) out 0ul {
     LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BInitial payload_length packet_number_length token token_length)) h0 pn
   })
 = [@inline_let]
@@ -544,7 +864,7 @@ let swrite_header_long_initial
     assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BInitial payload_length packet_number_length token token_length)) h0 pn) == tg)
   in
   [@inline_let]
-  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 _ out 0ul =
     swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then` (
       LW.swrite_bounded_vlgenbytes h0 out 0ul 0 token_max_len (LL.leaf_writer_strong_of_serializer32 (serialize_bounded_varint 0 token_max_len) ()) token_length token `LW.swrite_nondep_then`
       swrite_payload_length_pn last packet_number_length (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) pn h0 out
@@ -552,7 +872,7 @@ let swrite_header_long_initial
   in
   LW.swrite_bitsum
     h0
-    0
+    _
     out
     0ul
     #parse_u8_kind
@@ -601,7 +921,7 @@ let swrite_header_long_zeroRTT
     (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
     B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
   })
-: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 (4 - U32.v packet_number_length) out 0ul {
       LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BZeroRTT payload_length packet_number_length)) h0 pn
   })
 = [@inline_let]
@@ -618,13 +938,13 @@ let swrite_header_long_zeroRTT
     assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BZeroRTT payload_length packet_number_length)) h0 pn) == tg)
   in
   [@inline_let]
-  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 _ out 0ul =
     swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then`
     swrite_payload_length_pn last packet_number_length (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) pn h0 out
   in
   LW.swrite_bitsum
     h0
-    0
+    _
     out
     0ul
     #parse_u8_kind
@@ -673,7 +993,7 @@ let swrite_header_long_handshake
     (parse_header_kind' short_dcid_len last).parser_kind_subkind == Some ParserStrong /\
     B.loc_disjoint (B.loc_buffer dcid `B.loc_union` B.loc_buffer scid) (LW.loc_slice_from out 0ul)
   })
-: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 0 out 0ul {
+: Tot (w: LW.swriter (serialize_header short_dcid_len last) h0 (4 - U32.v packet_number_length) out 0ul {
       LW.swvalue w == g_header (BLong version dcid dcid_len scid scid_len (BHandshake payload_length packet_number_length)) h0 pn
   })
 = [@inline_let]
@@ -690,13 +1010,13 @@ let swrite_header_long_handshake
     assert_norm (first_byte_of_header short_dcid_len last (g_header (BLong version dcid dcid_len scid scid_len (BHandshake payload_length packet_number_length)) h0 pn) == tg)
   in
   [@inline_let]
-  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 0 out 0ul =
+  let s : LW.swriter (serialize_header_body short_dcid_len last k) h0 _ out 0ul =
     swrite_common_long version dcid dcid_len scid scid_len h0 out `LW.swrite_nondep_then`
     swrite_payload_length_pn last packet_number_length (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length) pn h0 out
   in
   LW.swrite_bitsum
     h0
-    0
+    _
     out
     0ul
     #parse_u8_kind
@@ -794,7 +1114,11 @@ let swrite_header_long_retry
     tg
     s
 
+#pop-options
+
 #restart-solver
+
+#push-options "--z3rlimit 32"
 
 let write_header'
   (short_dcid_len: short_dcid_len_t)
@@ -810,7 +1134,7 @@ let write_header'
     header_live h h0 /\
     B.live h0 out /\
     B.loc_disjoint (header_footprint h) (B.loc_buffer out) /\
-    S.length (serialize (serialize_header short_dcid_len last) (g_header h h0 pn)) <= U32.v out_len
+    S.length (serialize (serialize_header short_dcid_len last) (g_header h h0 pn)) + (if Impl.is_retry h then 0 else 4) <= U32.v out_len
   ))
   (ensures (fun h0 len h1 ->
     let gh = g_header h h0 pn in
@@ -844,22 +1168,46 @@ let write_header'
   LL.valid_exact_serialize (serialize_header short_dcid_len last) h1 sl 0ul len;
   len
 
+#restart-solver
+
 let header_len_correct
   h m pn
-= admit ()
+= let hs = g_header h m pn in
+  let f () : Lemma (U32.v (Impl.header_len h) == Spec.header_len' hs) =
+    match h with
+    | BLong version dcid dcil scid scil spec ->
+      begin match spec with
+      | BInitial payload_length packet_number_length token token_length ->
+        bounded_varint_len_correct 0 token_max_len token_length;
+        varint_len_correct (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
+      | BZeroRTT payload_length packet_number_length ->
+        varint_len_correct (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
+      | BHandshake payload_length packet_number_length ->
+        varint_len_correct (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
+      | BRetry unused odcid odcil -> ()
+    end
+    | _ -> ()
+  in
+  f ();
+  header_len'_correct hs
+
+#restart-solver
 
 let write_header
   dst x pn
 = let short_dcid_len = Impl.dcid_len x in
   let last : last_packet_number_t = if Impl.is_retry x then 0uL else if pn = 0uL then 0uL else pn `U64.sub` 1uL in
-  let header_len = Impl.header_len x in
+  let dst_len = Impl.header_len x `U32.add` (if Impl.is_retry x then 0ul else 4ul) in
   let h0 = HST.get () in
   parse_header_prop_intro (g_header x h0 pn);
   header_len_correct x h0 pn;
-  let len' = write_header' short_dcid_len last x pn dst header_len in
+  let len' = write_header' short_dcid_len last x pn dst dst_len in
   let h1 = HST.get () in
-  assert (B.as_seq h1 dst `S.equal` S.slice (B.as_seq h1 dst) 0 (U32.v len'));
   ()
+
+#pop-options
+
+#push-options "--z3rlimit 32"
 
 let putative_pn_offset
   cid_len b len
@@ -916,6 +1264,8 @@ let putative_pn_offset
               then 0ul
               else pos4
 
+#pop-options
+
 let pn_offset'
   (h: Impl.header)
 : Tot U32.t
@@ -926,17 +1276,26 @@ let pn_offset'
     7ul `U32.add` dcil `U32.add` scil `U32.add`
     begin match spec with
     | BInitial payload_length packet_number_length token token_length ->
-      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len payload_length
+      varint_len (Cast.uint32_to_uint64 token_length) `U32.add` token_length `U32.add` varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
     | BZeroRTT payload_length packet_number_length ->
-      varint_len payload_length
+      varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
     | BHandshake payload_length packet_number_length ->
-      varint_len payload_length
+      varint_len (payload_length `U64.add` Cast.uint32_to_uint64 packet_number_length)
     | BRetry unused odcid odcil ->
       1ul `U32.add` odcil
     end
 
+#push-options "--z3rlimit 64 --max_ifuel 2 --initial_ifuel 2"
+
+#restart-solver
+
 let pn_offset
   h pn
 = let h0 = HST.get () in
+  assert (Impl.is_retry h == Spec.is_retry (g_header h h0 (Ghost.reveal pn)));
   header_len_correct h h0 (Ghost.reveal pn);
+  assert (Impl.pn_length h == Spec.pn_length (g_header h h0 (Ghost.reveal pn)));
+  assert (U32.v (pn_offset' h) == U32.v (Impl.header_len h) - U32.v (Impl.pn_length h));
   pn_offset' h
+
+#pop-options

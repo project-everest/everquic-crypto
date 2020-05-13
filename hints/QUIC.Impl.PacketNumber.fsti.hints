@@ -1,1 +1,27 @@
-[ "8&ô¦Ù%àà\"$¯þÖ›_\u0004", [] ]
+[
+  "…\fPÛ*\u0017À>\u0001ßS®`•\u000f’",
+  [
+    [
+      "QUIC.Impl.PacketNumber.swrite_packet_number",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_FStar.UInt.uint_t",
+        "equation_LowParse.Spec.Base.strong_parser_kind",
+        "equation_LowParse.Spec.Base.total_constant_size_parser_kind",
+        "equation_QUIC.Spec.Base.packet_number_length_t",
+        "equation_QUIC.Spec.PacketNumber.parse_packet_number_kind",
+        "int_inversion", "primitive_Prims.op_Subtraction",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_subkind",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_subkind",
+        "refinement_interpretation_Tm_refine_a51bf9d0d172374387743c0354e0bc88",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v"
+      ],
+      0,
+      "d0ba1e5b9acd51ef3ab3b9b410f719b9"
+    ]
+  ]
+]

@@ -654,7 +654,7 @@ val header_encrypt: i:G.erased index -> (
 
 module BF = LowParse.BitFields
 
-#push-options "--z3rlimit 1024 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2' --max_ifuel 0 --initial_ifuel 0"
+#push-options "--z3rlimit 2048 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2' --max_ifuel 0 --initial_ifuel 0"
 let header_encrypt i dst dst_len s h cipher pn =
   let State _ aead_alg _ _ aead_state _ k _ ctr_state = !*s in
   [@inline_let]
@@ -737,11 +737,11 @@ let header_encrypt i dst dst_len s h cipher pn =
     (**) assert (invariant h6 s);
     (**) upd_op_inplace U8.logxor (B.as_seq h5 dst) fmask;
 
-    assert (
-      B.as_seq h6 dst `S.equal`
-        QUIC.Spec.header_encrypt_ct i.aead_alg (g_hp_key h0 s) (g_header h h0 pn)
-          (G.reveal cipher)
-    );
+//    assert (
+//      B.as_seq h6 dst `S.equal`
+//        QUIC.Spec.header_encrypt_ct i.aead_alg (g_hp_key h0 s) (g_header h h0 pn)
+//          (G.reveal cipher)
+//    );
 
 (*    
     assert (
@@ -881,12 +881,12 @@ let encrypt_core #i s dst h plain plain_len stack this_iv bpn12 =
   let pn = last_pn `U64.add` 1uL in
   let dst_h = B.sub dst 0ul (HeaderI.header_len h) in
   HeaderI.header_len_correct h h0 pn;
-  HeaderI.write_header dst_h h pn;
+  HeaderI.write_header dst h pn;
   (**) let h1 = ST.get () in
   (**) frame_invariant B.(loc_buffer dst) s h0 h1;
   (**) assert (footprint_s h0 (B.deref h0 s) == footprint_s h1 (B.deref h1 s));
   (**) B.(modifies_loc_includes (G.reveal m_loc) h0 h1 (loc_buffer dst));
-  frame_header h pn (B.loc_buffer dst_h) h0 h1;
+  frame_header h pn (B.loc_buffer dst) h0 h1;
   assert (header_live h h1);
   if is_retry h
   then ()
@@ -1360,7 +1360,7 @@ val header_decrypt: i:G.erased index ->
       end
     ))
 
-#push-options "--z3rlimit 1024 --max_ifuel 3 --initial_ifuel 3"
+#push-options "--z3rlimit 1024 --max_ifuel 4 --initial_ifuel 4"
 
 #restart-solver
 
@@ -1375,7 +1375,17 @@ let header_decrypt i s packet packet_len cid_len =
   | None -> None
   | Some ({ is_short; is_retry; pn_offset; pn_len }) ->
     begin match HeaderI.read_header packet packet_len (FStar.Int.Cast.uint8_to_uint32 cid_len) last_pn with
-    | None -> None
+    | None ->
+      let h1 = ST.get () in
+      let phi () : Lemma
+        (requires (HeaderS.H_Success? (HeaderS.parse_header (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet))))
+        (ensures False)
+      = QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);
+        HeaderS.lemma_header_parsing_post (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet);
+        HeaderS.putative_pn_offset_correct (HeaderS.H_Success?.h (HeaderS.parse_header (U8.v cid_len) (U64.v last_pn) (B.as_seq h1 packet))) (U8.v cid_len)
+      in
+      Classical.move_requires phi ();
+      None
     | Some (header, pn, header_len) ->
       let h1 = ST.get () in
       QSpec.header_decrypt_aux_post_parse i.aead_alg (g_hp_key h0 s) (U8.v cid_len) (U64.v last_pn) (B.as_seq h0 packet);

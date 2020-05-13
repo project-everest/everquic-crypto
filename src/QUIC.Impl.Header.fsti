@@ -26,7 +26,12 @@ val read_header
     begin
       let spec = parse_header (U32.v cid_len) (U64.v last) (B.as_seq h packet) in
       match res with
-      | None -> H_Failure? spec
+      | None ->
+        begin match spec with
+        | H_Failure -> True
+        | H_Success hd _ ->
+          ((~ (Spec.is_retry hd)) /\ Spec.header_len hd + 4 > B.length packet)
+        end
       | Some (x, pn, len) ->
         H_Success? spec /\
         begin
@@ -57,12 +62,13 @@ val write_header
   (requires (fun h ->
     B.live h dst /\
     Impl.header_live x h /\
-    B.length dst == Spec.header_len (Impl.g_header x h pn) /\
+    B.length dst >= Spec.header_len (Impl.g_header x h pn) + (if Impl.is_retry x then 0 else 4) /\
     Impl.header_footprint x `B.loc_disjoint` B.loc_buffer dst
   ))
   (ensures (fun h _ h' ->
+    let len = Spec.header_len (Impl.g_header x h pn) in
     B.modifies (B.loc_buffer dst) h h' /\
-    B.as_seq h' dst == format_header (Impl.g_header x h pn)
+    S.slice (B.as_seq h' dst) 0 len == format_header (Impl.g_header x h pn)
   ))
 
 val putative_pn_offset
