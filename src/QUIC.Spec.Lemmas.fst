@@ -189,11 +189,11 @@ let extensionality_slice (#a:eqtype) (b1 b2:S.seq a) (i j:nat) : Lemma
 
 
 // application of a byte operation at a subposition
-let rec pointwise_op (#a:eqtype) (f:a->a->a) (b1 b2:S.seq a) (pos:nat) : Pure (S.seq a)
+let rec pointwise_op (#a:Type0) (f:a->a->a) (b1 b2:S.seq a) (pos:nat) : Pure (S.seq a)
   (requires S.length b2 + pos <= S.length b1)
   (ensures fun b -> S.length b == S.length b1)
   (decreases (S.length b2)) =
-  if b2 = S.empty then b1
+  if S.length b2 = 0 then b1
   else
     let _ = S.lemma_empty b2 in
     let x = f (S.index b1 pos) (S.index b2 0) in

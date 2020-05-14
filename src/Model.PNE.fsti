@@ -31,8 +31,9 @@ type unsafe_id =
 /// QUIC payload sampling
 /// --------------------
 
+// Note: the sample is PUBLIC so is using QUIC.Spec.lbytes which do not operate over secret integers.
 let sample_length = 16
-let sample = lbytes sample_length
+let sample = QUIC.Spec.lbytes sample_length
 let pne_plain_length = l:nat {l >= 2 /\ l <= 5}
 let pne_cipher (l:pne_plain_length) = lbytes l
 let pne_cipherpad = lbytes 5
@@ -46,12 +47,11 @@ val clip_cipherpad : (cp:pne_cipherpad) -> (l:pne_plain_length) -> pne_cipher l
 // refinements.
 noeq type pne_plain_pkg =
   | PNEPlainPkg:
-    pne_plain: (j:id -> l:pne_plain_length -> (t:Type0{hasEq t})) ->
+    pne_plain: (j:id -> l:pne_plain_length -> t:eqtype) ->
     as_bytes: (j:id -> l:pne_plain_length -> pne_plain j l -> GTot (lbytes l)) ->
     repr: (j:unsafe_id -> l:pne_plain_length -> n:pne_plain j l -> Tot (b:lbytes l{b == as_bytes j l n})) ->
     pne_plain_pkg
 
-// JP: not sure why we don't have the same mechanism as for Model.AEAD with the index for `info`
 noeq type info' = {
   calg: alg;
   plain: pne_plain_pkg;
@@ -76,6 +76,9 @@ val pne_state : (#j:id) -> (u:info j) -> Type0
 
 val table : (#j:id) -> (#u:info j) -> (st:pne_state u) -> (h:mem) -> GTot (Seq.seq (entry u))
 
+// Header protection key
+val key: #j:id -> #u:info j -> st:pne_state u -> h:mem -> GTot (lbytes (Spec.Agile.Cipher.key_length u.calg))
+
 val footprint : #j:id -> #u:info j -> st:pne_state u -> B.loc
 
 val invariant: #j:id -> #u:info j -> st:pne_state u -> mem -> Type0
@@ -97,7 +100,7 @@ val frame_table: #j:safe_id -> #u:info j -> st:pne_state u ->
     (ensures table st h1 == table st h0)
 
 let sample_filter (#j:id) (u:info j) (s:sample) (e:entry u) : bool =
-  Entry?.s e `lbytes_eq` s
+  Entry?.s e = s
 
 let entry_for_sample (#j:id) (#u:info j) (s:sample) (st:pne_state u) (h:mem) :
   GTot (option (entry u)) =
@@ -112,7 +115,7 @@ let find_sample (#j:id) (#u:info j) (s:sample) (st:pne_state u) (h:mem) :
   Some? (entry_for_sample s st h)
 
 let sample_cipher_filter (j:id) (u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (e:entry u) : bool =
-  Entry?.s e `lbytes_eq` s && Entry?.l e = l && Entry?.c e `lbytes_eq` c
+  Entry?.s e = s && Entry?.l e = l && Entry?.c e `lbytes_eq` c
 
 let entry_for_sample_cipher (#j:id) (#u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state u) (h:mem) :
   GTot (option (entry u)) =
@@ -123,7 +126,7 @@ let find_sample_cipher (#j:id) (#u:info j) (s:sample) (#l:pne_plain_length) (c:p
   Some? (entry_for_sample_cipher s #l c st h)
 
 let sample_cipherpad_filter (#j:id) (#u:info j) (s:sample) (cp:pne_cipherpad) (e:entry u) : bool =
-  Entry?.s e `lbytes_eq` s && clip_cipherpad cp (Entry?.l e) `lbytes_eq` Entry?.c e
+  Entry?.s e = s && clip_cipherpad cp (Entry?.l e) `lbytes_eq` Entry?.c e
 
 let entry_for_sample_cipherpad (#j:id) (#u:info j) (s:sample) (cp:pne_cipherpad) (st:pne_state u) (h:mem) :
   GTot (option (entry u)) =
@@ -149,18 +152,25 @@ val encrypt :
   (st:pne_state u) ->
   (#l:pne_plain_length) ->
   (n:pne_plain u l) ->
+  // For confidentiality modeling, this function takes as inputs only the public
+  // parts of the header.
   (s:sample) ->
+  (pn_length: nat { 0 <= pn_length /\ pn_length <= 3 }) ->
   ST (pne_cipher l)
   (requires fun h0 ->
+    l >= pn_length + 1 /\
     fresh_sample s st h0)
   (ensures fun h0 c h1 ->
     B.modifies (footprint st) h0 h1 /\
     (is_safe j ==>
       table st h1 == Seq.snoc (table st h0) (Entry s #l n c)) /\
-    True
-// FIXME(adl) need to merge Tahina's branch with QUIC.Spec.Header.Public
-//    (~(is_safe j) ==>
-//      c == Spec.header_encrypt encrypt )
+    (~(is_safe j) ==> (
+      let open QUIC.Spec.Lemmas in
+      let mask = QUIC.Spec.block_of_sample u.calg (key st h0) s in
+      let pnmask = and_inplace (Seq.slice mask 1 (pn_length + 2)) (QUIC.Spec.pn_sizemask_naive pn_length) 0 in
+      // Classify
+      let pnmask = Seq.init (Seq.length pnmask) (fun i -> Lib.IntTypes.u8 (UInt8.v (Seq.index pnmask i))) in
+      c == pointwise_op (Lib.IntTypes.(logxor #U8 #SEC)) (PNEPlainPkg?.as_bytes u.plain j l n) pnmask 0))
   )
 
 val decrypt :

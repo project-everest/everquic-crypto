@@ -41,11 +41,8 @@ type pbytes' (is_retry: bool) = b:bytes{let l = S.length b in if is_retry then l
 type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}
 type cbytes' (is_retry: bool) = b: bytes { let l = S.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
 
-// JP: this is Spec.Agile.Cipher.key_length
 let ae_keysize (a:ea) =
-  match a with
-  | AEAD.AES128_GCM -> 16
-  | _ -> 32
+  Spec.Agile.Cipher.key_length (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)
 
 // Static byte sequences to be fed into secret derivation. Marked as inline, so
 // that they can be used as arguments to gcmalloc_of_list for top-level arrays.
@@ -79,6 +76,10 @@ type qbytes (n:nat4) = lbytes (add3 n)
 
 // JP: seems appropriate for this module...?
 let _: squash (inversion header) = allow_inversion header
+
+val pn_sizemask_naive: pn_len:nat2 -> lbytes (pn_len + 1)
+
+val block_of_sample: a:Spec.Agile.Cipher.cipher_alg -> k: Spec.Agile.Cipher.key a -> sample: lbytes 16 -> lbytes 16
 
 // Header protection only
 val header_encrypt: a:ea ->
