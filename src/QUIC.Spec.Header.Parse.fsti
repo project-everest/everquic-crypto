@@ -28,7 +28,11 @@ val format_header_pn_length: h: header -> Lemma
 
 val pn_offset: (h: header { ~ (is_retry h) }) -> GTot (n: nat { 0 < n /\ n + Secret.v (pn_length h) == header_len h }) // need to know that packet number is the last field of the format
 
-val putative_pn_offset: (cid_len: nat) -> (x: bytes) -> GTot (option (y: nat {0 < y /\ y <= Seq.length x /\ y <= header_len_bound}))
+val putative_pn_offset: (cid_len: nat) -> (x: bytes) -> GTot (y: option nat {
+  match y with
+  | None -> True
+  | Some y -> 0 < y /\ y <= Seq.length x /\ y <= header_len_bound
+})
 
 val putative_pn_offset_frame
   (cid_len: nat)

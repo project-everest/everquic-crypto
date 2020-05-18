@@ -98,7 +98,7 @@ type header'
 
 let protected_bits_key_phase
   (x: bitfield 5)
-: GTot bool
+: Tot bool
 = BF.uint8.BF.get_bitfield x 2 3 = 1uy
 
 let mk_short_protected_bits
@@ -195,7 +195,7 @@ let synth_header
   (short_dcid_len: short_dcid_len_t)
   (last: PN.last_packet_number_t)
   (x: dtuple2 (Public.header' short_dcid_len) (packet_number_opt short_dcid_len last))
-: GTot (header' short_dcid_len last)
+: Tot (header' short_dcid_len last)
 = let (| h, pn |) = x in
   match h with
   | Public.PShort protected_bits spin dcid ->

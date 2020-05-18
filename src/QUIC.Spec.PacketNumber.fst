@@ -16,7 +16,7 @@ module Secret = QUIC.Secret.Int
 let reduce_pn'
   (pn_len: nat { pn_len < 4 })
   (pn: nat)
-: GTot nat
+: Tot nat
 = pn % (bound_npn' pn_len)
 
 let in_window_self (pn_len: nat { pn_len < 4 }) (pn:nat) : Lemma
