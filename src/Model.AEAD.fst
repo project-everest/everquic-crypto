@@ -64,10 +64,6 @@ let wframe_invariant #_ w h0 l h1 =
 let frame_log #_ w h0 l h1 =
   ()
 
-let random (l: nat { l < pow2 32 }): Spec.lbytes l =
-  let open Lib.RandomSequence in
-  snd (crypto_random entropy0 l)
-
 let gen i u =
   if is_safe i then
     let l: log #i u = Seq.empty #(entry i u) in

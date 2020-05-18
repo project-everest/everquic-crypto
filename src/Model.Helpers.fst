@@ -2,6 +2,10 @@ module Model.Helpers
 
 let lbytes (l:nat) = b:Seq.seq Lib.IntTypes.uint8 { Seq.length b = l }
 
+let random (l: nat { l < pow2 32 }): lbytes l =
+  let open Lib.RandomSequence in
+  snd (crypto_random entropy0 l)
+
 let rec lbytes_eq (x y: Seq.seq Lib.IntTypes.uint8): Tot (b:bool { b <==> x `Seq.equal` y }) (decreases (Seq.length x)) =
   if Seq.length x = 0 && Seq.length y = 0 then
     true
