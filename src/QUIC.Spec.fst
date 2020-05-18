@@ -157,7 +157,7 @@ let header_encrypt_ct
   (h: header)
   (c: cbytes' (is_retry h))
 : GTot packet
-= 
+=
   assert_norm(max_cipher_length < pow2 62);
   let r = S.(format_header h `append` c) in
   if is_retry h
