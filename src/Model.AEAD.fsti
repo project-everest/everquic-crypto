@@ -71,9 +71,6 @@ type nonce_pkg (idt: eqtype) (safe: idt -> bool) (alg: idt -> GTot I.ea) =
 
 noeq type info' = {
   alg: alg;
-  // JP: subq is an abbreviation that means "sub quic region"; this region field
-  // seems to not be used anywhere else?
-  region: r:subq{r `HS.disjoint` q_ae_region};
   plain: plain_pkg id is_safe;
   nonce: nonce_pkg id is_safe I.ae_id_ginfo;
 }

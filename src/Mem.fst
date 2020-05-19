@@ -37,18 +37,6 @@ module ST = FStar.HyperStack.ST
 inline_for_extraction noextract
 let model = Model.Flags.model
 
-// START quic-specific stuff that doesn't use the rest of the infrastructure
-let rgn = r:erid{r =!= root}
-
-type fresh_subregion child parent h0 h1 =
-  fresh_region child h0 h1 /\ extends child parent
-
-type subrgn p = r:rgn{parent r == p}
-
-let quic_region: rgn = new_region root
-type subq = r:subrgn quic_region
-// END quic-specific stuff
-
 /// Top-level disjointness
 /// ----------------------
 ///

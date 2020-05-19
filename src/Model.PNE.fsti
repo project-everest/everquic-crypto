@@ -34,14 +34,18 @@ type unsafe_id =
 // For simplicity, we do not distinguish between long and short headers; caller
 // of this module will just 0-left-pad the protected bits in the case of a long
 // header.
-let protected_bits: Type0 = LowParse.BitFields.ubitfield 5 5
+let bits: Type0 = LowParse.BitFields.ubitfield 5 5
 
 // Note: the sample is PUBLIC so is using QUIC.Spec.lbytes which do not operate over secret integers.
 let sample_length = 16
 let sample = QUIC.Spec.lbytes sample_length
 let pne_plain_length = l:nat {l >= 1 /\ l <= 4}
-let pne_cipher (l:pne_plain_length) = lbytes l & protected_bits
-let pne_cipherpad = lbytes 5 & protected_bits
+
+let length_bits (l: pne_plain_length) =
+  b:bits { LowParse.BitFields.get_bitfield b 0 2 + 1 == l }
+
+let pne_cipher (l:pne_plain_length) = lbytes l & bits
+let pne_cipherpad = lbytes 5 & bits
 
 /// Restrict a generated cipherpad to the length of the encoded packet number.
 val clip_cipherpad : (cp:pne_cipherpad) -> (l:pne_plain_length) -> pne_cipher l
@@ -54,10 +58,10 @@ val clip_cipherpad : (cp:pne_cipherpad) -> (l:pne_plain_length) -> pne_cipher l
 noeq type pne_plain_pkg =
   | PNEPlainPkg:
     pne_plain: (j:id -> l:pne_plain_length -> t:eqtype) ->
-    as_bytes: (j:id -> l:pne_plain_length -> pne_plain j l -> GTot (lbytes l & protected_bits)) ->
+    as_bytes: (j:id -> l:pne_plain_length -> pne_plain j l -> GTot (lbytes l & length_bits l)) ->
     repr: (j:unsafe_id -> l:pne_plain_length -> n:pne_plain j l ->
-      Tot (b:(lbytes l & protected_bits) {b == as_bytes j l n})) ->
-    mk: (j:unsafe_id -> l:pne_plain_length -> n:lbytes l -> b:protected_bits -> p:pne_plain j l { as_bytes j l p == (n, b) }) ->
+      Tot (b:(lbytes l & length_bits l) {b == as_bytes j l n})) ->
+    mk: (j:unsafe_id -> l:pne_plain_length -> n:lbytes l -> b:length_bits l -> p:pne_plain j l { as_bytes j l p == (n, b) }) ->
     pne_plain_pkg
 
 noeq type info' = {
@@ -175,19 +179,18 @@ val create (j:id) (u:info j) : ST (pne_state u)
 let encrypt_spec (a: Spec.cipher_alg)
   (l: pne_plain_length)
   (pn: lbytes l)
-  (bits: protected_bits)
+  (b: length_bits l)
   (s: sample)
-  (k: Spec.key a)
-  (pn_length: nat { 0 <= pn_length /\ pn_length <= 3 /\ l >= pn_length + 1}):
+  (k: Spec.key a):
   pne_cipher l
 =
   let open QUIC.Spec.Lemmas in
   // We need the packet number length in order to know where to find the mask in the cipher block.
   let mask = QUIC.Spec.block_of_sample a k s in
-  let pnmask = and_inplace (Seq.slice mask 1 (pn_length + 2)) (QUIC.Spec.pn_sizemask_naive pn_length) 0 in
+  let pnmask = and_inplace (Seq.slice mask 1 (l + 1)) (QUIC.Spec.pn_sizemask_naive (l - 1)) 0 in
   // Classify, because HACL* specs require secret integers.
   let pnmask = Seq.init (Seq.length pnmask) (fun i -> Lib.IntTypes.u8 (UInt8.v (Seq.index pnmask i))) in
-  assert (Seq.length pnmask == pn_length + 1);
+  assert (Seq.length pnmask == l);
   // We now have enough to build the encrypted pn. Note that because our
   // input is a sliced packet number, we don't mask at an offset like
   // header_encrypt does.
@@ -195,8 +198,8 @@ let encrypt_spec (a: Spec.cipher_alg)
   // Now on to bit protection. Since we receive as input only the protected
   // bits, there is a proof obligation for a caller, to show that get_bf
   // (header.[0] `xor` mask.[0]) == get_bf header.[0] `xor` get_bf mask.[0]
-  let mask_bits: protected_bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
-  let protected_bits = mask_bits `FStar.UInt.logxor` bits in
+  let mask_bits: bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
+  let protected_bits = mask_bits `FStar.UInt.logxor` b in
   encrypted_pn, protected_bits
 
 val encrypt :
@@ -208,11 +211,9 @@ val encrypt :
   // For confidentiality modeling, this function takes as inputs only the public
   // parts of the header.
   (s:sample) ->
-  (pn_length: nat { 0 <= pn_length /\ pn_length <= 3 }) ->
   ST (pne_cipher l)
   (requires fun h0 ->
     invariant st h0 /\
-    l >= pn_length + 1 /\
     // JP: cannot talk about freshness because it requires talking about the
     // table which is only available for safe id's
     (is_safe j ==> fresh_sample s st h0))
@@ -225,14 +226,14 @@ val encrypt :
       let pn, bits = PNEPlainPkg?.as_bytes u.plain j l n in
       let k = key st h0 in
       // We output an encrypted packet number and protected bits
-      c == encrypt_spec u.calg l pn bits s k pn_length))
+      c == encrypt_spec u.calg l pn bits s k))
 
 let decrypt_spec
   (#j:unsafe_id)
   (#u:info j)
   (a: Spec.cipher_alg)
   (padded_cipher: lbytes 5)
-  (bits: protected_bits)
+  (b: bits)
   (k: Spec.key a)
   (s: sample):
   (l:pne_plain_length & pne_plain u l)
@@ -241,10 +242,10 @@ let decrypt_spec
   // let sample = ...
   let mask = QUIC.Spec.block_of_sample a k s in
   // Decrypting protected bits
-  let mask_bits: protected_bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
-  let bits = mask_bits `FStar.UInt.logxor` bits in
+  let mask_bits: bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
+  let b = mask_bits `FStar.UInt.logxor` b in
   // Moving on to the pn length which is part of the protected bits
-  let pn_len = LowParse.BitFields.get_bitfield bits 0 2 in
+  let pn_len = LowParse.BitFields.get_bitfield b 0 2 in
   assert (0 <= pn_len /\ pn_len <= 3);
   let pnmask = QUIC.Spec.Lemmas.and_inplace (Seq.slice mask 1 (pn_len + 2)) (QUIC.Spec.pn_sizemask_naive pn_len) 0 in
   assert (let l = Seq.length pnmask in 1 <= l /\ l <= 4);
@@ -253,7 +254,7 @@ let decrypt_spec
   let cipher = Seq.slice padded_cipher 0 (pn_len + 1) in
   assert (Seq.length cipher == Seq.length pnmask /\ Seq.length cipher == pn_len + 1);
   let pn = QUIC.Spec.Lemmas.pointwise_op (Lib.IntTypes.(logxor #U8 #SEC)) cipher pnmask 0 in
-  (| pn_len + 1, PNEPlainPkg?.mk u.plain j (pn_len + 1) pn bits |)
+  (| pn_len + 1, PNEPlainPkg?.mk u.plain j (pn_len + 1) pn b |)
 
 val decrypt:
   (#j:id) ->
@@ -261,19 +262,20 @@ val decrypt:
   (st:pne_state u) ->
   (cp:pne_cipherpad) ->
   (s:sample) ->
-  ST (option(l:pne_plain_length & pne_plain u l))
+  ST (l:pne_plain_length & pne_plain u l)
   (requires fun h0 ->
     invariant st h0)
   (ensures fun h0 r h1 ->
-    modifies_none h0 h1 /\ (
+    B.modifies (footprint st) h0 h1 /\ (
     if is_safe j then
-      match entry_for_sample s st h0 with
-      | None -> None? r
-      | Some (Entry _ #l' n' c') -> Some? r /\ (
-          let Some (| l, n |) = r in
-          (l = l' /\ n = n') <==>
-          (l = l' /\ c' `pne_bits_eq` clip_cipherpad cp l))
+      let entry = entry_for_sample s st h1 in
+      Some? entry /\ (
+      let Some (Entry _ #l' n' c') = entry in
+      let (| l, n |) = r in
+      l = l' /\ n = n' /\
+      c' `pne_bits_eq` clip_cipherpad cp l /\
+      (Some? (entry_for_sample s st h0) ==> modifies_none h0 h1))
     else
       let cipher, encrypted_bits = cp in
-      r == Some (decrypt_spec u.calg cipher encrypted_bits (key st h0) s)
-  ))
+      r == decrypt_spec u.calg cipher encrypted_bits (key st h0) s)
+  )
