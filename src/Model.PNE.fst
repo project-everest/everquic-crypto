@@ -70,10 +70,10 @@ let create j u =
   else
     (u, random (Spec.key_length u.calg)) <: unsafe_state j
 
-let random_bits (): protected_bits =
+let random_bits (): bits =
   LowParse.BitFields.get_bitfield #8 (UInt8.v (Lib.RawIntTypes.u8_to_UInt8 (Seq.index (random 1) 0))) 0 5
 
-let encrypt #j #u st #l n s pn_length =
+let encrypt #j #u st #l n s =
   let h0 = ST.get () in
   if is_safe j then
     let (| u, p |) = st <: model_state j in
@@ -87,16 +87,16 @@ let encrypt #j #u st #l n s pn_length =
     let pn, bits = PNEPlainPkg?.repr u.plain j l n in
     let k = snd (st <: unsafe_state j) in
     let alg = (fst (st <: unsafe_state j)).calg in
-    encrypt_spec alg l pn bits s k pn_length
+    encrypt_spec alg l pn bits s k
 
 let decrypt #j #u st cp s =
   if is_safe j then
     let (| info, p |) = st <: model_state j in
     let log = !*p in
     match Seq.find_l (sample_filter u s) log with
-    | None -> None
+    | None -> admit ()
     | Some (Entry _ #l' n' c') ->
-        admit ()
+        (| l', n' |)
   else
     let info, k = st <: unsafe_state j in
-    Some (decrypt_spec info.calg (fst cp) (snd cp) k s)
+    decrypt_spec info.calg (fst cp) (snd cp) k s
