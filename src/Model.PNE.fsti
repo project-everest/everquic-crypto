@@ -272,8 +272,9 @@ val decrypt:
       Some? entry /\ (
       let Some (Entry _ #l' n' c') = entry in
       let (| l, n |) = r in
-      l = l' /\ n = n' /\
-      c' `pne_bits_eq` clip_cipherpad cp l /\
+      // Here, we under-specify what happens if there's a mismatch as we try to
+      // decrypt some wrong ciphertext.
+      (l = l' /\ n = n' ==> c' `pne_bits_eq` clip_cipherpad cp l) /\
       (Some? (entry_for_sample s st h0) ==> modifies_none h0 h1))
     else
       let cipher, encrypted_bits = cp in
