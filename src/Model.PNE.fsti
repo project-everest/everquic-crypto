@@ -61,7 +61,7 @@ noeq type pne_plain_pkg =
     as_bytes: (j:id -> l:pne_plain_length -> pne_plain j l -> GTot (lbytes l & length_bits l)) ->
     repr: (j:unsafe_id -> l:pne_plain_length -> n:pne_plain j l ->
       Tot (b:(lbytes l & length_bits l) {b == as_bytes j l n})) ->
-    mk: (j:unsafe_id -> l:pne_plain_length -> n:lbytes l -> b:length_bits l -> p:pne_plain j l { as_bytes j l p == (n, b) }) ->
+    mk: (j:id -> l:pne_plain_length -> n:lbytes l -> b:length_bits l -> p:pne_plain j l { as_bytes j l p == (n, b) }) ->
     pne_plain_pkg
 
 noeq type info' = {

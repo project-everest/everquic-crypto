@@ -89,13 +89,28 @@ let encrypt #j #u st #l n s =
     let alg = (fst (st <: unsafe_state j)).calg in
     encrypt_spec alg l pn bits s k
 
+let snoc_find #a (s: Seq.seq a) (f: a -> bool) (x: a): Lemma
+  (requires f x)
+  (ensures Some? (FStar.Seq.(find_l f (snoc s x))))
+=
+  admit ()
+
 let decrypt #j #u st cp s =
   if is_safe j then
     let (| info, p |) = st <: model_state j in
     let log = !*p in
-    match Seq.find_l (sample_filter u s) log with
-    | None -> admit ()
+    match Seq.find_l (sample_cipherpad_filter s cp) log with
+    | None ->
+        let bits = random_bits () in
+        let l = LowParse.BitFields.get_bitfield bits 0 2 + 1 in
+        let plain = random l in
+        let n = PNEPlainPkg?.mk u.plain j l plain bits in
+        p *= Seq.snoc log (Entry s #l n (clip_cipherpad cp l));
+        let h1 = ST.get () in
+        snoc_find log (sample_filter u s) (Entry s #l n (clip_cipherpad cp l));
+        (| l, n |)
     | Some (Entry _ #l' n' c') ->
+        assert (c' == clip_cipherpad cp l');
         (| l', n' |)
   else
     let info, k = st <: unsafe_state j in
