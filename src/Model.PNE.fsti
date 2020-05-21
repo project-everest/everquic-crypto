@@ -53,8 +53,6 @@ val clip_cipherpad : (cp:pne_cipherpad) -> (l:pne_plain_length) -> pne_cipher l
 // We define a separate package type here (different from the one in AEAD). We
 // idealize them separately, and there's a specific part here that's about the
 // protected bits of the header.
-//
-// JP: why is pne_plain_pkg not parameterized over an id type and safe predicate?
 noeq type pne_plain_pkg =
   | PNEPlainPkg:
     pne_plain: (j:id -> l:pne_plain_length -> t:eqtype) ->
@@ -62,6 +60,17 @@ noeq type pne_plain_pkg =
     repr: (j:unsafe_id -> l:pne_plain_length -> n:pne_plain j l ->
       Tot (b:(lbytes l & length_bits l) {b == as_bytes j l n})) ->
     mk: (j:id -> l:pne_plain_length -> n:lbytes l -> b:length_bits l -> p:pne_plain j l { as_bytes j l p == (n, b) }) ->
+    xor: (j:id -> l:pne_plain_length -> p:pne_plain j l -> cp:pne_cipherpad ->
+      (l': pne_plain_length & pne_plain j l')) ->
+    lemma_xor: (j:id -> l:pne_plain_length -> p:pne_plain j l -> cp:pne_cipherpad -> Lemma
+        (requires True)
+        (ensures (
+          let (| l', p' |) = xor j l p cp in
+          let _, bits = as_bytes j l' p' in
+          let l: pne_plain_length = LowParse.BitFields.get_bitfield bits 0 2 + 1 in
+          let l': pne_plain_length = l' in
+          l == l'
+        ))) ->
     pne_plain_pkg
 
 noeq type info' = {
@@ -81,7 +90,8 @@ type entry (#j:id) (u:info j) =
     s:sample ->
     #l:pne_plain_length ->
     n:pne_plain u l ->
-    c:pne_cipher l ->
+    // We do not perform truncation at encryption-time, but rather at decryption-time
+    c:pne_cipherpad ->
     entry u
 
 val pne_state : (#j:id) -> (u:info j) -> Type u#1
@@ -133,35 +143,6 @@ let fresh_sample (#j:safe_id) (#u:info j) (s:sample) (st:pne_state u) (h:mem) :
   GTot bool =
   None? (entry_for_sample s st h)
 
-// Finding the entry for a given cipher. Insofar as I understand, the table
-// keeps a map from plain to cipher (i.e. cipher truncated to the right length,
-// or "clipped"). XXX this seems to be unused.
-let sample_cipher_filter (j:safe_id) (u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (e:entry u) : bool =
-  Entry?.s e = s && Entry?.l e = l && Entry?.c e `pne_bits_eq` c
-
-let entry_for_sample_cipher (#j:safe_id) (#u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state u) (h:mem) :
-  GTot (option (entry u)) =
-  Seq.find_l (sample_cipher_filter j u s #l c) (table st h)
-
-let contains_sample_cipher (#j:safe_id) (#u:info j) (s:sample) (#l:pne_plain_length) (c:pne_cipher l) (st:pne_state u) (h:mem) :
-  GTot bool =
-  Some? (entry_for_sample_cipher s #l c st h)
-
-// However, for decryption, we are given a "cipherpad", which should probably be
-// named "padded_cipher". Such a padded cipher may be too long, so what we do
-// instead is define a successful table lookup is a match on i) the protected
-// bits, ii) the sample and iii) the truncation of the cipher. XXX this seems to
-// be unused as well.
-let sample_cipherpad_filter (#j:safe_id) (#u:info j) (s:sample) (cp:pne_cipherpad) (e:entry u) : bool =
-  Entry?.s e = s && clip_cipherpad cp (Entry?.l e) `pne_bits_eq` Entry?.c e
-
-let entry_for_sample_cipherpad (#j:safe_id) (#u:info j) (s:sample) (cp:pne_cipherpad) (st:pne_state u) (h:mem) :
-  GTot (option (entry u)) =
-  Seq.find_l (sample_cipherpad_filter s cp) (table st h)
-
-let contains_sample_cipherpad (#j:safe_id) (#u:info j) (s:sample) (cp:pne_cipherpad) (st:pne_state u) (h:mem) :
-  GTot bool =
-  Some? (entry_for_sample_cipherpad s cp st h)
 
 /// Stateful API
 /// ------------
@@ -220,7 +201,9 @@ val encrypt :
   (ensures fun h0 c h1 ->
     B.modifies (footprint st) h0 h1 /\ (
     if is_safe j then
-      table st h1 == Seq.snoc (table st h0) (Entry s #l n c)
+      exists (c': pne_cipherpad).
+      table st h1 == Seq.snoc (table st h0) (Entry s #l n c') /\
+      clip_cipherpad c' l == c
     else
       // Our input is: plain packet number, plain bits to be protected
       let pn, bits = PNEPlainPkg?.as_bytes u.plain j l n in
@@ -256,6 +239,14 @@ let decrypt_spec
   let pn = QUIC.Spec.Lemmas.pointwise_op (Lib.IntTypes.(logxor #U8 #SEC)) cipher pnmask 0 in
   (| pn_len + 1, PNEPlainPkg?.mk u.plain j (pn_len + 1) pn b |)
 
+let xor_cipherpad (cp1 cp2: pne_cipherpad): pne_cipherpad =
+  let c1, b1 = cp1 in
+  let c2, b2 = cp2 in
+  let x1 = LowParse.BitFields.get_bitfield b1 0 5 in
+  let x2 = LowParse.BitFields.get_bitfield b2 0 5 in
+  Seq.init 5 (fun i -> Seq.index c1 i `Lib.IntTypes.(logxor #U8 #SEC)` Seq.index c2 i),
+  LowParse.BitFields.set_bitfield 0 0 5 (x1 `UInt.logxor #5` x2)
+
 val decrypt:
   (#j:id) ->
   (#u:info j) ->
@@ -271,11 +262,8 @@ val decrypt:
       let entry = entry_for_sample s st h1 in
       Some? entry /\ (
       let Some (Entry _ #l' n' c') = entry in
-      let (| l, n |) = r in
-      // Here, we under-specify what happens if there's a mismatch as we try to
-      // decrypt some wrong ciphertext.
-      (l = l' /\ n = n' ==> c' `pne_bits_eq` clip_cipherpad cp l) /\
-      (Some? (entry_for_sample s st h0) ==> modifies_none h0 h1))
+      r == PNEPlainPkg?.xor u.plain j l' n' (c' `xor_cipherpad` cp)) /\
+      (Some? (entry_for_sample s st h0) ==> modifies_none h0 h1)
     else
       let cipher, encrypted_bits = cp in
       r == decrypt_spec u.calg cipher encrypted_bits (key st h0) s)
