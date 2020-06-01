@@ -6,6 +6,7 @@ open Model.Indexing
 module S = FStar.Seq
 module HD = Spec.Hash.Definitions
 module AEAD = Spec.Agile.AEAD
+module Cipher = Spec.Agile.Cipher
 
 // JP: should we allow inversion on either hash algorithm or AEAD algorithm?
 #set-options "--max_fuel 0 --max_ifuel 0"
@@ -77,6 +78,7 @@ type qbytes (n:nat4) = lbytes (add3 n)
 // JP: seems appropriate for this module...?
 let _: squash (inversion header) = allow_inversion header
 
+inline_for_extraction
 val pn_sizemask_naive: pn_len:nat2 -> lbytes (pn_len + 1)
 
 val block_of_sample: a:Spec.Agile.Cipher.cipher_alg -> k: Spec.Agile.Cipher.key a -> sample: lbytes 16 -> lbytes 16
@@ -147,12 +149,14 @@ type result =
 
 val encrypt:
   a: ea ->
-  k: lbytes (AEAD.key_length a) ->
+  k: AEAD.kv a ->
   static_iv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->
-  plain: pbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length plain + AEAD.tag_length a } ->
-  GTot packet
+  plain: pbytes' (is_retry h) ->
+  Ghost packet
+  (requires has_payload_length h ==> U64.v (payload_length h) == S.length plain + AEAD.tag_length a)
+  (ensures fun _ -> True)
 
 /// decryption and correctness
 
@@ -160,7 +164,7 @@ val encrypt:
 
 val decrypt:
   a: ea ->
-  k: lbytes (AEAD.key_length a) ->
+  k: AEAD.kv a ->
   static_iv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   last: nat{last+1 < pow2 62} ->
@@ -177,7 +181,7 @@ val decrypt:
 
 val lemma_encrypt_correct:
   a: ea ->
-  k: lbytes (AEAD.key_length a) ->
+  k: AEAD.kv a ->
   siv: lbytes 12 ->
   hpk: lbytes (ae_keysize a) ->
   h: header ->

@@ -128,7 +128,7 @@ val rgetinfo: #i:id -> #w:aead_writer i -> aead_reader w -> Tot (u:info i{u == w
 val wlog: #i:safe_id -> w:aead_writer i -> mem -> GTot (Seq.seq (entry i (wgetinfo w)))
 let rlog (#i:safe_id) (#w: aead_writer i) (r:aead_reader w) (h:mem) = wlog w h
 
-val wkey: #i:unsafe_id -> aead_writer i -> Tot (Spec.Agile.AEAD.kv (I.ae_id_ginfo i))
+val wkey: #i:unsafe_id -> w:aead_writer i -> Tot (Spec.kv (wgetinfo w).alg)
 
 val wfootprint: #i:id -> aead_writer i -> GTot B.loc
 

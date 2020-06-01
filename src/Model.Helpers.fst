@@ -2,6 +2,9 @@ module Model.Helpers
 
 let lbytes (l:nat) = b:Seq.seq Lib.IntTypes.uint8 { Seq.length b = l }
 
+let reveal #l (b:lbytes l) : GTot (QUIC.Spec.lbytes l) =
+  Seq.init l (fun i -> Lib.RawIntTypes.u8_to_UInt8 (Seq.index b i)) 
+
 let random (l: nat { l < pow2 32 }): lbytes l =
   let open Lib.RandomSequence in
   snd (crypto_random entropy0 l)

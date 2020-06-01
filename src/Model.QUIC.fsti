@@ -8,10 +8,13 @@ module U128 = FStar.UInt128
 module M = LowStar.Modifies
 
 module Spec = QUIC.Spec
+module QH = QUIC.Spec.Header
 module AE = Model.AEAD
+module SAE = Spec.Agile.AEAD
 module PNE = Model.PNE
+module SPNE = Spec.Agile.Cipher
+module BF = LowParse.BitFields
 
-open FStar.Bytes
 open FStar.UInt32
 open Mem
 
@@ -20,30 +23,41 @@ type id = AE.id * PNE.id
 let safePNE (j:PNE.id) = PNE.is_safe j
 let safeAE (k:AE.id) = AE.is_safe k
 let safe (i:id) = safeAE (fst i) && safePNE (snd i)
+let safe_id = i:id{safe i}
+let unsafe (i:id) = not (safeAE (fst i) || safePNE (snd i))
+let unsafe_id = i:id{unsafe i}
 
-type pnlen = nl:nat{nl >= 1 /\ nl <= 4}
-type headerlen = hl:nat{hl >= 1 /\ hl <= pow2 32 - 1}
+/// Package for QUIC plaintexts
+/// (i.e. the payload of QUIC packets)
+/// This would be implemented as a serializable list of frames
+/// (using EverParse refined lists)
 
-type quic_header (k:id) (hl:headerlen) =
-  | Short_header: (b:lbytes hl) -> quic_header k hl
-  | Long_header: (b:lbytes hl) -> quic_header k hl
+type qplain_len = n:nat{3 <= n /\ n < Spec.max_plain_length}
+let pnl = PNE.pne_plain_length
 
-let bytes_of_quic_header (#k:id) (#hl:headerlen) (hd:quic_header k hl) : lbytes hl =
-  match hd with
-    | Short_header b -> b
-    | Long_header b -> b
+// N.B. this is QUIC-specific so not index type parametric,
+// unlike the universal AEAD plain package in Model.AEAD
+inline_for_extraction noeq
+type qplain_pkg =
+  | PlainPkg:
+    plain: (i:id -> l:qplain_len -> eqtype) ->
+    as_bytes: (#i:id -> #l:qplain_len -> plain i l -> GTot (b:Spec.pbytes{Seq.length b == l})) ->
+    repr: (#i:unsafe_id -> #l:qplain_len -> p:plain i l -> Tot (b:Spec.pbytes{Seq.length b == l /\ b == as_bytes p})) ->
+    mk: (i:unsafe_id -> l:qplain_len -> p:Spec.pbytes -> p':plain i l { as_bytes #i #l p' == p }) ->
+    qplain_pkg
 
-let pne_plain (j:PNE.id) (l:PNE.pne_plainlen) : (t:Type0{hasEq t}) = lbytes l
-let pne_as_bytes (j:PNE.id) (l:PNE.pne_plainlen) (n:pne_plain j l) : GTot (lbytes l) = n
+(* TODO move to impl
+let pne_plain (j:PNE.id) (l:pnl) : eqtype =
+  lbytes l & PNE.length_bits l
 
-let pne_repr (j:PNE.unsafeid) (l:PNE.pne_plainlen) (n:pne_plain j l) :
-  Tot (b:lbytes l{b == pne_as_bytes j l n}) = n
+let pne_as_bytes (j:PNE.id) (l:pnl) (n:pne_plain j l)
+  : GTot (lbytes l & PNE.length_bits l) = n
 
-#reset-options "--z3rlimit 50"
+let pne_repr (j:PNE.unsafe_id) (l:pnl) (n:pne_plain j l) :
+  Tot (b:(lbytes l & PNE.length_bits l){b == pne_as_bytes j l n}) = n
 
 let pne_plain_pkg = PNE.PNEPlainPkg pne_plain pne_as_bytes pne_repr
 
-let samplelen = 16
 type plainlen = l:nat{l + v AEAD.taglen <= pow2 32 - 1}
 type pnplainlen = l:nat{l + v AEAD.taglen <= pow2 32 - 1 /\ l + v AEAD.taglen >= samplelen + 4}
 
@@ -55,10 +69,6 @@ type quic_packet (k:id) (hl:headerlen) (l:pnplainlen{hl + l + v AEAD.taglen <= p
 
 type cipher (i:id) (l:plainlen) = lbytes (l + v AEAD.taglen)
 
-let max_ctr = pow2 62 - 1
-
-
-(* plain pkg, for AEAD *)
 val plain: i:AEAD.id -> l:plainlen -> t:Type0{hasEq t}
 
 val plain_as_bytes : i:AEAD.id -> l:plainlen -> p:plain i l -> GTot (lbytes l)
@@ -67,12 +77,7 @@ val mk_plain: i:AEAD.id -> l:plainlen -> b:lbytes l -> p:plain i l{~(AEAD.is_saf
 
 val plain_repr : i:AEAD.id{~(AEAD.is_safe i)} -> l:plainlen -> p:plain i l -> b:lbytes l{b == plain_as_bytes i l p}
 
-let aead_plain_pkg : AEAD.plain_pkg AEAD.id AEAD.is_safe =
-  AEAD.PlainPkg 0 plain plain_as_bytes plain_repr
-
 type qiv (k:id) = AEAD.iv (I.ae_id_ginfo (fst k))
-
-(* nonce pkg *)
 
 val nonce (i:AEAD.id) : (t:Type0{hasEq t})
 
@@ -94,7 +99,9 @@ let rpn_of_nat (j:nat{j<= max_ctr}) : rpn =
   U64.uint_to_t j
 
 type npn (j:PNE.id) (nl:pnlen) = lbytes nl
+**)
 
+(*
 //get the first byte of the (unprotected) header + the pn = what needs to be protected by pne
 val pne_plain_of_header_pn (#k:id) (#hl:headerlen) (hd:quic_header k hl) (#nl:pnlen) (n:npn (snd k) nl) :  pne_plain (snd k) (nl+1)
 
@@ -117,36 +124,50 @@ val npn_decode : (#j:PNE.id) -> (#nl:pnlen) -> (n:npn j nl) -> (expected_pn:rpn)
 
 val create_nonce : #i:id -> #alg:I.ea{alg == I.ae_id_ginfo (fst i)} ->
   iv: AEAD.iv alg -> r:rpn -> Tot (nonce (fst i))
+*)
+
+noeq type info = {
+  region: r:subq{r `HS.disjoint` q_ae_region};
+  plain_pkg: qplain_pkg;
+}
 
 val stream_writer: (k:id) -> Type0
 val stream_reader: #k:id -> w:stream_writer k -> Type0
+val writer_info: #k:id -> w:stream_writer k -> info
+val reader_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> i:info{i == writer_info w}
+
+val writer_ae_info: #k:id -> w:stream_writer k -> a:AEAD.info (fst k)
+val reader_ae_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:AEAD.info (fst k)
+val writer_pne_info: #k:id -> w:stream_writer k -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (writer_ae_info w).AEAD.alg}
+val reader_pne_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (reader_ae_info r).AEAD.alg}
 
 val writer_aead_state : (#k:id) -> (w:stream_writer k) ->
-  aw:AEAD.aead_writer (fst k)
-  {(AEAD.wgetinfo aw).AEAD.plain == aead_plain_pkg /\
-  (AEAD.wgetinfo aw).AEAD.nonce == aead_nonce_pkg} 
-  
+  aw:AEAD.aead_writer (fst k)  
 val reader_aead_state : #k:id -> #w:stream_writer k -> r:stream_reader w ->
   ar:AEAD.aead_reader (writer_aead_state w)
-  {(AEAD.rgetinfo ar).AEAD.plain == aead_plain_pkg /\
-  (AEAD.rgetinfo ar).AEAD.nonce == aead_nonce_pkg} 
-
-val writer_pne_state : #k:id -> w:stream_writer k -> PNE.pne_state (snd k) pne_plain_pkg
-val reader_pne_state : #k:id -> #w:stream_writer k -> r:stream_reader w -> PNE.pne_state (snd k) pne_plain_pkg
+val writer_pne_state : #k:id -> w:stream_writer k -> PNE.pne_state (writer_pne_info w)
+val reader_pne_state : #k:id -> #w:stream_writer k -> r:stream_reader w -> PNE.pne_state (reader_pne_info r)
 
 val invariant: #k:id -> w:stream_writer k -> h:mem ->
   t:Type0{t ==> AEAD.winvariant (writer_aead_state w) h} 
 val rinvariant: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
-  t:Type0{t ==> AEAD.winvariant (writer_aead_state w) h} 
+  t:Type0{t ==> invariant w h} 
 
-val wctrT: #k:id -> w:stream_writer k -> mem -> GTot (n:nat{n<=max_ctr})
+let max_ctr = pow2 62 - 1
+type epn (nl:pnl) = Spec.lbytes nl
+type rpn = n:U64.t{U64.v n < max_ctr}
+let rpn_of_nat (j:nat{j < max_ctr}) : rpn =
+  U64.uint_to_t j
+
+val wctrT: #k:id -> w:stream_writer k -> mem -> GTot (n:nat{n <= max_ctr})
 val wctr: #k:id -> w:stream_writer k -> ST rpn
   (requires fun h0 -> True)
   (ensures fun h0 c h1 -> h0 == h1 /\ UInt64.v c = wctrT w h1)
 
-val writer_iv: #k:id -> w:stream_writer k -> qiv k
-val reader_iv: #k:id -> #w:stream_writer k -> r:stream_reader w ->
-  iv:qiv k{iv = writer_iv w}
+type qiv (k:id) = Spec.lbytes 12 // SAE.iv (I.ae_id_ginfo (fst k))
+val writer_static_iv: #k:id -> w:stream_writer k -> qiv k
+val reader_static_iv: #k:id -> #w:stream_writer k -> r:stream_reader w ->
+  iv:qiv k{iv == writer_static_iv w}
 
 val expected_pnT: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
   GTot rpn
@@ -157,15 +178,6 @@ val expected_pn: #k:id -> #w:stream_writer k -> r:stream_reader w -> ST rpn
 
 let wincrementable (#k:id) (w:stream_writer k) (h:mem) =
   wctrT w h < max_ctr
-
-type info' = {
-  alg: I.ea;
-  alg': I.ca;
-  region: r:subq{r `HS.disjoint` q_ae_region};
-}
-
-type info (k:id) =
-  info:info'{I.ae_id_ginfo (fst k) == info.alg /\ I.pne_id_ginfo (snd k) == info.alg'}
 
 val footprint: #k:id -> w:stream_writer k -> M.loc
 val rfootprint: #k:id -> #w:stream_writer k -> r:stream_reader w -> M.loc
@@ -187,7 +199,6 @@ val rframe_invariant: #k:id -> #w:stream_writer k -> r:stream_reader w ->
     M.loc_disjoint ri (rfootprint r)))
   (ensures rinvariant r h1)
 
-
 val wframe_log: #k:id{AEAD.is_safe (fst k)} -> w:stream_writer k -> l:Seq.seq (AEAD.entry (fst k) (AEAD.wgetinfo (writer_aead_state w))) ->
   h0:mem -> ri:M.loc -> h1:mem ->
   Lemma
@@ -208,7 +219,7 @@ val rframe_log: #k:id{AEAD.is_safe (fst k)} -> #w:stream_writer k -> r:stream_re
     M.loc_disjoint ri (rfootprint r))
   (ensures invariant w h1 ==> AEAD.rlog (reader_aead_state r) h1 == l)
 
-val wframe_pnlog: #k:id{PNE.is_safe (snd k)} -> w:stream_writer k -> l:Seq.seq (PNE.entry (snd k) pne_plain_pkg) ->
+val wframe_pnlog: #k:id{PNE.is_safe (snd k)} -> w:stream_writer k -> l:Seq.seq (PNE.entry (writer_pne_info w)) ->
   h0:mem -> ri:M.loc -> h1:mem ->
   Lemma
   (requires
@@ -217,7 +228,7 @@ val wframe_pnlog: #k:id{PNE.is_safe (snd k)} -> w:stream_writer k -> l:Seq.seq (
     M.loc_disjoint ri (footprint w))
   (ensures PNE.table (writer_pne_state w) h1 == l)
 
-val rframe_pnlog: #k:id{PNE.is_safe (snd k)} ->  #w:stream_writer k -> r:stream_reader w -> l:Seq.seq (PNE.entry (snd k) pne_plain_pkg) ->
+val rframe_pnlog: #k:id{PNE.is_safe (snd k)} ->  #w:stream_writer k -> r:stream_reader w -> l:Seq.seq (PNE.entry (reader_pne_info r)) ->
   h0:mem -> ri:M.loc -> h1:mem ->
   Lemma
   (requires
@@ -226,26 +237,32 @@ val rframe_pnlog: #k:id{PNE.is_safe (snd k)} ->  #w:stream_writer k -> r:stream_
     M.loc_disjoint ri (rfootprint r))
   (ensures PNE.table (reader_pne_state r) h1 == l)
 
-val create: k:id -> u:info k ->
+val create: k:id -> u:info ->
+  u1:AEAD.info (fst k) -> u2:PNE.info (snd k) ->
+  ST (stream_writer k)
+  (requires fun h0 -> u2.PNE.calg ==
+    Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg)
+  (ensures fun h0 w h1 ->
+    invariant w h1 /\
+    modifies_none h0 h1 /\
+    wctrT w h1 == 0 /\
+    writer_ae_info w == u1 /\
+    writer_pne_info w == u2 /\
+    writer_info w == u /\
+    (safe k ==>
+      (AEAD.wlog (writer_aead_state w) h1 == Seq.empty /\
+      PNE.table (writer_pne_state w) h1 == Seq.empty
+    ))
+  )
+
+(* FIXME
+val coerce: k:unsafe_id -> u:info k ->
+  aek: Spec.Agile.AEAD.key_length u.alg ->
+  pnk: SPNE.key_length u.alg' ->
   ST (stream_writer k)
   (requires fun h0 -> True)
   (ensures fun h0 w h1 ->
     invariant w h1 /\
-    modifies_none h0 h1 /\
-    (safe k ==>
-      (AEAD.wlog (writer_aead_state w) h1 == Seq.empty /\
-      PNE.table (writer_pne_state w) h1 == Seq.empty /\
-      wctrT w h1 == 0))
-  )
-
-(*val coerce: i:I.id -> u:info i ->
-  ST (stream_writer i)
-  (requires fun h0 -> 
-    ~ (Flag.safeId i) /\ disjoint u.shared u.local)
-  (ensures fun h0 w h1 ->
-    invariant w h1 /\
-    footprint w == Set.singleton u.local /\
-    shared_footprint w == Set.singleton u.shared /\
     modifies_none h0 h1)
 *)
 
@@ -256,37 +273,14 @@ val createReader: parent:rgn -> #k:id -> w:stream_writer k ->
     invariant w h1 /\
     rinvariant r h1 /\
     modifies_none h0 h1 /\
-    (safe k) ==>
-      expected_pnT r h1 == U64.uint_to_t 0)
+    expected_pnT r h1 == U64.uint_to_t 0)
 
-//split the epn+cipher, given the length of the epn
-val split (#k:id) (#l:pnplainlen) (nec:quic_protect k l) (nl:pnlen) :
-  epn nl * cipher k (l-nl) 
+#reset-options "--z3rlimit 50 --fuel 1"
 
-val sample_quic_protect (#k:id) (#l:pnplainlen) (nec:quic_protect k l) : PNE.sample
+let _ = assert_norm(Spec.max_plain_length < pow2 32)
+let _ = assert_norm(pow2 32 < pow2 64)
 
-#reset-options "--z3rlimit 50"
-
-val encrypt
-  (#k:id)
-  (w:stream_writer k)
-  (#hl:headerlen)
-  (hd:quic_header k hl)
-  (nl:pnlen {hl + nl <= v AEAD.aadmax})
-  (#l:plainlen {hl + nl + l + v AEAD.taglen <= pow2 32 - 1 /\
-    nl + l + v AEAD.taglen >= samplelen + 4})
-  (p:plain (fst k) l):
-  ST (quic_packet k hl (nl + l))
-  (requires fun h0 ->
-    wincrementable w h0 /\
-    invariant w h0)
-  (ensures fun h0 (ph,nec) h1 ->
-    let (i,j) = k in
-    let aw = writer_aead_state w in
-    let ps = writer_pne_state w in
-    invariant w h1 /\
-    wctrT w h1 == wctrT w h0 + 1 /\ 
-    (safe k ==> (
+(*
       let (ne,c) = split #k #(nl+l) nec nl in
       let rpn = rpn_of_nat (wctrT w h0) in
       let npn = npn_encode j rpn nl in
@@ -303,27 +297,124 @@ val encrypt
            PNE.table ps h1 ==
               Seq.snoc
                 (PNE.table ps h0)
-                (PNE.Entry #j #pne_plain_pkg s #(nl+1) nn cc))) /\
-    M.modifies (M.loc_union (footprint w) (loc_ae_region ())) h0 h1)
+                (PNE.Entry #j #pne_plain_pkg s #(nl+1) nn cc))
+*)
+
+#push-options "--fuel 2 --z3rlimit 30"
+val encrypt
+  (#k:id)
+  (w:stream_writer k)
+  (h:Spec.header)
+  (nl:pnl) // {hl + nl <= v AEAD.aadmax})
+  (#l:qplain_len)
+  (p:(writer_info w).plain_pkg.plain k l)
+  : ST Spec.packet
+  (requires fun h0 ->
+    wincrementable w h0 /\
+    invariant w h0 /\
+    (if Spec.is_retry h then l = 0
+    else (
+      Spec.has_payload_length h ==> 
+        U64.v (Spec.payload_length h) == l
+	  + Spec.Agile.AEAD.tag_length (writer_ae_info w).AEAD.alg))
+  )
+  (ensures fun h0 c h1 ->
+    let (i,j) = k in
+    let aw = writer_aead_state w in
+    let ps = writer_pne_state w in
+    M.modifies (footprint w) h0 h1 /\
+    invariant w h1 /\
+    wctrT w h1 == wctrT w h0 + 1 /\ 
+    (safe k ==> True) /\
+    (unsafe k ==>
+      (let ea = (writer_ae_info w).AE.alg in
+      let plain : Spec.pbytes = (writer_info w).plain_pkg.repr p in
+      c == Spec.encrypt ea (AEAD.wkey aw)
+        (writer_static_iv w) (Model.Helpers.reveal (PNE.key ps h0)) h
+	(plain <: Spec.pbytes' (Spec.is_retry h)))
+    ))
+
+noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
+| M_Success:
+  h: Spec.header{not (Spec.is_retry h)} ->
+//  nl: PNE.pne_plain_length ->
+//  npn: PNE.pne_plain (reader_pne_info r) nl ->
+  l: qplain_len ->
+  p: (reader_info r).plain_pkg.plain k l ->
+  remainder: Spec.bytes ->
+  model_result r
+| M_Failure
+
+let max62 (a b:Spec.uint62_t) =
+  let open FStar.UInt64 in
+  if a >^ b then a else b
+
+module S = FStar.Seq
+module BF = LowParse.BitFields
+module U8 = FStar.UInt8
+
+let get_sample (p:Spec.packet) cid_len
+  : GTot (option (Spec.lbytes 16)) =
+  let open QUIC.Spec in
+  let open QUIC.Spec.Header in
+  if S.length p = 0 then None
+  else
+    let f = Seq.index p 0 in
+    let is_short = (BF.get_bitfield (U8.v f) 7 8 = 0) in
+    let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
+    if is_retry then None
+    else
+      match putative_pn_offset cid_len p with
+      | None -> None
+      | Some pn_offset ->
+        let sample_offset = pn_offset + 4 in
+        if sample_offset + 16 > S.length p then None
+        else Some (S.slice p sample_offset (sample_offset+16))
 
 val decrypt
   (#k:id)
   (#w:stream_writer k)
   (r:stream_reader w)
-  (#hl:headerlen {hl+5 <= v AEAD.aadmax})
-  (#nll:pnplainlen{hl + nll + v AEAD.taglen <= pow2 32 - 1})
-  (qp:quic_packet k hl nll) :
-  ST (option (l:plainlen & plain (fst k) l))
-  (requires fun h0 -> rinvariant r h0 /\ invariant w h0)
+  (cid_len:nat)
+  (packet: Spec.packet)
+  : ST (model_result r)
+  (requires fun h0 ->
+    rinvariant r h0 /\
+    cid_len <= 20
+  )
   (ensures fun h0 res h1 ->
     let (i,j) = k in
     let ar = reader_aead_state r in
     let aw = writer_aead_state w in
-    let ps = reader_pne_state r in
+    let pr = reader_pne_state r in
+    let pw = writer_pne_state w in
+    let expected = expected_pnT r h0 in
     rinvariant r h1 /\
     M.modifies (rfootprint r) h0 h1 /\
-    (None? res ==> expected_pnT r h1 == expected_pnT r h0) /\
-    (safe k ==>
+    (match res with
+    | M_Failure -> expected_pnT r h1 == expected
+    | M_Success h _ _ _ ->
+      expected_pnT r h1 == max62 (Spec.packet_number h) expected) /\
+    (safe k ==> (
+      match get_sample packet cid_len with
+      | _ -> True
+    )) /\
+    (unsafe k ==>
+      (let ea = (writer_ae_info w).AE.alg in
+      match Spec.decrypt ea (AEAD.wkey aw) (writer_static_iv w)
+            (Model.Helpers.reveal (PNE.key pr h0))
+	    (UInt64.v expected) cid_len packet,
+	    res
+      with
+      | Spec.Failure, M_Failure -> True
+      | Spec.Success h plain rem, M_Success h' l p remainder ->
+	  h == h' /\ rem == remainder /\
+	  (reader_info r).plain_pkg.repr p == plain
+      | _ -> False)
+    )
+  )
+
+(*
       (let (ph,nec) = qp in
       let s = sample_quic_protect nec in
       let cp = pne_cipherpad_of_pheader_quicprotect ph nec in
@@ -347,10 +438,7 @@ val decrypt
                     expected_pnT r h1 = expected_pnT r h0))                  
 	        else None? res
       )
-    )
-  )
-
-(*)
+*)
 
 
  (*   (None? res ==> pnlog r h1 == pnlog r h0) /\    
