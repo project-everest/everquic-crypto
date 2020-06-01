@@ -1,6 +1,6 @@
 module Model.QUIC
 
-module HS = FStar.HyperStack 
+module HS = FStar.HyperStack
 module I = Model.Indexing
 module U32 = FStar.UInt32
 module U64 = FStar.UInt64
@@ -62,7 +62,7 @@ type plainlen = l:nat{l + v AEAD.taglen <= pow2 32 - 1}
 type pnplainlen = l:nat{l + v AEAD.taglen <= pow2 32 - 1 /\ l + v AEAD.taglen >= samplelen + 4}
 
 type quic_protect (k:id) (l:pnplainlen) =
-  lbytes (l + v AEAD.taglen) 
+  lbytes (l + v AEAD.taglen)
 
 type quic_packet (k:id) (hl:headerlen) (l:pnplainlen{hl + l + v AEAD.taglen <= pow2 32 - 1}) =
   quic_header k hl * quic_protect k l
@@ -142,16 +142,16 @@ val writer_pne_info: #k:id -> w:stream_writer k -> a:PNE.info (snd k){a.PNE.calg
 val reader_pne_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (reader_ae_info r).AEAD.alg}
 
 val writer_aead_state : (#k:id) -> (w:stream_writer k) ->
-  aw:AEAD.aead_writer (fst k)  
+  aw:AEAD.aead_writer (fst k)
 val reader_aead_state : #k:id -> #w:stream_writer k -> r:stream_reader w ->
   ar:AEAD.aead_reader (writer_aead_state w)
 val writer_pne_state : #k:id -> w:stream_writer k -> PNE.pne_state (writer_pne_info w)
 val reader_pne_state : #k:id -> #w:stream_writer k -> r:stream_reader w -> PNE.pne_state (reader_pne_info r)
 
 val invariant: #k:id -> w:stream_writer k -> h:mem ->
-  t:Type0{t ==> AEAD.winvariant (writer_aead_state w) h} 
+  t:Type0{t ==> AEAD.winvariant (writer_aead_state w) h}
 val rinvariant: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
-  t:Type0{t ==> invariant w h} 
+  t:Type0{t ==> invariant w h}
 
 let max_ctr = pow2 62 - 1
 type epn (nl:pnl) = Spec.lbytes nl
@@ -289,7 +289,7 @@ let _ = assert_norm(pow2 32 < pow2 64)
       let ad:AEAD.adata = Bytes.append (bytes_of_quic_header hd) npn in
       let s:PNE.sample = sample_quic_protect nec in
       let nn = pne_plain_of_header_pn hd npn in
-      let cc = pne_cipher_of_pheader_epn ph ne in 
+      let cc = pne_cipher_of_pheader_epn ph ne in
       AEAD.wlog aw h1 ==
         Seq.snoc
           (AEAD.wlog aw h0)
@@ -314,7 +314,7 @@ val encrypt
     invariant w h0 /\
     (if Spec.is_retry h then l = 0
     else (
-      Spec.has_payload_length h ==> 
+      Spec.has_payload_length h ==>
         U64.v (Spec.payload_length h) == l
 	  + Spec.Agile.AEAD.tag_length (writer_ae_info w).AEAD.alg))
   )
@@ -324,7 +324,7 @@ val encrypt
     let ps = writer_pne_state w in
     M.modifies (footprint w) h0 h1 /\
     invariant w h1 /\
-    wctrT w h1 == wctrT w h0 + 1 /\ 
+    wctrT w h1 == wctrT w h0 + 1 /\
     (safe k ==> True) /\
     (unsafe k ==>
       (let ea = (writer_ae_info w).AE.alg in
@@ -422,26 +422,26 @@ val decrypt
         | None -> None? res
         | Some (PNE.Entry  _ #ll n cc) ->
           let nl:pnlen = ll - 1 in
-          let (hd,npn) = header_pn_of_pne_plain #k #hl ph #ll n in 
+          let (hd,npn) = header_pn_of_pne_plain #k #hl ph #ll n in
 	  let rpn = npn_decode #j #nl npn (expected_pnT r h0) in
           let alg = ((AEAD.rgetinfo ar).AEAD.alg) in
           let n = create_nonce #k #alg (reader_iv r) rpn in
           let ad:AEAD.adata = Bytes.append (bytes_of_quic_header hd) npn in
           match AEAD.wentry_for_nonce aw n h0 with
 	    | None -> None? res
-	    | Some (AEAD.Entry _  ad' #l' p' c')  -> 
-	      if ad' = ad && l' = nll - nl && snd (split nec nl) = c' then 
+	    | Some (AEAD.Entry _  ad' #l' p' c')  ->
+	      if ad' = ad && l' = nll - nl && snd (split nec nl) = c' then
 	        (res = Some (|l',p'|) /\
                   (if U64.v rpn >= U64.v (expected_pnT r h0) && U64.v rpn < max_ctr then
                     expected_pnT r h1 = rpn_of_nat (U64.v rpn + 1)
                   else
-                    expected_pnT r h1 = expected_pnT r h0))                  
+                    expected_pnT r h1 = expected_pnT r h0))
 	        else None? res
       )
 *)
 
 
- (*   (None? res ==> pnlog r h1 == pnlog r h0) /\    
+ (*   (None? res ==> pnlog r h1 == pnlog r h0) /\
     (Flag.safeId i ==> (
       let lg = wlog w h0 in
       match (Seq.find_l (epn_filter i j nl ne) lg) with
@@ -459,7 +459,7 @@ val decrypt
     | None -> None? res
     | Some (Entry nl' rpn' ad' l' p' _ c') ->
       if c' = c then
-        let npn = 
+        let npn =
       else None? res
   | Entry:
     nl:pnlen ->

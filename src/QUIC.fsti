@@ -31,13 +31,12 @@ open EverCrypt.Error
 /// Low-level types used in this API
 /// --------------------------------
 
-type u2 = n:U8.t{U8.v n < 4}
-type u4 = n:U8.t{U8.v n < 16}
-type u62 = n:UInt64.t{UInt64.v n < pow2 62}
+let u2 = QImpl.u2
+let u4 = QImpl.u4
+let u62 = QImpl.u62
 
-
-type index =
-  (if I.model then QModel.id else QImpl.index)
+let index =
+  if I.model then QModel.id else QImpl.index
 
 let mid (i:index{I.model}) = i <: QModel.id
 let iid (i:index{not I.model}) = i <: QImpl.index
@@ -50,8 +49,8 @@ let mstate_t i = w:QModel.stream_writer i & QModel.stream_reader w
 let istate_t i = QImpl.state i
 
 let state (i:index) =
-  (if I.model then mstate_t (mid i)
-   else istate_t (iid i))
+  if I.model then mstate_t (mid i)
+  else istate_t (iid i)
 
 let mstate (#i:index{I.model}) (s:state i) = s <: mstate_t (mid i)
 let istate (#i:index{not I.model}) (s:state i) = s <: istate_t (iid i)
@@ -78,6 +77,13 @@ val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
   U64.v (g_last_packet_number s h) + 1 < pow2 62
 
+let hash_alg_of_index (i: index): QSpec.ha =
+  if I.model then
+    // XXX: where is the hash algorithm stored in the model?
+    admit ()
+  else
+    (iid i).QImpl.hash_alg
+
 val encrypt: #i:G.erased I.id -> (
   let i = G.reveal i in
   s: state i ->
@@ -88,17 +94,20 @@ val encrypt: #i:G.erased I.id -> (
   plain_len: U32.t ->
   Stack error_code
     (requires fun h0 ->
+      not (QImpl.is_retry h) /\ // until it's supported in Model.QUIC
       // Memory & preservation
       B.live h0 plain /\ B.live h0 dst /\ B.live h0 dst_pn /\
       QImplBase.header_live h h0 /\
-      B.(all_disjoint [ footprint h0 s; loc_buffer dst; loc_buffer dst_pn; QImplBase.header_footprint h; loc_buffer plain ]) /\
+      B.(all_disjoint [ footprint h0 s; loc_buffer dst; loc_buffer dst_pn; QImpl.header_footprint h; loc_buffer plain ]) /\
       invariant h0 s /\
       incrementable s h0 /\
       B.length plain == U32.v plain_len /\ (
-      // not (is_retry h)? until it's supported in Model.QUIC
       let clen =
-        if QImplBase.is_retry h then 0
-	else U32.v plain_len + Spec.Agile.AEAD.tag_length (alg i) in
+        if QImplBase.is_retry h then
+          0
+        else
+          U32.v plain_len + Spec.Agile.AEAD.tag_length (alg i)
+      in
       (if QImplBase.is_retry h then U32.v plain_len == 0 else 3 <= U32.v plain_len /\ U32.v plain_len < QSpec.max_plain_length) /\
       (QImplBase.has_payload_length h ==> U64.v (QImplBase.payload_length h) == clen) /\
       B.length dst == U32.v (QImplBase.header_len h) + clen
@@ -111,16 +120,16 @@ val encrypt: #i:G.erased I.id -> (
           invariant h1 s /\
           footprint h1 s == footprint h0 s /\ (
           // Functional correctness
-          let s0 = g_traffic_secret (B.deref h0 s) in
+          let s0 = QImpl.g_traffic_secret (B.deref h0 s) in
           let open QUIC.Spec in
-          let k = derive_secret i.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.aead_alg) in
-          let iv = derive_secret i.hash_alg s0 label_iv 12 in
-          let pne = derive_secret i.hash_alg s0 label_hp (ae_keysize i.aead_alg) in
+          let k = derive_secret i.QImpl.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.QImpl.aead_alg) in
+          let iv = derive_secret i.QImpl.hash_alg s0 label_iv 12 in
+          let pne = derive_secret i.QImpl.hash_alg s0 label_hp (ae_keysize i.QImpl.aead_alg) in
           let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
           let pn = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
           B.deref h1 dst_pn == pn /\
-          packet == encrypt i.aead_alg k iv pne (g_header h h0 pn) plain /\
+          packet == encrypt i.QImpl.aead_alg k iv pne (QImpl.g_header h h0 pn) plain /\
           g_last_packet_number (B.deref h1 s) h1 == pn)
       | _ ->
           False))
