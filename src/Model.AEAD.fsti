@@ -215,7 +215,7 @@ val quic_coerce (#i:unsafe_id) (u:info i)
     B.fresh_loc (wfootprint w) h0 h1 /\
     B.(loc_includes (loc_ae_region ()) (wfootprint w)) /\
     wgetinfo w == u /\
-    Model.Helpers.reveal #(Spec.key_length (wgetinfo w).alg) (wkey w) ==
+    wkey w ==
       QUIC.Spec.derive_secret u.halg ts
         QUIC.Spec.label_key (Spec.key_length u.alg)
   )
