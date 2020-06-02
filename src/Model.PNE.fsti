@@ -103,8 +103,8 @@ val pne_state : (#j:id) -> (u:info j) -> Type u#1
 val table : (#j:safe_id) -> (#u:info j) -> (st:pne_state u) -> (h:mem) -> GTot (Seq.seq (entry u))
 
 // Header protection key
-let key_len (#j:unsafe_id) (u:info j) = Spec.Agile.Cipher.key_length u.calg
-val key: #j:unsafe_id -> #u:info j -> st:pne_state u -> h:mem -> GTot (lbytes (key_len u))
+let key_len (#j:id) (u:info j) = Spec.Agile.Cipher.key_length u.calg
+val key: #j:unsafe_id -> #u:info j -> st:pne_state u -> lbytes (key_len u)
 
 val footprint : #j:id -> #u:info j -> st:pne_state u -> GTot B.loc
 
@@ -183,7 +183,7 @@ val coerce (j:unsafe_id) (u:info j)
     B.modifies B.loc_none h0 h1 /\
     B.fresh_loc (footprint st) h0 h1 /\
     B.(loc_includes (loc_pne_region ()) (footprint st)) /\
-    key st h1 == k)
+    key st == k)
 
 val quic_coerce (j:unsafe_id) (u:info j)
   (ts:traffic_secret u.halg)
@@ -194,7 +194,7 @@ val quic_coerce (j:unsafe_id) (u:info j)
     B.modifies B.loc_none h0 h1 /\
     B.fresh_loc (footprint st) h0 h1 /\
     B.(loc_includes (loc_pne_region ()) (footprint st)) /\
-    Model.Helpers.reveal (key st h1) ==
+    Model.Helpers.reveal (key st) ==
       QUIC.Spec.derive_secret u.halg ts
         QUIC.Spec.label_hp (key_len u))
 
@@ -248,7 +248,7 @@ val encrypt :
     else
       // Our input is: plain packet number, plain bits to be protected
       let pn, bits = PNEPlainPkg?.as_bytes u.plain j l n in
-      let k = key st h0 in
+      let k = key st in
       // We output an encrypted packet number and protected bits
       c == encrypt_spec u.calg l pn bits s k))
 
@@ -307,5 +307,5 @@ val decrypt:
       (Some? (entry_for_sample s st h0) ==> modifies_none h0 h1)
     else
       let cipher, encrypted_bits = cp in
-      r == decrypt_spec u.calg cipher encrypted_bits (key st h0) s)
+      r == decrypt_spec u.calg cipher encrypted_bits (key st) s)
   )

@@ -44,14 +44,32 @@ let halg (i:index) =
   if I.model then I.ae_id_ghash (fst (mid i))
   else (iid i).QImpl.hash_alg
 
-type traffic_secret (i:index) =
-  lbytes (Spec.Hash.Definitions.hash_length (halg i))
+let traffic_secret i =
+  Spec.Hash.Definitions.bytes_hash (halg i)
 
-type mstate_t i =
+let itraffic_secret (i:QModel.id) =
+  Spec.Hash.Definitions.bytes_hash (I.ae_id_ghash (fst i))
+
+module MH = Model.Helpers
+
+let derived (#i:QModel.id) (#w:QModel.stream_writer i) (r:QModel.stream_reader w) (ts:itraffic_secret i) =
+  if I.model && QModel.unsafe i then
+    let ha = I.ae_id_hash (fst i) in
+    let ea = I.ae_id_info (fst i) in
+    let (k1, k2) = QModel.reader_leak r in
+    QModel.writer_static_iv w ==
+      QSpec.derive_secret ha ts QSpec.label_iv 12 /\
+    k1 == QSpec.derive_secret ha ts
+        QSpec.label_key (QSpec.ae_keysize ea) /\
+    k2 == QUIC.Spec.derive_secret ha ts
+        QUIC.Spec.label_key (QSpec.cipher_keysize ea)
+  else True
+
+noeq type mstate_t i =
 | Ideal:
-  ts: traffic_secret i ->
   writer: QModel.stream_writer i ->
-  reader: QModel.stream_reader w ->
+  reader: QModel.stream_reader writer ->
+  ts: itraffic_secret i{derived reader ts} -> // FIXME erased
   mstate_t i
   
 let istate_t i = QImpl.state i
@@ -65,14 +83,12 @@ let istate (#i:index{not I.model}) (s:state i) = s <: istate_t (iid i)
 
 let footprint (#i:index) (h:HS.mem) (s:state i) : GTot B.loc =
   if I.model then
-    let (| w, r |) = mstate s in
-    QModel.rfootprint r
+    QModel.rfootprint (mstate s).reader
   else QImpl.footprint h (istate s)
 
 let invariant #i (h:HS.mem) (s:state i) =
   if I.model then
-    let (| w, r |) = mstate s in
-    QModel.rinvariant r h
+    QModel.rinvariant (mstate s).reader h
   else QImpl.invariant h (istate s)
 
 val g_initial_packet_number: #i:index -> (s: state i) -> GTot QSpec.nat62
@@ -85,14 +101,22 @@ val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
   U64.v (g_last_packet_number s h) + 1 < pow2 62
 
-let hash_alg_of_index (i: index): QSpec.ha =
+let g_traffic_secret (#i:index) (s:state i) (h:HS.mem)
+  : GTot (traffic_secret i) =
   if I.model then
-    // XXX: where is the hash algorithm stored in the model?
-    admit ()
-  else
-    (iid i).QImpl.hash_alg
+    (mstate s).ts <: traffic_secret i
+  else 
+    QImpl.g_traffic_secret (B.deref h (istate s))
 
-val encrypt: #i:G.erased I.id -> (
+(*
+let g_last_packet_number (#i:index) (s:state i) (h:HS.mem)
+  =
+  if I.model then QModel.expected_pnT (mstate s).reader h
+  else
+    QImpl.g_last_packet_number (B.deref h (istate s)) h
+*)
+
+val encrypt: #i:G.erased index -> (
   let i = G.reveal i in
   s: state i ->
   dst: B.buffer U8.t ->
@@ -128,17 +152,17 @@ val encrypt: #i:G.erased I.id -> (
           invariant h1 s /\
           footprint h1 s == footprint h0 s /\ (
           // Functional correctness
-          let s0 = QImpl.g_traffic_secret (B.deref h0 s) in
+          let ts = g_traffic_secret s h0 in
           let open QUIC.Spec in
-          let k = derive_secret i.QImpl.hash_alg s0 label_key (Spec.Agile.AEAD.key_length i.QImpl.aead_alg) in
-          let iv = derive_secret i.QImpl.hash_alg s0 label_iv 12 in
-          let pne = derive_secret i.QImpl.hash_alg s0 label_hp (ae_keysize i.QImpl.aead_alg) in
+          let k = derive_secret (halg i) ts label_key (Spec.Agile.AEAD.key_length (alg i)) in
+          let iv = derive_secret (halg i) ts label_iv 12 in
+          let pne = derive_secret (halg i) ts label_hp (cipher_keysize (alg i)) in
           let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
-          let pn = g_last_packet_number (B.deref h0 s) h0 `U64.add` 1uL in
+          let pn = g_last_packet_number s h0 `U64.add` 1uL in
           B.deref h1 dst_pn == pn /\
-          packet == encrypt i.QImpl.aead_alg k iv pne (QImpl.g_header h h0 pn) plain /\
-          g_last_packet_number (B.deref h1 s) h1 == pn)
+          packet == encrypt (alg i) k iv pne (QImpl.g_header h h0 pn) plain /\
+          g_last_packet_number s h1 == pn)
       | _ ->
           False))
 

@@ -42,7 +42,7 @@ let table #j #u st h =
   let (| u, p |) = st <: model_state j in
   B.deref h p
 
-let key #j #u st h =
+let key #j #u st =
   snd (st <: unsafe_state j)
 
 let footprint #i #u w =

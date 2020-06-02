@@ -148,6 +148,16 @@ val reader_aead_state : #k:id -> #w:stream_writer k -> r:stream_reader w ->
 val writer_pne_state : #k:id -> w:stream_writer k -> PNE.pne_state (writer_pne_info w)
 val reader_pne_state : #k:id -> #w:stream_writer k -> r:stream_reader w -> PNE.pne_state (reader_pne_info r)
 
+type key_t #i (w:stream_writer i) =
+  Spec.lbytes (SAE.key_length (writer_ae_info w).AEAD.alg) &
+  Spec.lbytes (PNE.key_len (writer_pne_info w))
+
+let writer_leak (#k:unsafe_id) (w:stream_writer k) : key_t w =
+  Model.Helpers.reveal #(SAE.key_length (writer_ae_info w).AEAD.alg) (AEAD.wkey (writer_aead_state w)),
+  Model.Helpers.reveal #(PNE.key_len (writer_pne_info w)) (PNE.key (writer_pne_state w))
+
+let reader_leak (#k:unsafe_id) (#w:stream_writer k) (r:stream_reader w) : key_t w = writer_leak w
+
 val invariant: #k:id -> w:stream_writer k -> h:mem ->
   t:Type0{t ==> AEAD.winvariant (writer_aead_state w) h}
 val rinvariant: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
@@ -265,17 +275,19 @@ val coerce: k:unsafe_id -> u:info ->
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
     u2.PNE.halg == u1.AEAD.halg)
   (ensures fun h0 w h1 ->
+    let (k1, k2) = writer_leak w in
     invariant w h1 /\
     modifies_none h0 h1 /\
     wctrT w h1 == UInt64.v init /\
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
-    Model.Helpers.reveal (AEAD.wkey (writer_aead_state w)) ==
+    writer_static_iv w ==
       Spec.derive_secret u1.AEAD.halg ts
+        Spec.label_iv 12 /\
+    k1 == Spec.derive_secret u1.AEAD.halg ts
         Spec.label_key (SAE.key_length u1.AEAD.alg) /\
-    Model.Helpers.reveal (PNE.key (writer_pne_state w) h1) == 
-      QUIC.Spec.derive_secret u2.PNE.halg ts
+    k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
         QUIC.Spec.label_key (PNE.key_len u2)
   )
 
@@ -341,9 +353,9 @@ val encrypt
     (safe k ==> True) /\
     (unsafe k ==>
       (let ea = (writer_ae_info w).AE.alg in
+      let k1, k2 = writer_leak w in
       let plain : Spec.pbytes = (writer_info w).plain_pkg.repr p in
-      c == Spec.encrypt ea (AEAD.wkey aw)
-        (writer_static_iv w) (Model.Helpers.reveal (PNE.key ps h0)) h
+      c == Spec.encrypt ea k1 (writer_static_iv w) k2 h
 	(plain <: Spec.pbytes' (Spec.is_retry h)))
     ))
 
@@ -414,8 +426,8 @@ val decrypt
     )) /\
     (unsafe k ==>
       (let ea = (writer_ae_info w).AE.alg in
-      match Spec.decrypt ea (AEAD.wkey aw) (writer_static_iv w)
-            (Model.Helpers.reveal (PNE.key pr h0))
+      let k1, k2 = reader_leak r in
+      match Spec.decrypt ea k1 (writer_static_iv w) k2
 	    (UInt64.v expected) cid_len packet,
 	    res
       with

@@ -2,10 +2,10 @@ module Model.Helpers
 
 let lbytes (l:nat) = b:Seq.seq Lib.IntTypes.uint8 { Seq.length b = l }
 
-let hide #l (b:Seq.seq UInt8.t{Seq.length b = l}) =
+let hide #l (b:Seq.seq UInt8.t{Seq.length b = l}) : lbytes l=
   Seq.init l (fun i -> Lib.RawIntTypes.u8_from_UInt8 (Seq.index b i))
 
-let reveal #l (b:lbytes l) : GTot (QUIC.Spec.lbytes l) =
+let reveal #l (b:lbytes l) : (QUIC.Spec.lbytes l) =
   Seq.init l (fun i -> Lib.RawIntTypes.u8_to_UInt8 (Seq.index b i)) 
 
 let correct #l (b:Seq.seq UInt8.t{Seq.length b = l})
@@ -13,7 +13,11 @@ let correct #l (b:Seq.seq UInt8.t{Seq.length b = l})
   [SMTPat (reveal #l (hide #l b))]
    = admit()
 
-let random (l: nat { l < pow2 32 }): lbytes l =
+let random (l: nat { l < pow2 32 })
+  : HyperStack.ST.ST (lbytes l)
+  (requires fun h0 -> True)
+  (ensures fun h0 _ h1 -> h0 == h1)
+  =
   let open Lib.RandomSequence in
   snd (crypto_random entropy0 l)
 

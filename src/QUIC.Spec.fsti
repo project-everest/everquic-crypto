@@ -43,6 +43,8 @@ type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}
 type cbytes' (is_retry: bool) = b: bytes { let l = S.length b in if is_retry then l == 0 else (19 <= l /\ l < max_cipher_length) }
 
 let ae_keysize (a:ea) =
+  Spec.Agile.AEAD.key_length a
+let cipher_keysize (a:ea) =
   Spec.Agile.Cipher.key_length (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)
 
 // Static byte sequences to be fed into secret derivation. Marked as inline, so
@@ -56,7 +58,7 @@ val label_hp: lbytes 2
 
 val derive_secret:
   a: ha ->
-  prk:Spec.Hash.Definitions.bytes_hash a ->
+  prk: Spec.Hash.Definitions.bytes_hash a ->
   label: bytes ->
   len: nat ->
   Pure (lbytes len)
@@ -85,7 +87,7 @@ val block_of_sample: a:Spec.Agile.Cipher.cipher_alg -> k: Spec.Agile.Cipher.key 
 
 // Header protection only
 val header_encrypt: a:ea ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   h: header ->
   c: cbytes' (is_retry h) ->
   GTot packet
@@ -104,7 +106,7 @@ type h_result =
 
 // Note that cid_len cannot be parsed from short headers
 val header_decrypt: a:ea ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   cid_len: nat { cid_len <= 20 } ->
   last: nat { last + 1 < pow2 62 } ->
   p: packet ->
@@ -128,7 +130,7 @@ module U64 = FStar.UInt64
 // of the same arguments (see QUIC.Spec.Old.*_malleable)
 val lemma_header_encryption_correct:
   a:ea ->
-  k:lbytes (ae_keysize a) ->
+  k:lbytes (cipher_keysize a) ->
   h:header ->
   cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat { last + 1 < pow2 62 /\ ((~ (is_retry h)) ==> in_window (U32.v (pn_length h) - 1) last (U64.v (packet_number h))) } ->
@@ -149,9 +151,9 @@ type result =
 
 val encrypt:
   a: ea ->
-  k: AEAD.kv a ->
+  k: lbytes (ae_keysize a) ->
   static_iv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   h: header ->
   plain: pbytes' (is_retry h) ->
   Ghost packet
@@ -164,9 +166,9 @@ val encrypt:
 
 val decrypt:
   a: ea ->
-  k: AEAD.kv a ->
+  k: lbytes (ae_keysize a) ->
   static_iv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   last: nat{last+1 < pow2 62} ->
   cid_len: nat { cid_len <= 20 } ->
   packet: packet ->
@@ -181,9 +183,9 @@ val decrypt:
 
 val lemma_encrypt_correct:
   a: ea ->
-  k: AEAD.kv a ->
+  k: lbytes (ae_keysize a) ->
   siv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   h: header ->
   cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) } ->
   last: nat{last+1 < pow2 62 } ->
