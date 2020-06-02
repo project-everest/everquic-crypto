@@ -59,7 +59,7 @@ function exec_build() {
     echo -n false >$status_file
 
     fetch_and_make_qd &&
-    make -j $threads &&
+    make -j $threads -k &&
     { echo -n true >$status_file ; }
 
     if [[ $(cat $status_file) != "true" ]]; then
