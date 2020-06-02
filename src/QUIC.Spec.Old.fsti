@@ -6,7 +6,7 @@ module AEAD = Spec.Agile.AEAD
 
 type byte = FStar.UInt8.t
 
-// JP: should we allow inversion on either hash algorithm or AEAD algorithm?
+// : should we allow inversion on either hash algorithm or AEAD algorithm?
 #set-options "--max_fuel 0 --max_ifuel 0"
 
 let supported_hash = function
@@ -30,7 +30,7 @@ let hashable (a:ha) (l:nat) = l <= HD.max_input_length a
 
 // AEAD plain and ciphertext. We want to guarantee that regardless
 // of the header size (max is 54), the neader + ciphertext + tag fits in a buffer
-// JP: perhaps cleaner with a separate lemma; any reason for putting this in a refinement?
+// : perhaps cleaner with a separate lemma; any reason for putting this in a refinement?
 let max_plain_length: n:nat {
   forall a. {:pattern AEAD.max_length a} n <= AEAD.max_length a
 } =
@@ -46,7 +46,7 @@ type pbytes = b:bytes{let l = S.length b in 3 <= l /\ l < max_plain_length}
 type cbytes = b:bytes{let l = S.length b in 19 <= l /\ l < max_cipher_length}
 type packet = b:bytes{let l = S.length b in 21 <= l /\ l < pow2 32}
 
-// JP: this is Spec.Agile.Cipher.key_length
+// : this is Spec.Agile.Cipher.key_length
 let ae_keysize (a:ea) =
   match a with
   | AEAD.AES128_GCM -> 16
@@ -121,7 +121,7 @@ type h_result =
   h_result
 | H_Failure
 
-// JP: seems appropriate for this module...?
+// : seems appropriate for this module...?
 let _: squash (inversion header) = allow_inversion header
 
 let header_len (h:header) (pn_len:nat2) : n:nat{2 <= n /\ n <= 54} =

@@ -1,6 +1,6 @@
 module QUIC.Spec.VarInt
-include QUIC.Spec.Base
 
+module U62 = QUIC.UInt62
 module U64 = FStar.UInt64
 module LP = LowParse.Spec.BoundedInt // for bounded_int32
 
@@ -12,7 +12,7 @@ let parse_varint_kind = {
   LP.parser_kind_metadata = None;
 }
 
-val parse_varint : LP.parser parse_varint_kind uint62_t
+val parse_varint : LP.parser parse_varint_kind U62.t
 
 val serialize_varint : LP.serializer parse_varint
 

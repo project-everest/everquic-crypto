@@ -27,11 +27,11 @@ let model_state j =
   u:info j & B.pointer (log #j u)
 
 let unsafe_state j =
-  // JP: I don't understand why we have to go through model.indexing here when
+  // I don't understand why we have to go through model.indexing here when
   // the algorithm is readily available in the info
   info j & Spec.key (I.pne_id_ginfo j)
 
-// JP: why is this type parameterized over the info?
+// why is this type parameterized over the info?
 let pne_state #j u =
   if is_safe j then
     s:model_state j { dfst s == u }
@@ -74,7 +74,7 @@ let coerce j u k =
   (u, k) <: unsafe_state j
 
 let quic_coerce j u ts =
-  let k = Model.Helpers.hide #(key_len u)
+  let k =
     (QUIC.Spec.derive_secret u.halg ts
         QUIC.Spec.label_hp (key_len u)) in
   coerce j u k

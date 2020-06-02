@@ -14,6 +14,8 @@ module SAE = Spec.Agile.AEAD
 module PNE = Model.PNE
 module SPNE = Spec.Agile.Cipher
 module BF = LowParse.BitFields
+module U62 = QUIC.UInt62
+module Secret = QUIC.Secret.Int
 
 open FStar.UInt32
 open Mem
@@ -294,9 +296,9 @@ val coerce: k:unsafe_id -> u:info ->
     writer_static_iv w ==
       Spec.derive_secret u1.AEAD.halg ts
         Spec.label_iv 12 /\
-    k1 == Spec.derive_secret u1.AEAD.halg ts
+    Model.Helpers.hide #(SAE.key_length u1.AEAD.alg) k1 == Spec.derive_secret u1.AEAD.halg ts
         Spec.label_key (SAE.key_length u1.AEAD.alg) /\
-    k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
+    Model.Helpers.hide #(PNE.key_len u2) k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
         QUIC.Spec.label_hp (PNE.key_len u2)
   )
 
@@ -349,7 +351,7 @@ val encrypt
     (if Spec.is_retry h then l = 0
     else (
       Spec.has_payload_length h ==>
-        U64.v (Spec.payload_length h) == l
+        Secret.v (Spec.payload_length h) == l
 	  + Spec.Agile.AEAD.tag_length (writer_ae_info w).AEAD.alg))
   )
   (ensures fun h0 c h1 ->
@@ -364,7 +366,7 @@ val encrypt
       (let ea = (writer_ae_info w).AE.alg in
       let k1, k2 = writer_leak w in
       let plain : Spec.pbytes = (writer_info w).plain_pkg.repr p in
-      c == Spec.encrypt ea k1 (writer_static_iv w) k2 h
+      c == Spec.encrypt ea (Model.Helpers.hide #(Seq.length k1) k1) (Model.Helpers.hide #12 (writer_static_iv w)) (Model.Helpers.hide #(Seq.length k2) k2) h
 	(plain <: Spec.pbytes' (Spec.is_retry h)))
     ))
 
@@ -379,7 +381,7 @@ noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
   model_result r
 | M_Failure
 
-let max62 (a b:Spec.uint62_t) =
+let max62 (a b:U62.t) =
   let open FStar.UInt64 in
   if a >^ b then a else b
 
@@ -398,7 +400,7 @@ let get_sample (p:Spec.packet) cid_len
     let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
     if is_retry then None
     else
-      match putative_pn_offset cid_len p with
+      match QUIC.Spec.Header.Parse.putative_pn_offset cid_len p with
       | None -> None
       | Some pn_offset ->
         let sample_offset = pn_offset + 4 in
@@ -428,7 +430,7 @@ val decrypt
     (match res with
     | M_Failure -> expected_pnT r h1 == expected
     | M_Success h _ _ _ ->
-      expected_pnT r h1 == max62 (Spec.packet_number h) expected) /\
+      expected_pnT r h1 == max62 (Secret.reveal (Spec.packet_number h)) expected) /\
     (safe k ==> (
       match get_sample packet cid_len with
       | _ -> True
@@ -436,7 +438,7 @@ val decrypt
     (unsafe k ==>
       (let ea = (writer_ae_info w).AE.alg in
       let k1, k2 = reader_leak r in
-      match Spec.decrypt ea k1 (writer_static_iv w) k2
+      match Spec.decrypt ea (Model.Helpers.hide #(Seq.length k1) k1) (Model.Helpers.hide #12 (writer_static_iv w)) (Model.Helpers.hide #(Seq.length k2) k2)
 	    (UInt64.v expected) cid_len packet,
 	    res
       with
