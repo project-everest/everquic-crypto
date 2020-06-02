@@ -32,7 +32,7 @@ let unsafe_id =
 /// Some redefinitions, using Spec
 /// ------------------------------
 
-// Trying to follow the Fournet-Protzenko conventions: _len for machine lengths,
+// Trying to follow the conventions: _len for machine lengths,
 // _length for spec (nat) lengths.
 let tag_len: x:U32.t { forall (a: alg). {:pattern Spec.tag_length a} U32.v x == Spec.tag_length a } =
   16ul
@@ -269,7 +269,7 @@ val decrypt
     winvariant w h1 /\
     B.modifies B.loc_none h0 h1 /\
     (is_safe i ==>
-      // JP: feels like we should state something more interesting, e.g. if we
+      // feels like we should state something more interesting, e.g. if we
       // take all the entries in the log that match this nonce, then there is
       // exactly one
       (match wentry_for_nonce w n h0 with

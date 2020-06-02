@@ -27,11 +27,11 @@ let model_state j =
   u:info j & B.pointer (log #j u)
 
 let unsafe_state j =
-  // JP: I don't understand why we have to go through model.indexing here when
+  // I don't understand why we have to go through model.indexing here when
   // the algorithm is readily available in the info
   info j & Spec.key (I.pne_id_ginfo j)
 
-// JP: why is this type parameterized over the info?
+// why is this type parameterized over the info?
 let pne_state #j u =
   if is_safe j then
     s:model_state j { dfst s == u }

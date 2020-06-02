@@ -237,7 +237,7 @@ val encrypt :
   ST (pne_cipher l)
   (requires fun h0 ->
     invariant st h0 /\
-    // JP: cannot talk about freshness because it requires talking about the
+    // cannot talk about freshness because it requires talking about the
     // table which is only available for safe id's
     (is_safe j ==> fresh_sample s st h0))
   (ensures fun h0 c h1 ->
