@@ -338,7 +338,7 @@ let decrypt_post (i: index)
       B.(loc_includes (loc_buffer (B.gsub packet 0ul r.header_len)) (header_footprint r.header)) /\
       header_live r.header h1 /\
       U32.v r.total_len <= B.length packet /\
-      
+
       // Contents
       (
       let plain =

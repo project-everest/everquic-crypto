@@ -22,6 +22,8 @@ open FStar.HyperStack.ST
 open EverCrypt.Helpers
 open EverCrypt.Error
 
+#set-options "--fuel 0 --ifuel 0"
+
 
 /// Low-level types used in this API
 /// --------------------------------
@@ -54,8 +56,8 @@ val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
   U64.v (g_last_packet_number s h) + 1 < pow2 62
 
-val encrypt: #i:G.erased index -> (
-  let i = G.reveal i in
+val encrypt: #i:(*G.erased *)index -> (
+  //let i = G.reveal i in
   s: state i ->
   dst: B.buffer U8.t ->
   dst_pn: B.pointer u62 ->
@@ -104,10 +106,74 @@ val encrypt: #i:G.erased index -> (
       | _ ->
           False))
 
+unfold
+let decrypt_post (i: index)
+  (s:state i)
+  (dst: B.pointer QImpl.result)
+  (packet: B.buffer U8.t)
+  (len: U32.t)
+  (cid_len: U8.t)
+  (h0: HS.mem)
+  (res: error_code)
+  (h1: HS.mem): Pure Type0
+  (requires
+    U8.v cid_len <= 20 /\
+    U32.v len == B.length packet /\
+    invariant h0 s /\
+    incrementable s h0)
+  (ensures fun _ -> True)
+=
+  let s0 = g_traffic_secret s h0 in
+  let k = QSpec.(derive_secret (halg i) s0 label_key (Spec.Agile.AEAD.key_length (alg i))) in
+  let iv = QSpec.(derive_secret (halg i) s0 label_iv 12) in
+  let pne = QSpec.(derive_secret (halg i) s0 label_hp (ae_keysize (alg i))) in
+  let prev = g_last_packet_number s h0 in
+  invariant h1 s /\
+  footprint h1 s == footprint h0 s /\
+  begin
+    let r = B.deref h1 dst in
+    let x = g_last_packet_number in
+    let open QImpl in
+    let g_last_packet_number = x in
+    match res with
+    | Success ->
+      // prev is known to be >= g_initial_packet_number (see lemma invariant_packet_number)
+      U64.v (g_last_packet_number s h1) == max (U64.v prev) (U64.v r.pn) /\ (
+
+      // Lengths
+      r.header_len == header_len r.header /\
+      U32.v r.header_len + U32.v r.plain_len <= U32.v r.total_len /\
+      U32.v r.total_len <= B.length packet /\
+      B.(loc_includes (loc_buffer (B.gsub packet 0ul r.header_len)) (header_footprint r.header)) /\
+      header_live r.header h1 /\
+      U32.v r.total_len <= B.length packet /\
+
+      // Contents
+      (
+      let plain =
+        S.slice (B.as_seq h1 packet) (U32.v r.header_len)
+          (U32.v r.header_len + U32.v r.plain_len) in
+      let rem = B.as_seq h0 (B.gsub packet r.total_len (B.len packet `U32.sub `r.total_len)) in
+      match QSpec.decrypt (alg i) k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet) with
+      | QSpec.Success h' plain' rem' ->
+        h' == g_header r.header h1 r.pn /\
+        plain' == plain /\
+        rem' == rem
+      | _ -> False
+    ))
+    | DecodeError ->
+      QSpec.Failure? (QSpec.decrypt (alg i) k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet))
+    | AuthenticationFailure ->
+      QSpec.Failure? (QSpec.decrypt (alg i) k iv pne (U64.v prev) (U8.v cid_len) (B.as_seq h0 packet)) /\
+      U32.v r.total_len <= B.length packet
+    | _ ->
+      False
+  end
+
 val decrypt: #i:G.erased index -> (
   let i = G.reveal i in
   s:state i ->
-  dst: B.pointer result ->
+  dst: B.pointer QImpl.result ->
   packet: B.buffer U8.t ->
   len: U32.t{
     B.length packet == U32.v len
@@ -133,13 +199,13 @@ val decrypt: #i:G.erased index -> (
       decrypt_post i s dst packet len cid_len h0 res h1 /\
       begin match res with
       | Success ->
-      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+        B.(modifies (footprint h0 s `loc_union`
+          loc_buffer (gsub packet 0ul r.QImpl.total_len) `loc_union` loc_buffer dst) h0 h1)
       | DecodeError ->
-        B.modifies (footprint_s h0 (B.deref h0 s) `B.loc_union` B.loc_buffer packet) h0 h1
+        B.modifies (footprint h0 s `B.loc_union` B.loc_buffer packet) h0 h1
       | AuthenticationFailure ->
-        B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
-        loc_buffer (gsub packet 0ul r.total_len) `loc_union` loc_buffer dst) h0 h1)
+        B.(modifies (footprint h0 s `loc_union`
+          loc_buffer (gsub packet 0ul r.QImpl.total_len) `loc_union` loc_buffer dst) h0 h1)
       | _ -> False
       end
     )

@@ -251,6 +251,8 @@ val rframe_pnlog: #k:id{PNE.is_safe (snd k)} ->  #w:stream_writer k -> r:stream_
     M.loc_disjoint ri (rfootprint r))
   (ensures PNE.table (reader_pne_state r) h1 == l)
 
+val g_initial_packet_number: #k:id -> w: stream_writer k -> GTot pn
+
 val create: k:id -> u:info ->
   u1:AEAD.info (fst k) -> u2:PNE.info (snd k) -> init: pn ->
   ST (stream_writer k)
@@ -265,6 +267,7 @@ val create: k:id -> u:info ->
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
+    g_initial_packet_number w == init /\
     (safe k ==>
       (AEAD.wlog (writer_aead_state w) h1 == Seq.empty /\
       PNE.table (writer_pne_state w) h1 == Seq.empty
@@ -287,6 +290,7 @@ val coerce: k:unsafe_id -> u:info ->
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
+    g_initial_packet_number w == init /\
     writer_static_iv w ==
       Spec.derive_secret u1.AEAD.halg ts
         Spec.label_iv 12 /\
@@ -303,7 +307,7 @@ val createReader: parent:rgn -> #k:id -> w:stream_writer k ->
     invariant w h1 /\
     rinvariant r h1 /\
     modifies_none h0 h1 /\
-    expected_pnT r h1 == U64.uint_to_t 0)
+    expected_pnT r h1 == 0UL)
 
 #reset-options "--z3rlimit 50 --fuel 1"
 
