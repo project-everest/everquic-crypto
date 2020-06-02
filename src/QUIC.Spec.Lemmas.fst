@@ -179,7 +179,7 @@ let rec pointwise_op (#a:Type0) (f:a->a->a) (b1 b2:S.seq a) (pos:nat) : Pure (S.
   (requires S.length b2 + pos <= S.length b1)
   (ensures fun b -> S.length b == S.length b1)
   (decreases (S.length b2)) =
-  if Seq.length b2 = 0 then b1
+  if S.length b2 = 0 then b1
   else
     let _ = S.lemma_empty b2 in
     let x = f (S.index b1 pos) (S.index b2 0) in
