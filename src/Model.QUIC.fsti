@@ -14,6 +14,7 @@ module SAE = Spec.Agile.AEAD
 module PNE = Model.PNE
 module SPNE = Spec.Agile.Cipher
 module BF = LowParse.BitFields
+module U62 = QUIC.UInt62
 
 open FStar.UInt32
 open Mem
@@ -375,7 +376,7 @@ noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
   model_result r
 | M_Failure
 
-let max62 (a b:Spec.uint62_t) =
+let max62 (a b:U62.t) =
   let open FStar.UInt64 in
   if a >^ b then a else b
 
@@ -394,7 +395,7 @@ let get_sample (p:Spec.packet) cid_len
     let is_retry = not is_short && BF.get_bitfield (U8.v f) 4 6 = 3 in
     if is_retry then None
     else
-      match putative_pn_offset cid_len p with
+      match QUIC.Spec.Header.Parse.putative_pn_offset cid_len p with
       | None -> None
       | Some pn_offset ->
         let sample_offset = pn_offset + 4 in

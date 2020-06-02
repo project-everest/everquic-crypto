@@ -13,6 +13,12 @@ module Spec = QUIC.Spec
 
 (* A total (non-ghost) specification of encryption and decryption, for idealization proof purposes, or for functional testing (extracting to OCaml) *)
 
+val block_of_sample
+  (a: Cipher.cipher_alg)
+  (k: Cipher.key a)
+  (sample: Seq.lseq Secret.uint8 16)
+: Tot (y: Seq.lseq Secret.uint8 16 { y == QUIC.Spec.Header.block_of_sample a k sample })
+
 val encrypt:
   a: ea ->
   k: AEAD.kv a ->

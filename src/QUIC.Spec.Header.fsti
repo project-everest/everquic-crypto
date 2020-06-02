@@ -14,6 +14,14 @@ module Cipher = Spec.Agile.Cipher
 
 // Header serialization and protection
 
+val block_of_sample
+  (a: Cipher.cipher_alg)
+  (k: Cipher.key a)
+  (sample: Seq.lseq Secret.uint8 16)
+: GTot (Seq.lseq Secret.uint8 16)
+
+val pn_sizemask (pn_len: nat { pn_len < 4 }) : Tot (lbytes (pn_len + 1))
+
 val header_encrypt:
   a:ea ->
   hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
