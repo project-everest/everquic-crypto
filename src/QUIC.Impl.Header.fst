@@ -196,6 +196,8 @@ let header_encrypt_ct_correct
 
 #pop-options
 
+#push-options "--z3rlimit 16"
+
 let header_encrypt_ct_secret_preserving_not_retry_spec
   (a:ea)
   (hpk: SCipher.key (SAEAD.cipher_alg_of_supported_alg a))
@@ -216,6 +218,8 @@ let header_encrypt_ct_secret_preserving_not_retry_spec
   let r = Lemmas.secret_xor_inplace r pnmask pn_offset in
   let r = Seq.cons f' (Seq.slice r 1 (Seq.length r)) in
   r
+
+#pop-options
 
 #push-options "--z3rlimit 256 --query_stats --z3cliopt smt.arith.nl=false --fuel 2 --ifuel 2"
 
@@ -281,10 +285,11 @@ let header_encrypt_ct_secret_preserving_not_retry_spec_correct
 
 #pop-options
 
-#push-options "--z3rlimit 16"
+#push-options "--z3rlimit 32"
 
 #restart-solver
 
+[@"opaque_to_smt"]
 let pn_sizemask_ct_num
   (pn_len: PN.packet_number_length_t)
 : Tot (x: Secret.uint32 { pn_sizemask_ct (Secret.v pn_len - 1) == FStar.Endianness.n_to_be 4 (Secret.v x) })
@@ -493,7 +498,7 @@ let header_decrypt_aux_ct
           })
         end
 
-#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false --query_stats"
+#push-options "--z3rlimit 1024 --z3cliopt smt.arith.nl=false --query_stats"
 
 #restart-solver
 
@@ -805,15 +810,17 @@ type header_decrypt_aux_result =
   | HD_Success_Retry
   | HD_Success_NotRetry
 
-let header_decrypt_aux
+unfold
+let header_decrypt_aux_pre
   (a: ea)
   (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
   (k: B.buffer Secret.uint8)
   (cid_len: short_dcid_len_t)
   (dst: B.buffer U8.t)
   (dst_len: U32.t)
-: HST.Stack header_decrypt_aux_result
-  (requires (fun m ->
+  (m: HS.mem)
+: GTot Type0
+=
     let l = B.length dst in
     B.all_live m [B.buf k; B.buf dst] /\
     CTR.invariant m s /\
@@ -821,11 +828,24 @@ let header_decrypt_aux
     B.all_disjoint
       [ CTR.footprint m s; B.loc_buffer k; B.loc_buffer dst] /\
     B.length dst == U32.v dst_len
-  ))
-  (ensures (fun m rs m' ->
-    CTR.invariant m' s /\
-    CTR.footprint m s == CTR.footprint m' s /\ (
-    match rs, Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst) with
+
+unfold
+let header_decrypt_aux_post
+  (a: ea)
+  (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (cid_len: short_dcid_len_t)
+  (dst: B.buffer U8.t)
+  (dst_len: U32.t)
+  (m: HS.mem)
+  (rs: header_decrypt_aux_result)
+  (m' : HS.mem)
+: GTot Type0
+=
+  header_decrypt_aux_pre a s k cid_len dst dst_len m /\
+  CTR.invariant m' s /\
+  CTR.footprint m s == CTR.footprint m' s /\
+  begin match rs, Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst) with
     | HD_Failure, None ->
       B.modifies B.loc_none m m'
     | HD_Failure, _ -> False
@@ -840,7 +860,22 @@ let header_decrypt_aux
         B.modifies (CTR.footprint m s `B.loc_union` B.loc_buffer (B.gsub dst 0ul (U32.uint_to_t len))) m m'
       )
     | _ -> False
-  )))
+  end
+
+let header_decrypt_aux
+  (a: ea)
+  (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (cid_len: short_dcid_len_t)
+  (dst: B.buffer U8.t)
+  (dst_len: U32.t)
+: HST.Stack header_decrypt_aux_result
+  (requires (fun m ->
+    header_decrypt_aux_pre a s k cid_len dst dst_len m
+  ))
+  (ensures (fun m rs m' ->
+    header_decrypt_aux_post a s k cid_len dst dst_len m rs m'
+  ))
 = let m = HST.get () in
   if dst_len = 0ul
   then HD_Failure
@@ -879,40 +914,74 @@ let secret_min_correct
   [SMTPat (Secret.min64 x y)]
 = ()
 
-#push-options "--z3rlimit 1024 --query_stats --ifuel 3 --fuel 2 --z3cliopt smt.arith.nl=false"
+#push-options "--z3rlimit 2048 --query_stats --ifuel 3 --fuel 2 --z3cliopt smt.arith.nl=false"
 
 #restart-solver
 
-let header_decrypt
-  a s k cid_len last dst dst_len
-=
-  let m = HST.get () in
-  assert (B.length dst == 0 ==> None? (Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst)));
-  let aux = header_decrypt_aux a s k cid_len dst dst_len in
-  let m1 = HST.get () in
-  Classical.move_requires (Parse.parse_header_exists (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
-  Classical.move_requires (Parse.parse_header_exists_recip (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
-  match aux with
-  | HD_Failure -> H_Failure
-  | HD_Success_Retry ->
+inline_for_extraction
+let header_decrypt_retry
+  (a: ea)
+  (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (cid_len: short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (dst:B.buffer U8.t)
+  (dst_len: U32.t)
+  (m0: HS.mem)
+: HST.Stack h_result
+  (requires (fun m ->
+    header_decrypt_pre a s k cid_len last dst dst_len m0 /\
+    header_decrypt_aux_post a s k cid_len dst dst_len m0 HD_Success_Retry m
+  ))
+  (ensures (fun _ rs m' ->
+    header_decrypt_post a s k cid_len last dst dst_len m0 rs m'
+  ))
+= 
+    let m1 = HST.get () in
+    Classical.move_requires (Parse.parse_header_exists (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
+    Classical.move_requires (Parse.parse_header_exists_recip (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
     (* In the Retry case, header_decrypt_aux did nothing, so we need
        to check here that the header can be parsed. *)
-    Spec.header_decrypt_aux_post a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst);
+    Spec.header_decrypt_aux_post a (B.as_seq m0 k) (U32.v cid_len) (B.as_seq m0 dst);
     if None? (ParseImpl.putative_pn_offset cid_len dst dst_len)
     then H_Failure
     else begin
-      Spec.header_decrypt_aux_post_parse a (B.as_seq m k) (U32.v cid_len) (Secret.v last) (B.as_seq m dst);
+      Spec.header_decrypt_aux_post_parse a (B.as_seq m0 k) (U32.v cid_len) (Secret.v last) (B.as_seq m0 dst);
       Parse.lemma_header_parsing_post (U32.v cid_len) (Secret.v last) (B.as_seq m1 dst);
       let (h, pn) = ParseImpl.read_header dst dst_len cid_len last in
       let m2 = HST.get () in
       ParseImpl.header_len_correct h m2 pn;
       H_Success h pn (Secret.to_u32 0ul)
     end
-  | _ ->
+
+#restart-solver
+
+inline_for_extraction
+let header_decrypt_not_retry
+  (a: ea)
+  (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
+  (k: B.buffer Secret.uint8)
+  (cid_len: short_dcid_len_t)
+  (last: PN.last_packet_number_t)
+  (dst:B.buffer U8.t)
+  (dst_len: U32.t)
+  (m0: HS.mem)
+: HST.Stack h_result
+  (requires (fun m ->
+    header_decrypt_pre a s k cid_len last dst dst_len m0 /\
+    header_decrypt_aux_post a s k cid_len dst dst_len m0 HD_Success_NotRetry m
+  ))
+  (ensures (fun _ rs m' ->
+    header_decrypt_post a s k cid_len last dst dst_len m0 rs m'
+  ))
+= 
+    let m1 = HST.get () in
+    Classical.move_requires (Parse.parse_header_exists (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
+    Classical.move_requires (Parse.parse_header_exists_recip (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
     (* In other cases, header_decrypt_aux already checked
        that the header can be parsed. *)
-    Spec.header_decrypt_aux_post a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst);
-    Spec.header_decrypt_aux_post_parse a (B.as_seq m k) (U32.v cid_len) (Secret.v last) (B.as_seq m dst);
+    Spec.header_decrypt_aux_post a (B.as_seq m0 k) (U32.v cid_len) (B.as_seq m0 dst);
+    Spec.header_decrypt_aux_post_parse a (B.as_seq m0 k) (U32.v cid_len) (Secret.v last) (B.as_seq m0 dst);
     Parse.lemma_header_parsing_post (U32.v cid_len) (Secret.v last) (B.as_seq m1 dst);
     let (h, pn) = ParseImpl.read_header dst dst_len cid_len last in
     let m2 = HST.get () in
@@ -940,12 +1009,30 @@ let header_decrypt
     assert (B.as_seq m1 bh == Parse.format_header (g_header h m2 pn));
     assert (B.disjoint bh brem);
     assert (B.as_seq m2 brem == B.as_seq m1 brem);
-    assert (B.as_seq m1 brem == B.as_seq m brem);
+    assert (B.as_seq m1 brem == B.as_seq m0 brem);
     assert (B.as_seq m2 bc == B.as_seq m1 bc);
-    assert (B.as_seq m1 bc == B.as_seq m bc);
+    assert (B.as_seq m1 bc == B.as_seq m0 bc);
     assert (B.as_seq m2 b3 == B.as_seq m1 b3);
-    assert (B.as_seq m1 b3 == B.as_seq m b3);
+    assert (B.as_seq m1 b3 == B.as_seq m0 b3);
     assert (B.as_seq m2 dst `Seq.equal` (B.as_seq m2 bh `Seq.append` B.as_seq m2 bc `Seq.append` B.as_seq m2 b3));
     H_Success h pn clen32
+
+#restart-solver
+
+let header_decrypt
+  a s k cid_len last dst dst_len
+=
+  let m = HST.get () in
+  assert (B.length dst == 0 ==> None? (Spec.header_decrypt_aux a (B.as_seq m k) (U32.v cid_len) (B.as_seq m dst)));
+  let aux = header_decrypt_aux a s k cid_len dst dst_len in
+  let m1 = HST.get () in
+  Classical.move_requires (Parse.parse_header_exists (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
+  Classical.move_requires (Parse.parse_header_exists_recip (U32.v cid_len) (Secret.v last)) (B.as_seq m1 dst);
+  match aux with
+  | HD_Failure -> H_Failure
+  | HD_Success_Retry ->
+    header_decrypt_retry a s k cid_len last dst dst_len m
+  | _ ->
+    header_decrypt_not_retry a s k cid_len last dst dst_len m
 
 #pop-options

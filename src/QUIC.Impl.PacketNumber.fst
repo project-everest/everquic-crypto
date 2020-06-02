@@ -128,7 +128,7 @@ let bound_npn
 inline_for_extraction
 let secret_bounded_integer (i: LP.integer_size) = (x: Secret.uint32 { LP.bounded_integer_prop i (U32.uint_to_t (Secret.v x)) })
 
-#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 1 --initial_ifuel 1 --z3rlimit 2048 --query_stats"
+#push-options "--max_fuel 2 --initial_fuel 2 --max_ifuel 2 --initial_ifuel 2 --z3rlimit 4096 --query_stats"
 
 module U62 = QUIC.UInt62
 module Lemmas = QUIC.Spec.PacketNumber.Lemmas
@@ -150,6 +150,7 @@ let expand_pn_aux
   FStar.UInt.shift_right_value_lemma #64 (Secret.v bound) 1;
   assert (Secret.v bound_2 == Secret.v bound / 2);
   let candidate = Lemmas.replace_modulo expected (8 `Prims.op_Multiply` Secret.v pn_len) (bound `Secret.sub` Secret.to_u64 1uL) (Secret.to_u64 npn) in
+  Lemmas.lemma_replace_modulo_bound (Secret.v expected) (8*(Secret.v pn_len)) (Secret.v npn) 62;
   let bound_2_le_expected = bound_2 `Secret.secret_is_le_64` expected in
   let cond_1 =
     bound_2_le_expected `Secret.logand_one_bit`
@@ -178,6 +179,10 @@ let expand_pn_aux
     else 0
   ));
   (candidate `Secret.add` (cond_1 `Secret.mul` bound)) `Secret.sub` (cond_2 `Secret.mul` bound)
+
+#pop-options
+
+#push-options "--z3rlimit 32"
 
 [@"opaque_to_smt"]
 let expand_pn
