@@ -75,11 +75,15 @@ noeq type pne_plain_pkg =
 
 noeq type info' = {
   calg: alg;
+  halg: I.ha;
   plain: pne_plain_pkg;
 }
 
 let info (j:id) =
-  info:info'{I.pne_id_ginfo j == info.calg}
+  info:info'{
+    I.pne_id_ginfo j == info.calg /\
+    I.pne_id_ghash j == info.halg
+  }
 
 let pne_plain (#j:id) (u:info j) (l:pne_plain_length) =
   PNEPlainPkg?.pne_plain u.plain j l
@@ -99,7 +103,8 @@ val pne_state : (#j:id) -> (u:info j) -> Type u#1
 val table : (#j:safe_id) -> (#u:info j) -> (st:pne_state u) -> (h:mem) -> GTot (Seq.seq (entry u))
 
 // Header protection key
-val key: #j:unsafe_id -> #u:info j -> st:pne_state u -> h:mem -> GTot (lbytes (Spec.Agile.Cipher.key_length u.calg))
+let key_len (#j:unsafe_id) (u:info j) = Spec.Agile.Cipher.key_length u.calg
+val key: #j:unsafe_id -> #u:info j -> st:pne_state u -> h:mem -> GTot (lbytes (key_len u))
 
 val footprint : #j:id -> #u:info j -> st:pne_state u -> GTot B.loc
 
@@ -156,6 +161,30 @@ val create (j:id) (u:info j) : ST (pne_state u)
     B.(loc_includes (loc_pne_region ()) (footprint st)) /\
 
     (is_safe j ==> table st h1 == Seq.empty))
+
+let lemma_max_hash_len ha
+  : Lemma (Spec.Hash.Definitions.hash_length ha <= 64 /\
+  Spec.Hash.Definitions.max_input_length ha >=  pow2 61 - 1 /\
+  pow2 61 - 1 > 64)
+  [SMTPat (Spec.Hash.Definitions.hash_length ha)]
+  =
+  assert_norm (pow2 61 < pow2 125);
+  assert_norm (pow2 61 - 1 > 64)
+
+let traffic_secret ha =
+  lbytes (Spec.Hash.Definitions.hash_length ha)
+
+val coerce (j:unsafe_id) (u:info j) (ts:traffic_secret u.halg)
+  : ST (pne_state #j u)
+  (requires fun _ -> True)
+  (ensures fun h0 st h1 ->
+    invariant st h1 /\
+    B.modifies B.loc_none h0 h1 /\
+    B.fresh_loc (footprint st) h0 h1 /\
+    B.(loc_includes (loc_pne_region ()) (footprint st)) /\
+    Model.Helpers.reveal (key st h1) ==
+      QUIC.Spec.derive_secret u.halg ts
+        QUIC.Spec.label_hp (key_len u))
 
 let encrypt_spec (a: Spec.cipher_alg)
   (l: pne_plain_length)

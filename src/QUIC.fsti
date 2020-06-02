@@ -22,11 +22,6 @@ open FStar.HyperStack.ST
 open EverCrypt.Helpers
 open EverCrypt.Error
 
-//type rw =
-//| Reader
-//| Writer
-
-//type id_rw = QModel.id & rw
 
 /// Low-level types used in this API
 /// --------------------------------

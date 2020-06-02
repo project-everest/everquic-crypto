@@ -2,8 +2,16 @@ module Model.Helpers
 
 let lbytes (l:nat) = b:Seq.seq Lib.IntTypes.uint8 { Seq.length b = l }
 
+let hide #l (b:Seq.seq UInt8.t{Seq.length b = l}) =
+  Seq.init l (fun i -> Lib.RawIntTypes.u8_from_UInt8 (Seq.index b i))
+
 let reveal #l (b:lbytes l) : GTot (QUIC.Spec.lbytes l) =
   Seq.init l (fun i -> Lib.RawIntTypes.u8_to_UInt8 (Seq.index b i)) 
+
+let correct #l (b:Seq.seq UInt8.t{Seq.length b = l})
+  : Lemma (reveal #l (hide #l b) == b)
+  [SMTPat (reveal #l (hide #l b))]
+   = admit()
 
 let random (l: nat { l < pow2 32 }): lbytes l =
   let open Lib.RandomSequence in

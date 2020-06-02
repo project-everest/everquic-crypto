@@ -71,12 +71,16 @@ type nonce_pkg (idt: eqtype) (safe: idt -> bool) (alg: idt -> GTot I.ea) =
 
 noeq type info' = {
   alg: alg;
+  halg: I.ha;
   plain: plain_pkg id is_safe;
   nonce: nonce_pkg id is_safe I.ae_id_ginfo;
 }
 
 let info (i:id) =
-  info:info'{I.ae_id_ginfo i == info.alg}
+  info:info'{
+    I.ae_id_ginfo i == info.alg /\
+    I.ae_id_ghash i == info.halg
+  }
 
 /// Accessors for info
 /// ------------------
@@ -153,6 +157,20 @@ val frame_log: #i:safe_id -> l:B.loc -> w:aead_writer i -> h0:mem -> h1:mem ->
       B.loc_disjoint l (wfootprint w))
     (ensures wlog w h1 == wlog w h0)
 
+/// Derivation (QUIC-specific)
+
+let lemma_max_hash_len ha
+  : Lemma (Spec.Hash.Definitions.hash_length ha <= 64 /\
+  Spec.Hash.Definitions.max_input_length ha >=  pow2 61 - 1 /\
+  pow2 61 - 1 > 64)
+  [SMTPat (Spec.Hash.Definitions.hash_length ha)]
+  =
+  assert_norm (pow2 61 < pow2 125);
+  assert_norm (pow2 61 - 1 > 64)
+
+let traffic_secret ha =
+  Spec.lbytes (Spec.Hash.Definitions.hash_length ha)
+
 /// Main stateful API
 /// -----------------
 
@@ -173,6 +191,34 @@ val gen (i:id) (u:info i) : ST (aead_writer i)
 val gen_reader (#i: id) (w: aead_writer i) : ST (aead_reader w)
   (requires (fun h -> winvariant w h))
   (ensures (fun h0 r h1 -> h0 == h1))
+
+val coerce (#i:unsafe_id) (u:info i)
+  (kv:Spec.kv u.alg)
+  : ST (aead_writer i)
+  (requires fun h0 -> True)
+  (ensures fun h0 w h1 ->
+    winvariant w h1 /\
+    B.modifies B.loc_none h0 h1 /\
+    B.fresh_loc (wfootprint w) h0 h1 /\
+    B.(loc_includes (loc_ae_region ()) (wfootprint w)) /\
+    wgetinfo w == u /\
+    wkey w == kv
+  )
+
+val quic_coerce (#i:unsafe_id) (u:info i)
+  (ts:traffic_secret u.halg)
+  : ST (aead_writer i)
+  (requires fun h0 -> True)
+  (ensures fun h0 w h1 ->
+    winvariant w h1 /\
+    B.modifies B.loc_none h0 h1 /\
+    B.fresh_loc (wfootprint w) h0 h1 /\
+    B.(loc_includes (loc_ae_region ()) (wfootprint w)) /\
+    wgetinfo w == u /\
+    Model.Helpers.reveal (wkey w) ==
+      QUIC.Spec.derive_secret u.halg ts
+        QUIC.Spec.label_key (Spec.key_length u.alg)
+  )
 
 let nonce_filter (#i:id) (#w:aead_writer i) (n:nonce (wgetinfo w)) (e:entry i (wgetinfo w)) : bool =
   Entry?.n e = n

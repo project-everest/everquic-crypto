@@ -43,6 +43,8 @@ val is_ae_honest: ae_id -> bool
 
 val ae_id_ginfo: i:ae_id  -> GTot ea
 val ae_id_info: i:ae_id{model} -> a:ea{a == ae_id_ginfo i}
+val ae_id_ghash: i:ae_id  -> GTot ha
+val ae_id_hash: i:ae_id{model} -> a:ha{a == ae_id_ghash i}
 
 val pne_id: eqtype
 inline_for_extraction
@@ -50,5 +52,6 @@ val is_pne_honest: pne_id -> bool
 
 val pne_id_ginfo: i:pne_id -> GTot ca
 val pne_id_info: i:pne_id{model} -> a:ca{a == pne_id_ginfo i}
-
+val pne_id_ghash: i:pne_id -> GTot ha
+val pne_id_hash: i:pne_id{model} -> a:ha{a == pne_id_ghash i}
 

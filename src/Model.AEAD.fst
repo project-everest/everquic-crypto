@@ -37,8 +37,8 @@ let wgetinfo #i (u: aead_writer i) =
   else
     fst (u <: unsafe_writer i)
 
-let rgetinfo #_ u =
-  wgetinfo u
+let rgetinfo #_ #w _ =
+  wgetinfo w
 
 let wlog #i w h =
   B.deref h (dsnd (w <: model_writer i))
@@ -70,10 +70,19 @@ let gen i u =
     ((| u, B.malloc q_ae_region l 1ul |) <: model_writer i)
   else
     let key_l = Spec.key_length u.alg in
-    u, random key_l
+    (u, random key_l) <: unsafe_writer i
 
 let gen_reader #i w =
   w
+
+let coerce #i u kv =
+  (u, kv) <: unsafe_writer i
+
+// With QUIC-specific derivation of key from transport secret
+let quic_coerce #i u ts =
+  coerce u (Model.Helpers.hide #(Spec.key_length u.alg)
+    (QUIC.Spec.derive_secret u.halg ts
+        QUIC.Spec.label_key (Spec.key_length u.alg)))
 
 let encrypt i w nonce aad plain_length plain =
   if is_safe i then

@@ -70,6 +70,11 @@ let create j u =
   else
     (u, random (Spec.key_length u.calg)) <: unsafe_state j
 
+let coerce j u ts =
+  (u, Model.Helpers.hide #(key_len u) (
+    QUIC.Spec.derive_secret u.halg ts
+        QUIC.Spec.label_hp (key_len u)) <: unsafe_state j)
+
 let random_bits (): bits =
   LowParse.BitFields.get_bitfield #8 (UInt8.v (Lib.RawIntTypes.u8_to_UInt8 (Seq.index (random 1) 0))) 0 5
 
