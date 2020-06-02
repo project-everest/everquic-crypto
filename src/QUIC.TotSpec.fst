@@ -128,8 +128,6 @@ let serialize32_varint
 = fun x ->
   LP.serialize32_u8 (VI.get_first_byte x) `B32.append` serialize32_varint_payload x
 
-#pop-options
-
 let serialize32_bounded_varint
   (min: nat)
   (max: nat { min <= max /\ max < 4294967296 })
@@ -142,6 +140,8 @@ let serialize32_bounded_varint
    (VI.synth_bounded_varint_recip min max)
    (fun x -> VI.synth_bounded_varint_recip min max x)
    ()
+
+#pop-options
     
 (* Packet number. *)
 
