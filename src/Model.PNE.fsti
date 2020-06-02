@@ -174,7 +174,19 @@ let lemma_max_hash_len ha
 let traffic_secret ha =
   lbytes (Spec.Hash.Definitions.hash_length ha)
 
-val coerce (j:unsafe_id) (u:info j) (ts:traffic_secret u.halg)
+val coerce (j:unsafe_id) (u:info j)
+  (k:lbytes (key_len u))
+  : ST (pne_state #j u)
+  (requires fun _ -> True)
+  (ensures fun h0 st h1 ->
+    invariant st h1 /\
+    B.modifies B.loc_none h0 h1 /\
+    B.fresh_loc (footprint st) h0 h1 /\
+    B.(loc_includes (loc_pne_region ()) (footprint st)) /\
+    key st h1 == k)
+
+val quic_coerce (j:unsafe_id) (u:info j)
+  (ts:traffic_secret u.halg)
   : ST (pne_state #j u)
   (requires fun _ -> True)
   (ensures fun h0 st h1 ->

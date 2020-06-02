@@ -138,8 +138,8 @@ val reader_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> i:info{i ==
 
 val writer_ae_info: #k:id -> w:stream_writer k -> a:AEAD.info (fst k)
 val reader_ae_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:AEAD.info (fst k)
-val writer_pne_info: #k:id -> w:stream_writer k -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (writer_ae_info w).AEAD.alg}
-val reader_pne_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (reader_ae_info r).AEAD.alg}
+val writer_pne_info: #k:id -> w:stream_writer k -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (writer_ae_info w).AEAD.alg /\ a.PNE.halg == (writer_ae_info w).AEAD.halg}
+val reader_pne_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:PNE.info (snd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (reader_ae_info r).AEAD.alg /\ a.PNE.halg == (reader_ae_info r).AEAD.halg}
 
 val writer_aead_state : (#k:id) -> (w:stream_writer k) ->
   aw:AEAD.aead_writer (fst k)
@@ -238,14 +238,16 @@ val rframe_pnlog: #k:id{PNE.is_safe (snd k)} ->  #w:stream_writer k -> r:stream_
   (ensures PNE.table (reader_pne_state r) h1 == l)
 
 val create: k:id -> u:info ->
-  u1:AEAD.info (fst k) -> u2:PNE.info (snd k) ->
+  u1:AEAD.info (fst k) -> u2:PNE.info (snd k) ->  
+  init: rpn ->
   ST (stream_writer k)
   (requires fun h0 -> u2.PNE.calg ==
-    Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg)
+    Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
+    u2.PNE.halg == u1.AEAD.halg)
   (ensures fun h0 w h1 ->
     invariant w h1 /\
     modifies_none h0 h1 /\
-    wctrT w h1 == 0 /\
+    wctrT w h1 == UInt64.v init /\
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
@@ -255,16 +257,27 @@ val create: k:id -> u:info ->
     ))
   )
 
-(* FIXME
-val coerce: k:unsafe_id -> u:info k ->
-  aek: Spec.Agile.AEAD.key_length u.alg ->
-  pnk: SPNE.key_length u.alg' ->
+val coerce: k:unsafe_id -> u:info ->
+  u1:AEAD.info (fst k) -> u2:PNE.info (snd k) ->  
+  init: rpn -> ts:AEAD.traffic_secret u1.AEAD.halg ->
   ST (stream_writer k)
-  (requires fun h0 -> True)
+  (requires fun h0 -> u2.PNE.calg ==
+    Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
+    u2.PNE.halg == u1.AEAD.halg)
   (ensures fun h0 w h1 ->
     invariant w h1 /\
-    modifies_none h0 h1)
-*)
+    modifies_none h0 h1 /\
+    wctrT w h1 == UInt64.v init /\
+    writer_ae_info w == u1 /\
+    writer_pne_info w == u2 /\
+    writer_info w == u /\
+    Model.Helpers.reveal (AEAD.wkey (writer_aead_state w)) ==
+      Spec.derive_secret u1.AEAD.halg ts
+        Spec.label_key (SAE.key_length u1.AEAD.alg) /\
+    Model.Helpers.reveal (PNE.key (writer_pne_state w) h1) == 
+      QUIC.Spec.derive_secret u2.PNE.halg ts
+        QUIC.Spec.label_key (PNE.key_len u2)
+  )
 
 val createReader: parent:rgn -> #k:id -> w:stream_writer k ->
   ST (stream_reader w)

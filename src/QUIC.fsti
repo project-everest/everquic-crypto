@@ -40,7 +40,20 @@ let alg (i:index) =
   if I.model then I.ae_id_ginfo (fst (mid i))
   else (iid i).QImpl.aead_alg
 
-let mstate_t i = w:QModel.stream_writer i & QModel.stream_reader w
+let halg (i:index) =
+  if I.model then I.ae_id_ghash (fst (mid i))
+  else (iid i).QImpl.hash_alg
+
+type traffic_secret (i:index) =
+  lbytes (Spec.Hash.Definitions.hash_length (halg i))
+
+type mstate_t i =
+| Ideal:
+  ts: traffic_secret i ->
+  writer: QModel.stream_writer i ->
+  reader: QModel.stream_reader w ->
+  mstate_t i
+  
 let istate_t i = QImpl.state i
 
 let state (i:index) =
