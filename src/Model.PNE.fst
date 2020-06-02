@@ -74,7 +74,7 @@ let coerce j u k =
   (u, k) <: unsafe_state j
 
 let quic_coerce j u ts =
-  let k = Model.Helpers.hide #(key_len u)
+  let k =
     (QUIC.Spec.derive_secret u.halg ts
         QUIC.Spec.label_hp (key_len u)) in
   coerce j u k

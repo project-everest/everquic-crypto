@@ -1,11 +1,12 @@
 module QUIC.Impl.VarInt
 include QUIC.Spec.VarInt
-open QUIC.Impl.Base
+include QUIC.Impl.Base
 
 module Cast = FStar.Int.Cast
 module U64 = FStar.UInt64
 module LP = LowParse.Spec.BoundedInt // for bounded_int32
 module LL = LowParse.Low.Base
+module U62 = QUIC.UInt62
 
 val validate_varint: LL.validator parse_varint
 
@@ -13,7 +14,7 @@ val read_varint: LL.leaf_reader parse_varint
 
 val jump_varint: LL.jumper parse_varint
 
-val serialize_varint: LL.serializer32 serialize_varint
+val write_varint: LL.serializer32 serialize_varint
 
 module U32 = FStar.UInt32
 
@@ -38,13 +39,13 @@ val jump_bounded_varint
 
 inline_for_extraction
 noextract
-val serialize_bounded_varint
+val write_bounded_varint
   (min: nat)
   (max: nat { min <= max /\ max < 4294967296 })
 : Tot (LL.serializer32 (serialize_bounded_varint min max))
 
 val varint_len_correct
-  (x: uint62_t)
+  (x: U62.t)
 : Lemma
   (U32.v (varint_len x) == FStar.Seq.length (LP.serialize QUIC.Spec.VarInt.serialize_varint x))
 

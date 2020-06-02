@@ -23,7 +23,7 @@ let validate_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v uint62_bound);
+    assert (pow2 62 == U64.v U62.bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -36,7 +36,8 @@ let validate_varint #rrel #rel sl pos =
   else
     let b = LI.read_u8 sl pos in
     let kd = uint8.get_bitfield b 6 8 in
-    let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+    let msb8 = uint8.get_bitfield b 0 6 in
+    let msb = Cast.uint8_to_uint64 (msb8) in
     if kd = 0uy
     then pos1
     else if kd = 1uy
@@ -94,7 +95,7 @@ let read_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v uint62_bound);
+    assert (pow2 62 == U64.v U62.bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -104,7 +105,8 @@ let read_varint #rrel #rel sl pos =
   let pos1 = LI.jump_u8 sl pos in
   let b = LI.read_u8 sl pos in
   let kd = uint8.get_bitfield b 6 8 in
-  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+  let msb8 = uint8.get_bitfield b 0 6 in
+  let msb = Cast.uint8_to_uint64 (msb8) in
   if kd = 0uy
   then msb
   else if kd = 1uy
@@ -141,7 +143,7 @@ let jump_varint #rrel #rel sl pos =
   let _ =
     assert_norm (pow2 8 == 256);
     assert_norm (pow2 6 == 64);
-    assert (pow2 62 == U64.v uint62_bound);
+    assert (pow2 62 == U64.v U62.bound);
     assert_norm (pow2 24 == 16777216);
     assert_norm (pow2 32 == 4294967296);
     LL.valid_facts parse_varint h sl pos;
@@ -151,7 +153,8 @@ let jump_varint #rrel #rel sl pos =
   let pos1 = LI.jump_u8 sl pos in
   let b = LI.read_u8 sl pos in
   let kd = uint8.get_bitfield b 6 8 in
-  let msb = Cast.uint8_to_uint64 (uint8.get_bitfield b 0 6) in
+  let msb8 = uint8.get_bitfield b 0 6 in
+  let msb = Cast.uint8_to_uint64 (msb8) in
   if kd = 0uy
   then pos1
   else if kd = 1uy
@@ -187,12 +190,12 @@ let seq_slice_i_j_k
   (ensures (Seq.slice s i k `Seq.equal` (Seq.slice s i j `Seq.append` Seq.slice s j k)))
 = ()
 
-let serialize_varint
+let write_varint
   x #rrel #rel b pos
 =
   assert_norm (pow2 8 == 256);
   assert_norm (pow2 6 == 64);
-  assert (pow2 62 == U64.v uint62_bound);
+  assert (pow2 62 == U64.v U62.bound);
   assert_norm (pow2 24 == 16777216);
   assert_norm (pow2 32 == 4294967296);
   let fb = get_first_byte x in
@@ -252,20 +255,24 @@ let jump_bounded_varint
     (synth_bounded_varint min max)
     ()
 
-let serialize_bounded_varint
+let write_bounded_varint
   min max
 = LC.serialize32_synth
     (LC.serialize32_filter
-      serialize_varint
+      write_varint
       (varint_in_bounds min max))
     (synth_bounded_varint min max)
     (synth_bounded_varint_recip min max)
     (fun x -> synth_bounded_varint_recip min max x)
     ()
 
+#push-options "--z3rlimit 16"
+
 let varint_len_correct
   x
 = ()
+
+#pop-options
 
 let bounded_varint_len_correct
   min max x

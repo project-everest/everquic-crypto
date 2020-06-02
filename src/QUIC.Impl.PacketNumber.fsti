@@ -1,51 +1,45 @@
 module QUIC.Impl.PacketNumber
 include QUIC.Spec.PacketNumber
-open QUIC.Spec.Base
-open LowParse.Low.Writers
 
 module U64 = FStar.UInt64
 module U32 = FStar.UInt32
 module HST = FStar.HyperStack.ST
 module B = LowStar.Buffer
 module HS = FStar.HyperStack
+module Secret = QUIC.Secret.Int
+module SecretBuffer = QUIC.Secret.Buffer
+module LP = LowParse.Spec.Base
+module Seq = QUIC.Secret.Seq
 
-inline_for_extraction
-val validate_packet_number
-  (last: last_packet_number_t)
-  (pn_len: packet_number_length_t)
-: Tot (validator (parse_packet_number last pn_len))
-
-inline_for_extraction
-val jump_packet_number
-  (last: last_packet_number_t)
-  (pn_len: packet_number_length_t)
-: Tot (jumper (parse_packet_number last pn_len))
-
-inline_for_extraction
 val read_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-  (#rrel: _)
-  (#rel: _)
-  (sl: slice rrel rel)
-  (pos: U32.t)
-: HST.Stack (packet_number_t last pn_len)
+  (b: B.buffer Secret.uint8)
+: HST.Stack (packet_number_t' last pn_len)
   (requires (fun h ->
-    live_slice h sl /\
-    U32.v pos + 4 <= U32.v sl.len
+    B.live h b /\
+    4 <= B.length b
   ))
   (ensures (fun h res h' ->
     B.modifies B.loc_none h h' /\
-    valid_content (parse_packet_number last pn_len) h sl pos res
+    begin match LP.parse (parse_packet_number last pn_len) (Seq.seq_reveal (B.as_seq h b)) with
+    | Some (v, _) -> res == v
+    | None -> False
+    end
   ))
 
-inline_for_extraction
-noextract
-val swrite_packet_number
+val write_packet_number
   (last: last_packet_number_t)
   (pn_len: packet_number_length_t)
-  (pn: packet_number_t last pn_len)
-  (h0: HS.mem)
-  (sout: slice (srel_of_buffer_srel (B.trivial_preorder _)) (srel_of_buffer_srel (B.trivial_preorder _)))
-  (pout_from0: U32.t)
-: Tot (y: swriter (serialize_packet_number last pn_len) h0 (4 - U32.v pn_len) sout pout_from0 { swvalue y == pn })
+  (pn: packet_number_t' last pn_len)
+  (b: B.buffer Secret.uint8)
+: HST.Stack unit
+  (requires (fun h ->
+    B.live h b /\
+    4 <= B.length b
+  ))
+  (ensures (fun h _ h' ->
+    let b' = B.gsub b 0ul (U32.uint_to_t (Secret.v pn_len)) in
+    B.modifies (B.loc_buffer b') h h' /\
+    Seq.seq_reveal (B.as_seq h' b') == LP.serialize (serialize_packet_number last pn_len) pn
+  ))

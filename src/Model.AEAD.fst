@@ -80,9 +80,9 @@ let coerce #i u kv =
 
 // With QUIC-specific derivation of key from transport secret
 let quic_coerce #i u ts =
-  coerce u (Model.Helpers.hide #(Spec.key_length u.alg)
+  coerce u
     (QUIC.Spec.derive_secret u.halg ts
-        QUIC.Spec.label_key (Spec.key_length u.alg)))
+      QUIC.Spec.label_key (Spec.key_length u.alg))
 
 let encrypt i w nonce aad plain_length plain =
   if is_safe i then

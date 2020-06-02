@@ -2,7 +2,7 @@ module QUIC
 
 module QSpec = QUIC.Spec
 module QImpl = QUIC.Impl
-module QImplBase = QUIC.Impl.Base
+module QImplBase = QUIC.Impl.Header.Base
 module QModel = Model.QUIC
 
 module I = Model.Indexing
@@ -22,6 +22,10 @@ open FStar.HyperStack.ST
 open EverCrypt.Helpers
 open EverCrypt.Error
 
+type nat62 = n:nat{n < pow2 62}
+
+let cipher_keysize (a:QSpec.ea) =
+  Spec.Agile.Cipher.key_length (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)
 
 /// Low-level types used in this API
 /// --------------------------------
@@ -45,9 +49,9 @@ val footprint: #i:index -> HS.mem -> state i -> GTot B.loc
 val invariant: #i:index -> HS.mem -> state i -> Type0
 
 val g_traffic_secret: #i:index -> state i -> HS.mem -> GTot (traffic_secret i)
-val g_initial_packet_number: #i:index -> (s: state i) -> HS.mem -> GTot QSpec.nat62
+val g_initial_packet_number: #i:index -> (s: state i) -> HS.mem -> GTot nat62
 val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s }) ->
-  GTot (pn: QSpec.uint62_t{
+  GTot (pn: u62 {
     U64.v pn >= g_initial_packet_number s h
   })
 
