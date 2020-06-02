@@ -165,11 +165,15 @@ val rinvariant: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
 
 let max_ctr = pow2 62 - 1
 type epn (nl:pnl) = Spec.lbytes nl
+type pn = n:nat{n <= max_ctr}
 type rpn = n:U64.t{U64.v n < max_ctr}
 let rpn_of_nat (j:nat{j < max_ctr}) : rpn =
   U64.uint_to_t j
 
-val wctrT: #k:id -> w:stream_writer k -> mem -> GTot (n:nat{n <= max_ctr})
+val writer_offset: #k:id -> w:stream_writer k -> pn
+val reader_offset: #k:id -> #w:stream_writer k -> stream_reader w -> pn
+
+val wctrT: #k:id -> w:stream_writer k -> mem -> GTot (n:nat{n >= writer_offset w /\ n <= max_ctr})
 val wctr: #k:id -> w:stream_writer k -> ST rpn
   (requires fun h0 -> True)
   (ensures fun h0 c h1 -> h0 == h1 /\ UInt64.v c = wctrT w h1)
@@ -248,8 +252,7 @@ val rframe_pnlog: #k:id{PNE.is_safe (snd k)} ->  #w:stream_writer k -> r:stream_
   (ensures PNE.table (reader_pne_state r) h1 == l)
 
 val create: k:id -> u:info ->
-  u1:AEAD.info (fst k) -> u2:PNE.info (snd k) ->  
-  init: rpn ->
+  u1:AEAD.info (fst k) -> u2:PNE.info (snd k) -> init: pn ->
   ST (stream_writer k)
   (requires fun h0 -> u2.PNE.calg ==
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
@@ -257,7 +260,8 @@ val create: k:id -> u:info ->
   (ensures fun h0 w h1 ->
     invariant w h1 /\
     modifies_none h0 h1 /\
-    wctrT w h1 == UInt64.v init /\
+    writer_offset w == init /\
+    wctrT w h1 == writer_offset w /\
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
@@ -269,7 +273,7 @@ val create: k:id -> u:info ->
 
 val coerce: k:unsafe_id -> u:info ->
   u1:AEAD.info (fst k) -> u2:PNE.info (snd k) ->  
-  init: rpn -> ts:AEAD.traffic_secret u1.AEAD.halg ->
+  init: pn -> ts:AEAD.traffic_secret u1.AEAD.halg ->
   ST (stream_writer k)
   (requires fun h0 -> u2.PNE.calg ==
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
@@ -278,7 +282,8 @@ val coerce: k:unsafe_id -> u:info ->
     let (k1, k2) = writer_leak w in
     invariant w h1 /\
     modifies_none h0 h1 /\
-    wctrT w h1 == UInt64.v init /\
+    writer_offset w == init /\
+    wctrT w h1 == writer_offset w /\
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
@@ -288,7 +293,7 @@ val coerce: k:unsafe_id -> u:info ->
     k1 == Spec.derive_secret u1.AEAD.halg ts
         Spec.label_key (SAE.key_length u1.AEAD.alg) /\
     k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
-        QUIC.Spec.label_key (PNE.key_len u2)
+        QUIC.Spec.label_hp (PNE.key_len u2)
   )
 
 val createReader: parent:rgn -> #k:id -> w:stream_writer k ->

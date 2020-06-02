@@ -30,91 +30,29 @@ let u2 = QImpl.u2
 let u4 = QImpl.u4
 let u62 = QImpl.u62
 
-let index =
-  if I.model then QModel.id else QImpl.index
+val index:eqtype
 
-let mid (i:index{I.model}) = i <: QModel.id
-let iid (i:index{not I.model}) = i <: QImpl.index
-
-let alg (i:index) =
-  if I.model then I.ae_id_ginfo (fst (mid i))
-  else (iid i).QImpl.aead_alg
-
-let halg (i:index) =
-  if I.model then I.ae_id_ghash (fst (mid i))
-  else (iid i).QImpl.hash_alg
+val alg: index -> GTot QSpec.ea
+val halg: index -> GTot QSpec.ha
 
 let traffic_secret i =
   Spec.Hash.Definitions.bytes_hash (halg i)
 
-let itraffic_secret (i:QModel.id) =
-  Spec.Hash.Definitions.bytes_hash (I.ae_id_ghash (fst i))
+// Switch state: either QModel or QImpl
+val state: index -> Type0
 
-module MH = Model.Helpers
+val footprint: #i:index -> HS.mem -> state i -> GTot B.loc
+val invariant: #i:index -> HS.mem -> state i -> Type0
 
-let derived (#i:QModel.id) (#w:QModel.stream_writer i) (r:QModel.stream_reader w) (ts:itraffic_secret i) =
-  if I.model && QModel.unsafe i then
-    let ha = I.ae_id_hash (fst i) in
-    let ea = I.ae_id_info (fst i) in
-    let (k1, k2) = QModel.reader_leak r in
-    QModel.writer_static_iv w ==
-      QSpec.derive_secret ha ts QSpec.label_iv 12 /\
-    k1 == QSpec.derive_secret ha ts
-        QSpec.label_key (QSpec.ae_keysize ea) /\
-    k2 == QUIC.Spec.derive_secret ha ts
-        QUIC.Spec.label_key (QSpec.cipher_keysize ea)
-  else True
-
-noeq type mstate_t i =
-| Ideal:
-  writer: QModel.stream_writer i ->
-  reader: QModel.stream_reader writer ->
-  ts: itraffic_secret i{derived reader ts} -> // FIXME erased
-  mstate_t i
-  
-let istate_t i = QImpl.state i
-
-let state (i:index) =
-  if I.model then mstate_t (mid i)
-  else istate_t (iid i)
-
-let mstate (#i:index{I.model}) (s:state i) = s <: mstate_t (mid i)
-let istate (#i:index{not I.model}) (s:state i) = s <: istate_t (iid i)
-
-let footprint (#i:index) (h:HS.mem) (s:state i) : GTot B.loc =
-  if I.model then
-    QModel.rfootprint (mstate s).reader
-  else QImpl.footprint h (istate s)
-
-let invariant #i (h:HS.mem) (s:state i) =
-  if I.model then
-    QModel.rinvariant (mstate s).reader h
-  else QImpl.invariant h (istate s)
-
-val g_initial_packet_number: #i:index -> (s: state i) -> GTot QSpec.nat62
-
+val g_traffic_secret: #i:index -> state i -> HS.mem -> GTot (traffic_secret i)
+val g_initial_packet_number: #i:index -> (s: state i) -> HS.mem -> GTot QSpec.nat62
 val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s }) ->
   GTot (pn: QSpec.uint62_t{
-    U64.v pn >= g_initial_packet_number s
+    U64.v pn >= g_initial_packet_number s h
   })
 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
   U64.v (g_last_packet_number s h) + 1 < pow2 62
-
-let g_traffic_secret (#i:index) (s:state i) (h:HS.mem)
-  : GTot (traffic_secret i) =
-  if I.model then
-    (mstate s).ts <: traffic_secret i
-  else 
-    QImpl.g_traffic_secret (B.deref h (istate s))
-
-(*
-let g_last_packet_number (#i:index) (s:state i) (h:HS.mem)
-  =
-  if I.model then QModel.expected_pnT (mstate s).reader h
-  else
-    QImpl.g_last_packet_number (B.deref h (istate s)) h
-*)
 
 val encrypt: #i:G.erased index -> (
   let i = G.reveal i in
