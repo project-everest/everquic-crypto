@@ -25,7 +25,7 @@ FSTAR_CHILL_FLAGS= \
 	$(OTHERFLAGS)
 
 FSTAR_FLAGS=$(FSTAR_CHILL_FLAGS) \
-	--already_cached '*,-QUIC,-Mem,-Model' \
+	--already_cached '*,-QUIC,-QUICTest,-Mem,-Model' \
 	--warn_error @241 \
 
 FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
