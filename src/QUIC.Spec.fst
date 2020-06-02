@@ -153,11 +153,11 @@ let header_encrypt a hpk h c =
 
 let header_encrypt_ct
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (h: header)
   (c: cbytes' (is_retry h))
 : GTot packet
-=
+= 
   assert_norm(max_cipher_length < pow2 62);
   let r = S.(format_header h `append` c) in
   if is_retry h
@@ -180,7 +180,7 @@ let header_encrypt_ct
 
 let header_encrypt_ct_correct
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (h: header)
   (c: cbytes' (is_retry h))
 : Lemma
@@ -222,7 +222,7 @@ module U64 = FStar.UInt64
 
 let header_encrypt_post
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (h: header)
   (c: cbytes' (is_retry h))
   (cid_len: nat { MShort? h ==> cid_len == dcid_len h })
@@ -287,7 +287,7 @@ type header_decrypt_aux_t = {
 
 let header_decrypt_aux
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : GTot (option header_decrypt_aux_t)
@@ -340,7 +340,7 @@ let header_decrypt_aux
 
 let header_decrypt_aux_post
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : Lemma
@@ -403,7 +403,7 @@ module Header = QUIC.Spec.Header
 
 let header_decrypt_aux_post_parse
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (cid_len: nat { cid_len <= 20 })
   (last: nat { last + 1 < pow2 62 })
   (packet: packet)
@@ -456,7 +456,7 @@ let header_decrypt_aux_post_parse
 
 let header_decrypt_aux_ct
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : GTot (option header_decrypt_aux_t)
@@ -507,7 +507,7 @@ let header_decrypt_aux_ct
 
 let header_decrypt_aux_ct_correct
   (a:ea)
-  (hpk: lbytes (cipher_keysize a))
+  (hpk: lbytes (ae_keysize a))
   (cid_len: nat { cid_len <= 20 })
   (packet: packet)
 : Lemma
@@ -593,7 +593,7 @@ let header_decrypt a hpk cid_len last packet =
 
 let lemma_header_encryption_correct_aux
   (a:ea)
-  (k:lbytes (cipher_keysize a))
+  (k:lbytes (ae_keysize a))
   (h:header)
   (cid_len: nat { cid_len <= 20 /\ (MShort? h ==> cid_len == dcid_len h) })
   (c: cbytes' (is_retry h)) // { has_payload_length h ==> U64.v (payload_length h) == S.length c } ->
@@ -765,4 +765,3 @@ let lemma_encrypt_correct a k siv hpk h cid_len last plain =
 #pop-options
 
 #pop-options
-
