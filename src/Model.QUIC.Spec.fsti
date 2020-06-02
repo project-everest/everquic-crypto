@@ -13,7 +13,7 @@ val encrypt:
   a: ea ->
   k: lbytes (AEAD.key_length a) ->
   static_iv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   h: header ->
   plain: pbytes' (is_retry h) { has_payload_length h ==> U64.v (payload_length h) == S.length plain + AEAD.tag_length a } ->
   Pure packet
@@ -24,7 +24,7 @@ val decrypt:
   a: ea ->
   k: lbytes (AEAD.key_length a) ->
   static_iv: lbytes 12 ->
-  hpk: lbytes (ae_keysize a) ->
+  hpk: lbytes (cipher_keysize a) ->
   last: nat{last+1 < pow2 62} ->
   cid_len: nat { cid_len <= 20 } ->
   packet: packet ->

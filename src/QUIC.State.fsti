@@ -229,7 +229,7 @@ let derive_pne
   (h: HS.mem)
 : GTot (Seq.seq Secret.uint8)
 = let s0 = g_traffic_secret (B.deref h s) in
-  Spec.derive_secret i.hash_alg s0 Spec.label_hp (ae_keysize i.aead_alg)
+  Spec.derive_secret i.hash_alg s0 Spec.label_hp (cipher_keysize i.aead_alg)
 
 val encrypt: #i:G.erased index -> (
   let i = G.reveal i in

@@ -25,12 +25,8 @@ let as_cipher_alg (a: ea): a:Cipher.cipher_alg {
 } =
   AEAD.cipher_alg_of_supported_alg a
 
-
-// : this is Spec.Agile.Cipher.key_length
-let ae_keysize (a:ea) =
-  match a with
-  | AEAD.AES128_GCM -> 16
-  | _ -> 32
+let cipher_keysize (a:ea) =
+  Spec.Agile.Cipher.key_length (Spec.Agile.AEAD.cipher_alg_of_supported_alg a)
 
 // Move from Hashing.Spec to Spec.Hash?
 let keysized (a:ha) (l:nat) =

@@ -51,7 +51,7 @@ type state_s (i: index) =
       initial_pn:G.erased PN.packet_number_t ->
       aead_state:EverCrypt.AEAD.state the_aead_alg ->
       iv:EverCrypt.AEAD.iv_p the_aead_alg { B.length iv == 12 } ->
-      hp_key:B.buffer Secret.uint8 { B.length hp_key = QUIC.Spec.ae_keysize the_aead_alg } ->
+      hp_key:B.buffer Secret.uint8 { B.length hp_key = QUIC.Spec.cipher_keysize the_aead_alg } ->
       pn:B.pointer PN.packet_number_t ->
       ctr_state:CTR.state (as_cipher_alg the_aead_alg) ->
       state_s i
@@ -91,7 +91,7 @@ let invariant_s #i h s =
   (B.as_seq h iv) ==
     derive_secret i.hash_alg (G.reveal traffic_secret) label_iv 12 /\
   B.as_seq h hp_key ==
-    derive_secret i.hash_alg (G.reveal traffic_secret) label_hp (QUIC.Spec.ae_keysize aead_alg)
+    derive_secret i.hash_alg (G.reveal traffic_secret) label_hp (QUIC.Spec.cipher_keysize aead_alg)
   )
 
 let invariant_loc_in_footprint #_ _ _ = ()
@@ -199,7 +199,7 @@ let create_in_core i r dst initial_pn traffic_secret aead_state ctr_state =
   let pn = B.malloc r initial_pn 1ul in
   (**) let h1 = HST.get () in
   (**) B.(modifies_loc_includes (G.reveal mloc) h0 h1 loc_none);
-  (**) assert (B.length hp_key = QUIC.Spec.ae_keysize i.aead_alg);
+  (**) assert (B.length hp_key = QUIC.Spec.cipher_keysize i.aead_alg);
 
   let s: state_s i = State #i
     i.hash_alg i.aead_alg e_traffic_secret e_initial_pn
