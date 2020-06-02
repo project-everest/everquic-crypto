@@ -1,4 +1,4 @@
-module QUIC
+module QUIC.State
 
 open EverCrypt.Error
 include QUIC.Spec.Crypto

@@ -9,7 +9,7 @@ module L = FStar.List.Tot
 module Secret = QUIC.Secret.Int
 module PN = QUIC.Spec.PacketNumber.Base
 module Seq = QUIC.Secret.Seq
-module Q = QUIC
+module Q = QUIC.State
 module QS = QUIC.Spec
 
 (* declassification for post tests *)

@@ -1,4 +1,4 @@
-module QUIC
+module QUIC.State
 
 module Cipher = EverCrypt.Cipher
 module AEAD = EverCrypt.AEAD
