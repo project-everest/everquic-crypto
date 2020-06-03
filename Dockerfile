@@ -27,25 +27,6 @@ ENV OPAMYES 1
 RUN opam init --disable-sandboxing --compiler=4.09.1
 RUN opam env --set-switch | tee --append .profile .bashrc .bash_profile
 
-# Clone and build Project Everest
-ARG EVEREST_THREADS=1
-RUN git clone https://github.com/project-everest/everest.git
-WORKDIR everest
-RUN ./everest --yes opam
-RUN ./everest --yes pull
-RUN ./everest --yes z3
-RUN echo export PATH=$HOME/everest/z3/bin:$PATH | tee --append $HOME/.bash_profile $HOME/.profile $HOME/.bashrc
-ENV FSTAR_HOME $HOME/everest/FStar
-ENV KREMLIN_HOME $HOME/everest/kremlin
-ENV QD_HOME $HOME/everest/quackyducky
-ENV HACL_HOME $HOME/everest/hacl-star
-ENV MLCRYPTO_HOME $HOME/everest/MLCrypto
-ENV VALE_HOME $HOME/everest/vale
-RUN env OTHERFLAGS='--admit_smt_queries true' ./everest -j $EVEREST_THREADS FStar make kremlin make quackyducky make
-RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star vale-fst
-RUN env OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star compile-gcc-compatible
-WORKDIR ..
-
 # Install emacs F* mode
 ADD --chown=test package/fstar.sh bin/fstar.sh
 ADD --chown=test package/init.el .emacs.d/init.el
@@ -60,5 +41,12 @@ ADD --chown=test Makefile Makefile
 ADD --chown=test Makefile.include Makefile.include
 ADD --chown=test README.md README.md
 ADD --chown=test test/main.c test/QUICTest.fst test/Makefile test/
+ADD --chown=test noheader.txt noheader.txt
+ADD --chown=test install-everest.sh install-everest.sh
+
+# Clone and build Project Everest
+ARG EVEREST_THREADS=1
+RUN ./install-everest.sh
+RUN cat everest-env.sh | tee --append $HOME/.profile $HOME/.bashrc $HOME/.bash_profile
 
 ENTRYPOINT ["/bin/bash", "--login"]

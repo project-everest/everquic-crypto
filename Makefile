@@ -52,6 +52,7 @@ KRML=$(KREMLIN_HOME)/krml
 dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	$(KRML) $(KOPTS) -library EverCrypt,EverCrypt.* $^ -tmpdir dist -skip-compilation \
 	  -minimal \
+	  -header noheader.txt \
 	  -add-include '"kremlin/internal/target.h"' \
 	  -add-include '"kremlin/internal/types.h"' \
 	  -add-include '"kremlin/lowstar_endianness.h"' \
