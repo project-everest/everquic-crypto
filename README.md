@@ -29,6 +29,9 @@ present in `dist/`):
    (You may need to run `make clean` beforehand if already produced
    before.)
 
+Then, you can build dist/libeverquic.a by running:
+`cd dist && make -f Makefile.basic`
+
 ## Structure of the proof
 
 Our code is in `src/`. You can navigate it using the F* mode for Emacs
