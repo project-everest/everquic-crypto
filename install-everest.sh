@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
+set -x
 git clone https://github.com/project-everest/everest.git
-old_pwd="$pwd"
-everest_home="$pwd/everest"
+old_pwd="$PWD"
+everest_home="$old_pwd/everest"
 cd "$everest_home"
 ./everest --yes opam
 ./everest --yes pull
