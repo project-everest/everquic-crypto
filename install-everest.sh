@@ -20,8 +20,8 @@ then
     EVEREST_THREADS=1
 fi
 OTHERFLAGS='--admit_smt_queries true' ./everest -j $EVEREST_THREADS FStar make kremlin make quackyducky make
-OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star vale-fst
-OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2)) -C hacl-star compile-gcc-compatible
+OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2+1)) -C hacl-star vale-fst
+OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2+1)) -C hacl-star compile-gcc-compatible
 cd "$old_pwd"
 cat >everest-env.sh <<EOF
 export PATH=$everest_home/z3/bin:\$PATH
