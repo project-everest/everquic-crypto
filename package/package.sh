@@ -17,5 +17,7 @@ tar cjf $ARCHIVE \
     $NAME/package/fstar.sh \
     $NAME/package/*.el \
     $NAME/noheader.txt \
+    $NAME/dist/EverQuic.c \
+    $NAME/dist/EverQuic.h \
     $(for f in $NAME/dist/*.c $NAME/dist/*.h $NAME/dist/*.def $NAME/dist/Makefile.* ; do if [[ -e $f ]] ; then echo $f ; fi ; done)
 rm $NAME
