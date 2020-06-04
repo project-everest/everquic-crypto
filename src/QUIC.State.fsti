@@ -379,7 +379,7 @@ val decrypt: #i:G.erased index -> (
       decrypt_post i s dst packet len cid_len h0 res h1 /\
       begin match res with
       | Success ->
-      B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
+        B.(modifies (footprint_s h0 (deref h0 s) `loc_union`
         loc_buffer (gsub packet 0ul (Secret.reveal r.total_len)) `loc_union` loc_buffer dst) h0 h1)
       | DecodeError ->
         B.modifies B.loc_none h0 h1

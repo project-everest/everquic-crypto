@@ -6,16 +6,16 @@ and compiled to C.
 
 ## How to verify, extract and build
 
-EverQuic is implemented in F* in `src/`, and extracted to C in
+EverQuic is implemented in F\* in `src/`, and extracted to C in
 `dist/EverQuic.c` and `dist/EverQuic.h`. Then, you can build the
 EverQuic static library, `dist/libeverquic.a`, by running: `cd dist &&
 make -f Makefile.basic`
 
 If `dist/EverQuic.c` and `dist/EverQuic.h` are not present, then you
-will need to regenerate them by verifying the F* code and extracting
+will need to regenerate them by verifying the F\* code and extracting
 the C code as follows (Ubuntu 18.04 and 20.04 are known to work):
 
-1. Install Project Everest (which includes F*) by running:
+1. Install Project Everest (which includes F\*) by running:
    `./install-everest.sh && source everest-env.sh`
 
    You can set the `EVEREST_THREADS` environment variable to set some
@@ -35,11 +35,11 @@ the C code as follows (Ubuntu 18.04 and 20.04 are known to work):
 
    Then, C files are produced in `dist/`.
 
-## Prelude: F* and formal guarantees
+## Prelude: F\* and formal guarantees
 
-### F* effects: memory-safety, type-safety and functional correctness
+### F\* effects: memory-safety, type-safety and functional correctness
 
-We are using three classes of F* effects:
+We are using three classes of F\* effects:
 
 * Stateful computations (`ST`/`Stack`): concrete values and functions
   with side effects (memory accesses), compiled to C
@@ -54,7 +54,7 @@ In our code, we adopt the convention that `QUIC.Spec.*` modules define
 specifications as ghost computations, whereas `QUIC.Impl.*` modules
 define their corresponding pure or stateful implementations.
 
-F* type-checking ensures both memory-safety and type-safety. In
+F\* type-checking ensures both memory-safety and type-safety. In
 addition, the types of the `QUIC.Impl.*` implementations, as
 Hoare-style pre- and postconditions, mention the specifications in
 `QUIC.Spec.*` to ensure functional correctness.
@@ -63,19 +63,19 @@ Hoare-style pre- and postconditions, mention the specifications in
 
 Our constant-time execution guarantees rely on data abstraction: more
 precisely, for constant-time data we rely on abstract "secret" integer
-types from HACL*
+types from HACL\*
 (https://github.com/project-everest/hacl-star/blob/master/lib/Lib.IntTypes.fsti).
 
-#### Data abstraction: F* modules and interfaces
+#### Data abstraction: F\* modules and interfaces
 
-In F*, module definitions (`.fst`) may be hidden behind a
+In F\*, module definitions (`.fst`) may be hidden behind a
 corresponding interface (`.fsti`), thus making their definitions
 abstract. There, the `.fsti` contains the signatures of the functions
 implemented (and the statements of the theorems proven) in the `.fst`
 that are meant to be directly callable by client code.
 
 Reading the actual value of a secret integer can be done only in ghost
-computations, unless by explicit (unsafe) declassification using HACL*
+computations, unless by explicit (unsafe) declassification using HACL\*
 `Lib.RawIntTypes`. Thus, by virtue of being ghost, our specifications
 in `QUIC.Spec.*` safely "read" secret integer values for proof
 purposes only, whereas our implementations in `QUIC.Impl.*` respect

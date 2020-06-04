@@ -87,14 +87,14 @@ let g_traffic_secret #i s h =
   else
     QImpl.g_traffic_secret (B.deref h (istate s))
 
-let g_initial_packet_number #i s h =
-  if I.model then QModel.g_initial_packet_number #(mid i) (mstate s).writer
+let g_initial_packet_number #i s =
+  if I.model then QModel.writer_offset #(mid i) (mstate s).writer
   else
     QImpl.g_initial_packet_number (B.deref h (istate s))
 
 let g_last_packet_number #i s h =
   if I.model then
-    admit ()
+    QModel.expected_pnT #(mid i) (mstate s).reader // - 1 ?
   else
     QImpl.g_last_packet_number (B.deref h (istate s)) h
 
@@ -152,7 +152,7 @@ let encrypt #i s dst dst_pn h plain plain_len =
       B.alloca 0uy (QImpl.header_len h `U32.add` plain_len `U32.add` Model.AEAD.tag_len)
     in
     let dummy_dst_pn = B.alloca 0UL 1ul in*)
-    let r = QImpl.create_in dummy_index HS.root dummy_dst 0UL dummy_traffic_secret in
+    let r = QImpl.create_in dummy_index (HS.get_tip ()) dummy_dst 0UL dummy_traffic_secret in
     assume (r <> UnsupportedAlgorithm);
     let dummy_s = LowStar.BufferOps.(!* dummy_dst) in
     admit (); // problem with header_live precondition, need to debug
