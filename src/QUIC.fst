@@ -231,6 +231,18 @@ let as_header (h: QUIC.Impl.header) (packet_number: PN.packet_number_t) : Stack 
         f (MRetry (reveal_bitfield unused) (LowParse.SLow.Base.bytes_of_seq odcid'))
     end
 
+let lemma_inc_pn
+  (next_pn: nat { next_pn < Model.QUIC.max_ctr })
+: Lemma
+  (pow2 62 < pow2 64 /\
+    Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)) ==
+    Secret.to_u64 (UInt64.uint_to_t next_pn) `Secret.add` Secret.to_u64 1UL)
+= assert_norm (pow2 62 < pow2 64);
+  assert (
+    Secret.v (Secret.to_u64 (UInt64.uint_to_t (next_pn + 1))) ==
+    Secret.v (Secret.to_u64 (UInt64.uint_to_t next_pn) `Secret.add` Secret.to_u64 1UL)
+  )
+
 #set-options "--z3rlimit 500"
 let encrypt #i s dst dst_pn h plain plain_len =
   let h0 = ST.get () in
@@ -340,7 +352,8 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let h9 = ST.get () in
     assert (QModel.wctrT writer h9 == QModel.wctrT writer h8 + 1);
     assert (g_next_packet_number s h9 == Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)));
-    assume (Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)) ==
+    lemma_inc_pn next_pn;
+    assert (Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)) ==
       Secret.to_u64 (UInt64.uint_to_t next_pn) `Secret.add` Secret.to_u64 1UL);
     from_seq dst cipher;
     assert_norm (pow2 62 - 1 < pow2 64);
