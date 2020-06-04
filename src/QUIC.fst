@@ -279,6 +279,15 @@ let encrypt #i s dst dst_pn h plain plain_len =
     (**) B.(modifies_only_not_unused_in (loc_buffer dummy_dst `loc_union` loc_buffer dst_pn `loc_union` loc_buffer dst)
       h2 h6);
     (**) assert B.(modifies (loc_buffer dummy_dst `loc_union` loc_buffer dst_pn `loc_union` loc_buffer dst) h2 h6);
+    let dummy_pn = Ghost.hide (B.deref h6 dst_pn) in
+    assert (B.as_seq h6 dst == QSpec.encrypt
+      aead_alg
+      (QImpl.derive_k dummy_index dummy_s h5)
+      (QImpl.derive_iv dummy_index dummy_s h5)
+      (QImpl.derive_pne dummy_index dummy_s h5)
+      (QUIC.Impl.g_header h h5 dummy_pn)
+      (Model.Helpers.reveal #(UInt32.v plain_len) (B.as_seq h5 dummy_plain))
+    );
     pop_frame ();
 
     (**) let h7 = ST.get () in
@@ -296,12 +305,12 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let cipher = QUIC.TotSpec.encrypt aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s) in
     QUIC.Spec.encrypt_length aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s);
     QUIC.Spec.encrypt_length aead_alg
-      (QImpl.derive_k dummy_index dummy_s h6)
-      (QImpl.derive_iv dummy_index dummy_s h6)
-      (QImpl.derive_pne dummy_index dummy_s h6)
-      (QUIC.Impl.g_header h h6 dummy_pn)
-      (Model.Helpers.reveal #(UInt32.v plain_len) (B.as_seq h6 plain));
-    assert (QSpec.header_len spec_h == QSpec.header_len (QUIC.Impl.g_header h h6 dummy_pn));
+      (QImpl.derive_k dummy_index dummy_s h5)
+      (QImpl.derive_iv dummy_index dummy_s h5)
+      (QImpl.derive_pne dummy_index dummy_s h5)
+      (QUIC.Impl.g_header h h5 dummy_pn)
+      (Model.Helpers.reveal #(UInt32.v plain_len) (B.as_seq h5 dummy_plain));
+    assert (QSpec.header_len spec_h == QSpec.header_len (QUIC.Impl.g_header h h5 dummy_pn));
     assert (S.length cipher == B.length dst);
     from_seq dst cipher;
     admit ();
