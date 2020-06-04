@@ -201,22 +201,23 @@ let as_header (h: QUIC.Impl.header) (packet_number: PN.packet_number_t) : Stack 
       (nat_of_u8 phase = 1)
       foo
       packet_number_length packet_number
-  | _ -> admit ()
-
-
-(*let x = 
   | BLong version dcid dcil scid scil spec ->
-    MLong version (FB.hide (B.as_seq m dcid)) (FB.hide (B.as_seq m scid))
-      begin match spec with
+    let dcid' = as_seq dcid dcil in
+    let scid' = as_seq scid scil in
+    [@inline_let]
+    let f = MLong version (LowParse.SLow.Base.bytes_of_seq dcid') (LowParse.SLow.Base.bytes_of_seq scid') in
+    begin match spec with
       | BInitial rb payload_length packet_number_length token token_length ->
-        MInitial (Secret.reveal rb) (FB.hide (B.as_seq m token)) payload_length packet_number_length packet_number
+        let token' = as_seq token token_length in
+        f (MInitial (reveal_bitfield rb) (LowParse.SLow.Base.bytes_of_seq token') payload_length packet_number_length packet_number)
       | BZeroRTT rb payload_length packet_number_length ->
-        MZeroRTT (Secret.reveal rb) payload_length packet_number_length packet_number
+        f (MZeroRTT (reveal_bitfield rb) payload_length packet_number_length packet_number)
       | BHandshake rb payload_length packet_number_length ->
-        MHandshake (Secret.reveal rb) payload_length packet_number_length packet_number
+        f (MHandshake (reveal_bitfield rb) payload_length packet_number_length packet_number)
       | BRetry unused odcid odcil ->
-        MRetry (Secret.reveal unused) (FB.hide (B.as_seq m odcid))
-      end*)
+        let odcid' = as_seq odcid odcil in
+        f (MRetry (reveal_bitfield unused) (LowParse.SLow.Base.bytes_of_seq odcid'))
+    end
 
 let encrypt #i s dst dst_pn h plain plain_len =
   if I.model then
