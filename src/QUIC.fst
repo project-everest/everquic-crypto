@@ -133,6 +133,62 @@ let rec as_seq #a (b: B.buffer a) (l: UInt32.t { l == B.len b }): Stack (S.seq a
 
 #set-options "--fuel 0 --ifuel 0 --z3rlimit 200"
 
+let nat_of_u8 (x: Lib.IntTypes.uint8) =
+  UInt8.v (Lib.RawIntTypes.u8_to_UInt8 x)
+
+let reveal_bitfield #n (x: QUIC.Spec.secret_bitfield n): QUIC.Spec.bitfield n =
+  Lib.RawIntTypes.u8_to_UInt8 x
+
+let fstar_bytes_of_seq (s: S.seq UInt8.t):
+  Pure FStar.Bytes.bytes
+    (requires S.length s < pow2 32)
+    (ensures fun b -> FStar.Bytes.reveal b `S.equal` s)
+=
+  assert_norm (pow2 32 = 4294967296);
+  LowParse.SLow.Base.bytes_of_seq s
+
+let as_header (h: QUIC.Impl.header) (packet_number: PN.packet_number_t) : Stack QUIC.Spec.header
+  (requires fun h0 ->
+    QUIC.Impl.header_live h h0)
+  (ensures fun h0 r h1 ->
+    h0 == h1 /\
+    r == QUIC.Impl.g_header h h0 packet_number)
+=
+  let _ = allow_inversion QImplBase.header in
+  let _ = allow_inversion QImplBase.long_header_specifics in
+
+  let x = packet_number in
+  let open QUIC.Impl in
+  let open QUIC.Spec.Header.Base in
+  let packet_number = x in
+  match h with
+  | BShort rb spin phase cid cid_len packet_number_length ->
+    // Insane type errors if I don't put everything in A-normal form.
+    let bar: S.seq UInt8.t = as_seq cid cid_len in
+    let foo: vlbytes 0 20 = fstar_bytes_of_seq bar in
+    MShort
+      (reveal_bitfield rb)
+      spin
+      (nat_of_u8 phase = 1)
+      foo
+      packet_number_length packet_number
+  | _ -> admit ()
+
+
+(*let x = 
+  | BLong version dcid dcil scid scil spec ->
+    MLong version (FB.hide (B.as_seq m dcid)) (FB.hide (B.as_seq m scid))
+      begin match spec with
+      | BInitial rb payload_length packet_number_length token token_length ->
+        MInitial (Secret.reveal rb) (FB.hide (B.as_seq m token)) payload_length packet_number_length packet_number
+      | BZeroRTT rb payload_length packet_number_length ->
+        MZeroRTT (Secret.reveal rb) payload_length packet_number_length packet_number
+      | BHandshake rb payload_length packet_number_length ->
+        MHandshake (Secret.reveal rb) payload_length packet_number_length packet_number
+      | BRetry unused odcid odcil ->
+        MRetry (Secret.reveal unused) (FB.hide (B.as_seq m odcid))
+      end*)
+
 let encrypt #i s dst dst_pn h plain plain_len =
   if I.model then
     let i = i <: QModel.id in
@@ -173,7 +229,13 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let r = QImpl.encrypt #(G.hide dummy_index) dummy_s dst dst_pn h plain plain_len in
     pop_frame ();
 
-    admit ();
+    // Now call the spec. This is pure-land, so no observable side-effects since
+    // the code is not stateful.
+    let Ideal writer reader traffic_secret = s <: mstate_t i in
+    let k = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_key (Spec.Agile.AEAD.key_length aead_alg) in
+    let iv = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_iv 12 in
+    let pne = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_hp (cipher_keysize aead_alg) in
+    admit (); //let cipher = QUIC.TotSpec.encrypt aead_alg aead_key 
     r
   else
     let s = s <: QImpl.state i in
