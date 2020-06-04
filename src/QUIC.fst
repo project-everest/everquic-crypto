@@ -323,8 +323,20 @@ let encrypt #i s dst dst_pn h plain plain_len =
 
     let cipher = Model.QUIC.encrypt writer spec_h
       Model.QUIC.((writer_info writer).plain_pkg.mk i (S.length plain_s) (Model.Helpers.reveal #(S.length plain_s) plain_s)) in
-
-    assume (S.length cipher == B.length dst);
+    QUIC.Spec.encrypt_length aead_alg
+      (QImpl.derive_k dummy_index dummy_s h5)
+      (QImpl.derive_iv dummy_index dummy_s h5)
+      (QImpl.derive_pne dummy_index dummy_s h5)
+      (QUIC.Impl.g_header h h5 dummy_pn)
+      (Model.Helpers.reveal #(UInt32.v plain_len) (B.as_seq h5 dummy_plain));
+    QUIC.Spec.encrypt_length
+      aead_alg
+      (let k1, _ = Model.QUIC.writer_leak writer in Model.Helpers.hide k1)
+      (Model.Helpers.hide (Model.QUIC.writer_static_iv writer))
+      (let _, k2 = Model.QUIC.writer_leak writer in Model.Helpers.hide k2)
+      spec_h
+      (Model.Helpers.reveal #(UInt32.v plain_len) plain_s);
+    assert (S.length cipher == B.length dst);
     let h9 = ST.get () in
     assert (QModel.wctrT writer h9 == QModel.wctrT writer h8 + 1);
     assert (g_next_packet_number s h9 == Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)));
