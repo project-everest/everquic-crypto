@@ -133,8 +133,14 @@ noeq type info = {
   plain_pkg: qplain_pkg;
 }
 
-val stream_writer: (k:id) -> Type0
-val stream_reader: #k:id -> w:stream_writer k -> Type0
+let max_ctr = pow2 62 - 1
+type epn (nl:pnl) = Spec.lbytes nl
+type pn = n:nat{n <= max_ctr}
+type rpn = n:U64.t{U64.v n < max_ctr}
+let rpn_of_nat (j:nat{j < max_ctr}) : rpn = U64.uint_to_t j
+
+val stream_writer: (k:id) -> Type u#1
+val stream_reader: #k:id -> w:stream_writer k -> Type u#1
 val writer_info: #k:id -> w:stream_writer k -> info
 val reader_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> i:info{i == writer_info w}
 
@@ -165,38 +171,35 @@ val invariant: #k:id -> w:stream_writer k -> h:mem ->
 val rinvariant: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
   t:Type0{t ==> invariant w h}
 
-let max_ctr = pow2 62 - 1
-type epn (nl:pnl) = Spec.lbytes nl
-type pn = n:nat{n <= max_ctr}
-type rpn = n:U64.t{U64.v n < max_ctr}
-let rpn_of_nat (j:nat{j < max_ctr}) : rpn =
-  U64.uint_to_t j
-
 val writer_offset: #k:id -> w:stream_writer k -> pn
 val reader_offset: #k:id -> #w:stream_writer k -> stream_reader w -> pn
 
-val wctrT: #k:id -> w:stream_writer k -> mem -> GTot (n:nat{n >= writer_offset w /\ n <= max_ctr})
-val wctr: #k:id -> w:stream_writer k -> ST rpn
-  (requires fun h0 -> True)
-  (ensures fun h0 c h1 -> h0 == h1 /\ UInt64.v c = wctrT w h1)
+val wctrT: #k:id -> w:stream_writer k -> h:mem{invariant w h} -> 
+  GTot (n:nat{n >= writer_offset w /\ n <= max_ctr})
+  
+val wctr: #k:id -> w:stream_writer k -> ST (n:nat{n >= writer_offset w /\ n <= max_ctr})
+  (requires fun h0 -> invariant w h0)
+  (ensures fun h0 c h1 -> h0 == h1 /\ c = wctrT w h1)
 
 type qiv (k:id) = Spec.lbytes 12 // SAE.iv (I.ae_id_ginfo (fst k))
 val writer_static_iv: #k:id -> w:stream_writer k -> qiv k
 val reader_static_iv: #k:id -> #w:stream_writer k -> r:stream_reader w ->
   iv:qiv k{iv == writer_static_iv w}
 
-val expected_pnT: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
-  GTot (r:rpn { U64.v r >= writer_offset w })
-val expected_pn: #k:id -> #w:stream_writer k -> r:stream_reader w -> ST rpn
-  (requires fun h0 -> True)
+val expected_pnT: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem{rinvariant r h} ->
+  GTot (n:nat{n >= writer_offset w /\ n < max_ctr})
+  
+val expected_pn: #k:id -> #w:stream_writer k -> r:stream_reader w ->
+  ST (n:nat{n >= writer_offset w /\ n <= max_ctr})
+  (requires fun h0 -> rinvariant r h0)
   (ensures fun h0 c h1 -> h0 == h1 /\
     (c == expected_pnT #k #w r h0))
 
-let wincrementable (#k:id) (w:stream_writer k) (h:mem) =
+let wincrementable (#k:id) (w:stream_writer k) (h:mem{invariant w h}) =
   wctrT w h < max_ctr
 
-val footprint: #k:id -> w:stream_writer k -> M.loc
-val rfootprint: #k:id -> #w:stream_writer k -> r:stream_reader w -> M.loc
+val footprint: #k:id -> w:stream_writer k -> GTot M.loc
+val rfootprint: #k:id -> #w:stream_writer k -> r:stream_reader w -> GTot M.loc
 
 val frame_invariant: #k:id -> w:stream_writer k -> h0:mem -> ri:M.loc -> h1:mem ->
   Lemma
@@ -204,7 +207,16 @@ val frame_invariant: #k:id -> w:stream_writer k -> h0:mem -> ri:M.loc -> h1:mem 
     (invariant w h0 /\
     M.modifies ri h0 h1 /\
     M.loc_disjoint ri (footprint w)))
-  (ensures invariant w h1)
+  (ensures invariant w h1 /\
+    wctrT w h0 == wctrT w h1)
+    //AEAD.wlog (writer_aead_state w) h1 == AEAD.wlog (writer_aead_state w) h0 /\
+    //PNE.table (writer_pne_state w) h1 == PNE.table (writer_pne_state w) h0)
+  [ SMTPat (M.modifies ri h0 h1); SMTPat (invariant w h1) ]
+  (*[ SMTPatOr [
+      [ SMTPat (M.modifies ri h0 h1); SMTPat (invariant w h1) ];
+      [ SMTPat (M.modifies ri h0 h1); SMTPat (AEAD.wlog (writer_aead_state w) h1) ];
+      [ SMTPat (M.modifies ri h0 h1); SMTPat (PNE.table (writer_pne_state w) h1) ]
+  ]]*)
 
 val rframe_invariant: #k:id -> #w:stream_writer k -> r:stream_reader w ->
   h0:mem -> ri:M.loc -> h1:mem ->
@@ -213,7 +225,9 @@ val rframe_invariant: #k:id -> #w:stream_writer k -> r:stream_reader w ->
     (rinvariant r h0 /\
     M.modifies ri h0 h1 /\
     M.loc_disjoint ri (rfootprint r)))
-  (ensures rinvariant r h1)
+  (ensures rinvariant r h1 /\
+    expected_pnT r h0 == expected_pnT r h1)
+  [ SMTPat (M.modifies ri h0 h1); SMTPat (rinvariant r h1) ]
 
 val wframe_log: #k:id{AEAD.is_safe (fst k)} -> w:stream_writer k -> l:Seq.seq (AEAD.entry (fst k) (AEAD.wgetinfo (writer_aead_state w))) ->
   h0:mem -> ri:M.loc -> h1:mem ->
@@ -307,7 +321,7 @@ val createReader: parent:rgn -> #k:id -> w:stream_writer k ->
     invariant w h1 /\
     rinvariant r h1 /\
     modifies_none h0 h1 /\
-    expected_pnT r h1 == 0UL)
+    expected_pnT r h1 == 0)
 
 #reset-options "--z3rlimit 50 --fuel 1"
 
@@ -334,20 +348,19 @@ let _ = assert_norm(pow2 32 < pow2 64)
                 (PNE.Entry #j #pne_plain_pkg s #(nl+1) nn cc))
 *)
 
-#push-options "--fuel 2 --z3rlimit 30"
 val encrypt
   (#k:id)
   (w:stream_writer k)
   (h:Spec.header)
-  (nl:pnl) // {hl + nl <= v AEAD.aadmax})
   (#l:qplain_len)
   (p:(writer_info w).plain_pkg.plain k l)
   : ST Spec.packet
   (requires fun h0 ->
-    wincrementable w h0 /\
     invariant w h0 /\
+    wincrementable w h0 /\
     (if Spec.is_retry h then l = 0
     else (
+      (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (wctrT w h0 + 1))) == QUIC.Spec.Header.Base.packet_number h /\
       Spec.has_payload_length h ==>
         Secret.v (Spec.payload_length h) == l
 	  + Spec.Agile.AEAD.tag_length (writer_ae_info w).AEAD.alg))
@@ -368,6 +381,7 @@ val encrypt
 	(plain <: Spec.pbytes' (Spec.is_retry h)))
     ))
 
+#push-options "--fuel 2 --z3rlimit 30"
 noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
 | M_Success:
   h: Spec.header{not (Spec.is_retry h)} ->
@@ -379,9 +393,9 @@ noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
   model_result r
 | M_Failure
 
-let max62 (a b:U62.t) =
-  let open FStar.UInt64 in
-  if a >^ b then a else b
+let max (a b:nat) =
+//  let open FStar.UInt64 in
+  if a > b then a else b
 
 module S = FStar.Seq
 module BF = LowParse.BitFields
@@ -428,7 +442,7 @@ val decrypt
     (match res with
     | M_Failure -> expected_pnT r h1 == expected
     | M_Success h _ _ _ ->
-      expected_pnT r h1 == max62 (Secret.reveal (Spec.packet_number h)) expected) /\
+      expected_pnT r h1 == max (UInt64.v (Secret.reveal (Spec.packet_number h))) expected) /\
     (safe k ==> (
       match get_sample packet cid_len with
       | _ -> True
@@ -437,7 +451,7 @@ val decrypt
       (let ea = (writer_ae_info w).AE.alg in
       let k1, k2 = reader_leak r in
       match Spec.decrypt ea (Model.Helpers.hide k1) (Model.Helpers.hide (writer_static_iv w)) (Model.Helpers.hide k2)
-	    (UInt64.v expected) cid_len packet,
+	    expected cid_len packet,
 	    res
       with
       | Spec.Failure, M_Failure -> True
