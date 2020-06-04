@@ -166,4 +166,9 @@ and `EverQuic_decrypt` respectively, in `dist/EverQuic.h` and
 
 ## Security proof
 
-TODO: document model and switch
+`Model.AEAD` and `Model.PNE` are the two code-based assumptions,
+and are used to implement the idealized NHSE implementation of
+QUIC packet encryption in `Model.QUIC`.
+The low-level implementation and model are connected by the
+implementation switch in the `QUIC` module, using the shared
+functional specification in `QUIC.Spec`.
