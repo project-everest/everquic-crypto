@@ -219,6 +219,7 @@ let as_header (h: QUIC.Impl.header) (packet_number: PN.packet_number_t) : Stack 
       end*)
 
 let encrypt #i s dst dst_pn h plain plain_len =
+  let h0 = ST.get () in
   if I.model then
     let i = i <: QModel.id in
     // A pure version of plain suitable for calling specs with. From here on,
@@ -226,23 +227,30 @@ let encrypt #i s dst dst_pn h plain plain_len =
     // belongs to spec-land.
     let plain_s = as_seq plain plain_len in
 
-    // We can clear out the contents of the "real" buffer.
-    B.fill plain (Lib.IntTypes.u8 0) plain_len;
-
     let _ = allow_inversion QImplBase.header in
     let _ = allow_inversion QImplBase.long_header_specifics in
 
+    (**) let h1 = ST.get () in
+
     // Yet do a "fake" call that generates the same side-effects.
     push_frame ();
+    (**) let h2 = ST.get () in
     let hash_alg: QSpec.ha = I.ae_id_hash (fst i) in
     let aead_alg = I.ae_id_info (fst i) in
     let dummy_traffic_secret = B.alloca (Lib.IntTypes.u8 0) (Hacl.Hash.Definitions.hash_len hash_alg) in
     (**) let h3 = ST.get () in
     (**) B.loc_unused_in_not_unused_in_disjoint h3;
+    (**) B.(modifies_only_not_unused_in loc_none h2 h3);
+    // This is a dummy plaintext that only contains zeroes.
+    let dummy_plain = B.alloca (Lib.IntTypes.u8 0) plain_len in
+    (**) let h30 = ST.get () in
+    (**) B.loc_unused_in_not_unused_in_disjoint h30;
+    (**) B.(modifies_only_not_unused_in loc_none h3 h30);
     let dummy_index: QImpl.index = { QImpl.hash_alg = hash_alg; QImpl.aead_alg = aead_alg } in
     let dummy_dst = B.alloca B.null 1ul in
     (**) let h4 = ST.get () in
     (**) B.loc_unused_in_not_unused_in_disjoint h4;
+    (**) B.(modifies_only_not_unused_in loc_none h30 h4);
     // This changes the side-effects between the two branches, which is
     // precisely what we're trying to avoid. We could allocate this on the stack
     // with QImpl.alloca (hence eliminating the heap allocation effect), but for
@@ -251,6 +259,9 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let r = QImpl.create_in dummy_index HS.root dummy_dst (Lib.IntTypes.u64 0) dummy_traffic_secret in
     (**) let h5 = ST.get () in
     (**) B.loc_unused_in_not_unused_in_disjoint h5;
+    (**) B.(modifies_only_not_unused_in (loc_buffer dummy_dst) h4 h5);
+    (**) B.(modifies_trans loc_none h2 h4 (loc_buffer dummy_dst) h5);
+    (**) assert B.(modifies (loc_buffer dummy_dst) h2 h5);
     // This is just annoying because EverCrypt still doesn't have a C fallback
     // implementation for AES-GCM so UnsupportedAlgorithm errors may be thrown
     // for one of our chosen algorithms.
@@ -261,8 +272,17 @@ let encrypt #i s dst dst_pn h plain plain_len =
     // not use here).
     assume (r <> UnsupportedAlgorithm);
     let dummy_s = LowStar.BufferOps.(!* dummy_dst) in
-    let r = QImpl.encrypt #(G.hide dummy_index) dummy_s dst dst_pn h plain plain_len in
+    let r = QImpl.encrypt #(G.hide dummy_index) dummy_s dst dst_pn h dummy_plain plain_len in
+    (**) let h6 = ST.get () in
+    (**) B.loc_unused_in_not_unused_in_disjoint h6;
+    (**) B.(modifies_only_not_unused_in (loc_buffer dummy_dst `loc_union` loc_buffer dst_pn `loc_union` loc_buffer dst)
+      h2 h6);
+    (**) assert B.(modifies (loc_buffer dummy_dst `loc_union` loc_buffer dst_pn `loc_union` loc_buffer dst) h2 h6);
     pop_frame ();
+
+    (**) let h7 = ST.get () in
+    B.(modifies_fresh_frame_popped h1 h2 (loc_buffer dst_pn `loc_union` loc_buffer dst) h6 h7);
+    assert B.(modifies (loc_buffer dst_pn `loc_union` loc_buffer dst) h0 h7);
 
     // Now call the spec. This is pure-land, so no observable side-effects since
     // the code is not stateful.
