@@ -131,7 +131,7 @@ let rec as_seq #a (b: B.buffer a) (l: UInt32.t { l == B.len b }): Stack (S.seq a
     let b = B.sub b 1ul l in
     S.cons hd (as_seq b l)
 
-#set-options "--fuel 0 --ifuel 0 --z3rlimit 200"
+#set-options "--fuel 0 --ifuel 0 --z3rlimit 200 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2'"
 
 let nat_of_u8 (x: Lib.IntTypes.uint8) =
   UInt8.v (Lib.RawIntTypes.u8_to_UInt8 x)
@@ -195,7 +195,7 @@ let encrypt #i s dst dst_pn h plain plain_len =
     // A pure version of plain suitable for calling specs with. From here on,
     // this is a "magical" value that has no observable side-effects since it
     // belongs to spec-land.
-    let plain_s = as_seq plain in
+    let plain_s = as_seq plain plain_len in
 
     // We can clear out the contents of the "real" buffer.
     B.fill plain (Lib.IntTypes.u8 0) plain_len;
@@ -208,14 +208,20 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let hash_alg: QSpec.ha = I.ae_id_hash (fst i) in
     let aead_alg = I.ae_id_info (fst i) in
     let dummy_traffic_secret = B.alloca (Lib.IntTypes.u8 0) (Hacl.Hash.Definitions.hash_len hash_alg) in
+    (**) let h3 = ST.get () in
+    (**) B.loc_unused_in_not_unused_in_disjoint h3;
     let dummy_index: QImpl.index = { QImpl.hash_alg = hash_alg; QImpl.aead_alg = aead_alg } in
     let dummy_dst = B.alloca B.null 1ul in
+    (**) let h4 = ST.get () in
+    (**) B.loc_unused_in_not_unused_in_disjoint h4;
     // This changes the side-effects between the two branches, which is
     // precisely what we're trying to avoid. We could allocate this on the stack
     // with QImpl.alloca (hence eliminating the heap allocation effect), but for
     // that we need EverCrypt.AEAD.alloca which was merged to master only two
     // days ago. So this will have to be fixed for the final version.
     let r = QImpl.create_in dummy_index HS.root dummy_dst (Lib.IntTypes.u64 0) dummy_traffic_secret in
+    (**) let h5 = ST.get () in
+    (**) B.loc_unused_in_not_unused_in_disjoint h5;
     // This is just annoying because EverCrypt still doesn't have a C fallback
     // implementation for AES-GCM so UnsupportedAlgorithm errors may be thrown
     // for one of our chosen algorithms.
@@ -235,7 +241,10 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let k = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_key (Spec.Agile.AEAD.key_length aead_alg) in
     let iv = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_iv 12 in
     let pne = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_hp (cipher_keysize aead_alg) in
-    admit (); //let cipher = QUIC.TotSpec.encrypt aead_alg aead_key 
+    let last_pn = QModel.expected_pn #i reader in
+    let spec_h = as_header h (Lib.RawIntTypes.u64_from_UInt64 last_pn) in
+    let cipher = QUIC.TotSpec.encrypt aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s) in
+    admit ();
     r
   else
     let s = s <: QImpl.state i in
