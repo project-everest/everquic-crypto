@@ -22,8 +22,10 @@ open FStar.HyperStack.ST
 open EverCrypt.Helpers
 open EverCrypt.Error
 
+// The switch only makes sense in the non-ideal case. (Unsurprisingly: if we
+// replace data by random values, functional correctness no longer holds!)
 let index =
-  if I.model then QModel.id else QImpl.index
+  if I.model then i:QModel.id { QModel.unsafe i } else QImpl.index
 
 let mid (i:index{I.model}) = i <: QModel.id
 let iid (i:index{not I.model}) = i <: QImpl.index
@@ -287,12 +289,11 @@ let encrypt #i s dst dst_pn h plain plain_len =
     // Now call the spec. This is pure-land, so no observable side-effects since
     // the code is not stateful.
     let Ideal writer reader traffic_secret = s <: mstate_t i in
-    let k = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_key (Spec.Agile.AEAD.key_length aead_alg) in
-    let iv = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_iv 12 in
-    let pne = QUIC.Spec.derive_secret hash_alg traffic_secret QUIC.Spec.label_hp (cipher_keysize aead_alg) in
     let last_pn = QModel.expected_pn #i reader in
     let spec_h = as_header h (Lib.RawIntTypes.u64_from_UInt64 last_pn) in
-    let cipher = QUIC.TotSpec.encrypt aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s) in
+    let cipher = Model.QUIC.encrypt writer spec_h
+      (UInt32.v (Lib.RawIntTypes.u32_to_UInt32 (QUIC.Spec.Header.Base.pn_length spec_h)))
+      Model.QUIC.((writer_info writer).plain_pkg.mk i (S.length plain_s) (Model.Helpers.reveal plain_s)) in
     assume (S.length cipher == B.length dst);
     from_seq dst cipher;
     admit ();
