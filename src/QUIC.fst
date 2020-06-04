@@ -275,6 +275,7 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let cipher = QUIC.TotSpec.encrypt aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s) in
     assume (S.length cipher == B.length dst);
     from_seq dst cipher;
+    admit ();
     Success
   else
     let s = s <: QImpl.state i in
