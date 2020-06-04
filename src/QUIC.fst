@@ -53,7 +53,7 @@ let derived (#i:QModel.id) (#w:QModel.stream_writer i) (r:QModel.stream_reader w
     MH.hide k1 == QSpec.derive_secret ha ts
         QSpec.label_key (QSpec.cipher_keysize ea) /\
     MH.hide k2 == QUIC.Spec.derive_secret ha ts
-        QUIC.Spec.label_key (QSpec.cipher_keysize ea)
+        QUIC.Spec.label_hp (QSpec.cipher_keysize ea)
   else True
 
 noeq type mstate_t i =
@@ -65,12 +65,15 @@ noeq type mstate_t i =
 
 let istate_t i = QImpl.state i
 
+noeq
+type raise (i: index { not I.model }): Type u#1 = | Raise: s:istate_t i -> raise i
+
 let state i =
   if I.model then mstate_t (mid i)
-  else istate_t (iid i)
+  else raise (iid i)
 
 let mstate (#i:index{I.model}) (s:state i) = s <: mstate_t (mid i)
-let istate (#i:index{not I.model}) (s:state i) = s <: istate_t (iid i)
+let istate (#i:index{not I.model}) (s:state i) = (s <: raise (iid i)).s
 
 let footprint #i h s =
   if I.model then
@@ -99,7 +102,14 @@ let g_initial_packet_number #i s h =
 let g_last_packet_number #i s h =
   assert_norm (pow2 62 - 1 < pow2 64);
   if I.model then
-    Lib.IntTypes.u64 (UInt64.v (QModel.expected_pnT #(mid i) (mstate s).reader h)) // - 1 ?
+    Lib.IntTypes.u64 (QModel.expected_pnT #(mid i) (mstate s).reader h)
+  else
+    QImpl.g_last_packet_number (B.deref h (istate s)) h
+
+let g_next_packet_number #i s h =
+  assert_norm (pow2 62 - 1 < pow2 64);
+  if I.model then
+    Lib.IntTypes.u64 (QModel.wctrT #(mid i) (mstate s).writer h)
   else
     QImpl.g_last_packet_number (B.deref h (istate s)) h
 
@@ -220,10 +230,14 @@ let as_header (h: QUIC.Impl.header) (packet_number: PN.packet_number_t) : Stack 
         MRetry (Secret.reveal unused) (FB.hide (B.as_seq m odcid))
       end*)
 
+#set-options "--z3rlimit 500"
 let encrypt #i s dst dst_pn h plain plain_len =
   let h0 = ST.get () in
   if I.model then
     let i = i <: QModel.id in
+    let Ideal writer reader traffic_secret = s <: mstate_t i in
+    assert (Model.QUIC.wincrementable writer h0);
+
     // A pure version of plain suitable for calling specs with. From here on,
     // this is a "magical" value that has no observable side-effects since it
     // belongs to spec-land.
@@ -288,16 +302,109 @@ let encrypt #i s dst dst_pn h plain plain_len =
 
     // Now call the spec. This is pure-land, so no observable side-effects since
     // the code is not stateful.
-    let Ideal writer reader traffic_secret = s <: mstate_t i in
-    let last_pn = QModel.expected_pn #i reader in
-    let spec_h = as_header h (Lib.RawIntTypes.u64_from_UInt64 last_pn) in
+    QModel.frame_invariant writer h0 B.(loc_buffer dst_pn `loc_union` loc_buffer dst) h7;
+    assert (Model.QUIC.invariant writer h7);
+    let next_pn = QModel.wctr #i writer in
+    assert (g_next_packet_number s h7 == Secret.to_u64 (UInt64.uint_to_t next_pn));
+    let spec_h = as_header h (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (next_pn + 1))) in
+    let h8 = ST.get () in
+    assert (g_next_packet_number s h8 == Secret.to_u64 (UInt64.uint_to_t next_pn));
+    assert (Model.QUIC.wincrementable writer h8);
+
     let cipher = Model.QUIC.encrypt writer spec_h
-      (UInt32.v (Lib.RawIntTypes.u32_to_UInt32 (QUIC.Spec.Header.Base.pn_length spec_h)))
-      Model.QUIC.((writer_info writer).plain_pkg.mk i (S.length plain_s) (Model.Helpers.reveal plain_s)) in
+      Model.QUIC.((writer_info writer).plain_pkg.mk i (S.length plain_s) (Model.Helpers.reveal #(S.length plain_s) plain_s)) in
+
     assume (S.length cipher == B.length dst);
+    let h9 = ST.get () in
+    assert (QModel.wctrT writer h9 == QModel.wctrT writer h8 + 1);
+    assert (g_next_packet_number s h9 == Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)));
+    assume (Secret.to_u64 (UInt64.uint_to_t (next_pn + 1)) ==
+      Secret.to_u64 (UInt64.uint_to_t next_pn) `Secret.add` Secret.to_u64 1UL);
     from_seq dst cipher;
-    admit ();
+    assert_norm (pow2 62 - 1 < pow2 64);
+    assert (Secret.v (Secret.to_u64 (UInt64.uint_to_t next_pn)) == next_pn);
+    B.upd dst_pn 0ul (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (next_pn + 1)));
+    let h10 = ST.get () in
+    QModel.frame_invariant writer h9
+      B.(loc_buffer dst_pn `loc_union` loc_buffer dst) h10;
+    assert (QModel.wctrT writer h10 == QModel.wctrT writer h0 + 1);
+    assert (Lib.IntTypes.u64 (QModel.wctrT writer h10) == Lib.IntTypes.u64 (QModel.wctrT writer h0) `Secret.add`
+      Secret.to_u64 1UL);
+    calc (S.equal) {
+      B.as_seq h10 dst;
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      QUIC.Spec.encrypt aead_alg (Model.Helpers.hide k1)
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        spec_h
+        (Model.Helpers.reveal #(S.length plain_s) plain_s));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      QUIC.Spec.encrypt aead_alg (Model.Helpers.hide k1)
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        spec_h
+        (QUIC.Secret.Seq.seq_reveal plain_s));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      QUIC.Spec.encrypt aead_alg (Model.Helpers.hide k1)
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        spec_h
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      QUIC.Spec.encrypt aead_alg (Model.Helpers.hide k1)
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        (QImpl.g_header h h0 (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (next_pn + 1))))
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      QUIC.Spec.encrypt aead_alg (Model.Helpers.hide k1)
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        (QImpl.g_header h h0 (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t next_pn) `Secret.add` Secret.to_u64 1UL))
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      QUIC.Spec.encrypt aead_alg (Model.Helpers.hide k1)
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        (QImpl.g_header h h0 (g_next_packet_number s h0 `Secret.add` Secret.to_u64 1UL))
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      let ha = I.ae_id_hash (fst i) in
+      let ea = I.ae_id_info (fst i) in
+      QUIC.Spec.encrypt aead_alg
+        (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_key (Spec.Agile.AEAD.key_length (alg i)))
+        (Model.Helpers.hide (QModel.writer_static_iv writer))
+        (Model.Helpers.hide k2)
+        (QImpl.g_header h h0 (g_next_packet_number s h0 `Secret.add` Secret.to_u64 1UL))
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
+    (S.equal) { }
+      (let k1, k2 = QModel.writer_leak writer in
+      let ha = I.ae_id_hash (fst i) in
+      let ea = I.ae_id_info (fst i) in
+      QUIC.Spec.encrypt aead_alg
+        (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_key (Spec.Agile.AEAD.key_length (alg i)))
+        (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_iv 12)
+        (Model.Helpers.hide k2)
+        (QImpl.g_header h h0 (g_next_packet_number s h0 `Secret.add` Secret.to_u64 1UL))
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
+    (S.equal) { }
+      QUIC.Spec.encrypt aead_alg
+        (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_key (Spec.Agile.AEAD.key_length (alg i)))
+        (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_iv 12)
+        (QUIC.Spec.derive_secret (halg i) (g_traffic_secret s h0) QUIC.Spec.label_hp (QSpec.cipher_keysize (alg i)))
+        (QImpl.g_header h h0 (g_next_packet_number s h0 `Secret.add` Secret.to_u64 1UL))
+        (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain));
+    };
     Success
   else
-    let s = s <: QImpl.state i in
+    let s = istate s in
     QImpl.encrypt #(G.hide (i <: QImpl.index)) s dst dst_pn h plain plain_len
+
+/// Decrypt follows in a similar fashion. A complete proof will be provided for the final version.

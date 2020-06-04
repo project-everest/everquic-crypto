@@ -48,7 +48,7 @@ let traffic_secret i =
   Spec.Hash.Definitions.bytes_hash (halg i)
 
 // Switch state: either QModel or QImpl
-val state: index -> Type0
+val state: index -> Type u#1
 
 val footprint: #i:index -> HS.mem -> state i -> GTot B.loc
 val invariant: #i:index -> HS.mem -> state i -> Type0
@@ -60,8 +60,16 @@ val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s 
     let open Lib.IntTypes in
     Secret.v pn >= Secret.v #U64 #SEC (g_initial_packet_number s h)
   })
+val g_next_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s }) ->
+  GTot (pn: PN.packet_number_t {
+    let open Lib.IntTypes in
+    Secret.v pn >= Secret.v #U64 #SEC (g_initial_packet_number s h)
+  })
 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
+  Secret.v (g_next_packet_number s h) + 1 < pow2 62
+
+let receivable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
   Secret.v (g_last_packet_number s h) + 1 < pow2 62
 
 val encrypt: #i:(*G.erased *)index -> (
@@ -72,7 +80,7 @@ val encrypt: #i:(*G.erased *)index -> (
   h: QImplBase.header ->
   plain: B.buffer Secret.uint8 ->
   plain_len: U32.t ->
-  Stack error_code
+  ST error_code
     (requires fun h0 ->
       not (QImpl.is_retry h) /\ // until it's supported in Model.QUIC
       // Memory & preservation
@@ -107,10 +115,10 @@ val encrypt: #i:(*G.erased *)index -> (
           let pne = derive_secret (halg i) ts label_hp (cipher_keysize (alg i)) in
           let plain = B.as_seq h0 plain in
           let packet: packet = B.as_seq h1 dst in
-          let pn = g_last_packet_number s h0 `Secret.add` Secret.to_u64 1uL in
+          let pn = g_next_packet_number s h0 `Secret.add` Secret.to_u64 1uL in
           B.deref h1 dst_pn == pn /\
-          packet == encrypt (alg i) k iv pne (QImpl.g_header h h0 pn) (QUIC.Secret.Seq.seq_reveal plain) /\
-          g_last_packet_number s h1 == pn)
+          packet `Seq.equal` encrypt (alg i) k iv pne (QImpl.g_header h h0 pn) (QUIC.Secret.Seq.seq_reveal plain) /\
+          g_next_packet_number s h1 == pn)
       | _ ->
           False))
 
@@ -128,7 +136,7 @@ let decrypt_post (i: index)
     U8.v cid_len <= 20 /\
     U32.v len == B.length packet /\
     invariant h0 s /\
-    incrementable s h0)
+    receivable s h0)
   (ensures fun _ -> True)
 =
   let s0 = g_traffic_secret s h0 in
@@ -204,7 +212,7 @@ val decrypt: #i:G.erased index -> (
       B.live h0 packet /\ B.live h0 dst /\
       B.(all_disjoint [ loc_buffer dst; loc_buffer packet; footprint h0 s ]) /\
       invariant h0 s /\
-      incrementable s h0)
+      receivable s h0)
     (ensures fun h0 res h1 ->
       let r = B.deref h1 dst in
       decrypt_post i s dst packet len cid_len h0 res h1 /\

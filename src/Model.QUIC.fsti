@@ -207,7 +207,16 @@ val frame_invariant: #k:id -> w:stream_writer k -> h0:mem -> ri:M.loc -> h1:mem 
     (invariant w h0 /\
     M.modifies ri h0 h1 /\
     M.loc_disjoint ri (footprint w)))
-  (ensures invariant w h1)
+  (ensures invariant w h1 /\
+    wctrT w h0 == wctrT w h1)
+    //AEAD.wlog (writer_aead_state w) h1 == AEAD.wlog (writer_aead_state w) h0 /\
+    //PNE.table (writer_pne_state w) h1 == PNE.table (writer_pne_state w) h0)
+  [ SMTPat (M.modifies ri h0 h1); SMTPat (invariant w h1) ]
+  (*[ SMTPatOr [
+      [ SMTPat (M.modifies ri h0 h1); SMTPat (invariant w h1) ];
+      [ SMTPat (M.modifies ri h0 h1); SMTPat (AEAD.wlog (writer_aead_state w) h1) ];
+      [ SMTPat (M.modifies ri h0 h1); SMTPat (PNE.table (writer_pne_state w) h1) ]
+  ]]*)
 
 val rframe_invariant: #k:id -> #w:stream_writer k -> r:stream_reader w ->
   h0:mem -> ri:M.loc -> h1:mem ->
@@ -216,7 +225,9 @@ val rframe_invariant: #k:id -> #w:stream_writer k -> r:stream_reader w ->
     (rinvariant r h0 /\
     M.modifies ri h0 h1 /\
     M.loc_disjoint ri (rfootprint r)))
-  (ensures rinvariant r h1)
+  (ensures rinvariant r h1 /\
+    expected_pnT r h0 == expected_pnT r h1)
+  [ SMTPat (M.modifies ri h0 h1); SMTPat (rinvariant r h1) ]
 
 val wframe_log: #k:id{AEAD.is_safe (fst k)} -> w:stream_writer k -> l:Seq.seq (AEAD.entry (fst k) (AEAD.wgetinfo (writer_aead_state w))) ->
   h0:mem -> ri:M.loc -> h1:mem ->
@@ -337,7 +348,6 @@ let _ = assert_norm(pow2 32 < pow2 64)
                 (PNE.Entry #j #pne_plain_pkg s #(nl+1) nn cc))
 *)
 
-#push-options "--fuel 2 --z3rlimit 30"
 val encrypt
   (#k:id)
   (w:stream_writer k)
@@ -350,6 +360,7 @@ val encrypt
     wincrementable w h0 /\
     (if Spec.is_retry h then l = 0
     else (
+      (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (wctrT w h0 + 1))) == QUIC.Spec.Header.Base.packet_number h /\
       Spec.has_payload_length h ==>
         Secret.v (Spec.payload_length h) == l
 	  + Spec.Agile.AEAD.tag_length (writer_ae_info w).AEAD.alg))
@@ -370,6 +381,7 @@ val encrypt
 	(plain <: Spec.pbytes' (Spec.is_retry h)))
     ))
 
+#push-options "--fuel 2 --z3rlimit 30"
 noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
 | M_Success:
   h: Spec.header{not (Spec.is_retry h)} ->
