@@ -8,9 +8,12 @@ let hide (b:Seq.seq UInt8.t) : lbytes (Seq.length b) =
 let reveal #l (b:lbytes l) : (QUIC.Spec.lbytes l) =
   Seq.init l (fun i -> Lib.RawIntTypes.u8_to_UInt8 (Seq.index b i)) 
 
-val reveal_eq (b:Seq.seq Lib.IntTypes.uint8): Lemma
+let reveal_eq (b:Seq.seq Lib.IntTypes.uint8): Lemma
   (ensures reveal #(Seq.length b) b == QUIC.Secret.Seq.seq_reveal b)
   [ SMTPat (QUIC.Secret.Seq.seq_reveal b) ]
+= 
+  assert (reveal #(Seq.length b) b `Seq.equal` QUIC.Secret.Seq.seq_reveal b)
+
 
 val correct (#l: nat) (b:Seq.seq UInt8.t{Seq.length b = l})
   : Lemma (reveal #l (hide b) == b)
