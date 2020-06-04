@@ -131,6 +131,35 @@ let rec as_seq #a (b: B.buffer a) (l: UInt32.t { l == B.len b }): Stack (S.seq a
     let b = B.sub b 1ul l in
     S.cons hd (as_seq b l)
 
+let rec from_seq #a (dst: B.buffer a) (s: S.seq a): Stack unit
+  (requires fun h0 ->
+    B.live h0 dst /\
+    B.length dst == S.length s)
+  (ensures fun h0 _ h1 ->
+    B.modifies (B.loc_buffer dst) h0 h1 /\
+    B.as_seq h1 dst `S.equal` s)
+=
+  if S.length s = 0 then
+    ()
+  else begin
+    let hd = B.sub dst 0ul 1ul in
+    let tl = B.sub dst 1ul (UInt32.uint_to_t (S.length s - 1)) in
+    B.upd hd 0ul (S.index s 0);
+    from_seq tl (S.slice s 1 (S.length s));
+    let h1 = ST.get () in
+    calc (S.equal) {
+      B.as_seq h1 dst;
+    (S.equal) { }
+      S.append (S.slice (B.as_seq h1 hd) 0 1) (S.slice (B.as_seq h1 dst) 1 (S.length s));
+    (S.equal) { }
+      S.append (S.create 1 (S.index s 0)) (S.slice (B.as_seq h1 dst) 1 (S.length s));
+    (S.equal) { }
+      S.append (S.create 1 (S.index s 0)) (S.slice s 1 (S.length s));
+    (S.equal) { }
+      s;
+    }
+  end
+
 #set-options "--fuel 0 --ifuel 0 --z3rlimit 200 --using_facts_from '*,-LowStar.Monotonic.Buffer.unused_in_not_unused_in_disjoint_2'"
 
 let nat_of_u8 (x: Lib.IntTypes.uint8) =
@@ -244,8 +273,9 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let last_pn = QModel.expected_pn #i reader in
     let spec_h = as_header h (Lib.RawIntTypes.u64_from_UInt64 last_pn) in
     let cipher = QUIC.TotSpec.encrypt aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s) in
-    admit ();
-    r
+    assume (S.length cipher == B.length dst);
+    from_seq dst cipher;
+    Success
   else
     let s = s <: QImpl.state i in
     QImpl.encrypt #(G.hide (i <: QImpl.index)) s dst dst_pn h plain plain_len
