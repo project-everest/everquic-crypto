@@ -16,13 +16,13 @@ open Model.Helpers
 let log #i (u: info i): Type0 =
   Seq.seq (entry i u)
 
-let model_writer i: Type0 =
+let model_writer i: Type u#1 =
   u:info i & B.pointer (log #i u)
 
 let unsafe_writer i =
   info i & Spec.kv (I.ae_id_ginfo i)
 
-let aead_writer (i: id): Type u#0 =
+let aead_writer (i: id): Type u#1 =
   if is_safe i then
     model_writer i
   else
