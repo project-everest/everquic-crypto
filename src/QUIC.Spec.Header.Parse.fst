@@ -590,11 +590,31 @@ let header_len'
   Seq.length (LP.serialize s h)
 
 let header_len'_correct
-  (h: header)
+  (gh: header)
 : Lemma
-  (header_len h == header_len' h)
-  [SMTPat (header_len h)]
-= admit ()
+  (header_len gh == header_len' gh)
+  [SMTPat (header_len gh)]
+=
+  allow_inversion header;
+  allow_inversion long_header_specifics;
+  let cid_len = U32.uint_to_t (dcid_len gh) in
+  let last = last_packet_number gh in
+  in_window_last_packet_number gh;
+  let (| ph, pn' |) = synth_header_recip cid_len last gh in
+  serialize_header_eq cid_len last gh;
+  Public.header_len'_correct cid_len ph;
+  if is_retry gh
+  then ()
+  else begin
+    let pn_len = pn_length gh in
+    PN.parse_packet_number_kind'_correct last pn_len;
+    LP.serialize_length
+      #(PN.parse_packet_number_kind' pn_len)
+      #_
+      #(PN.parse_packet_number last pn_len <: LP.bare_parser (PN.packet_number_t' last pn_len))
+      (PN.serialize_packet_number last pn_len <: LP.bare_serializer (PN.packet_number_t' last pn_len))
+      pn'
+  end
 
 let format_header
   h

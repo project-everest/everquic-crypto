@@ -556,3 +556,22 @@ let serialize_bounded_varint min max =
     (serialize_varint `serialize_filter` varint_in_bounds min max)
     (synth_bounded_varint_recip min max)
     ()
+
+#push-options "--z3rlimit 16"
+
+let varint_len_correct
+  x
+= ()
+
+#pop-options
+
+let bounded_varint_len_correct
+  min max x
+= serialize_synth_eq
+    _
+    (synth_bounded_varint min max)
+    (serialize_varint `serialize_filter` varint_in_bounds min max)
+    (synth_bounded_varint_recip min max)
+    ()
+    x;
+  varint_len_correct (Cast.uint32_to_uint64 x)

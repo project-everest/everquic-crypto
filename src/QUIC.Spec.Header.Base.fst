@@ -8,6 +8,7 @@ module U32 = FStar.UInt32
 module U8 = FStar.UInt8
 module S = FStar.Seq
 module PN = QUIC.Spec.PacketNumber.Base
+module Cast = FStar.Int.Cast
 
 noeq
 type long_header_specifics =
@@ -138,16 +139,16 @@ let header_len
 : GTot (n: pos { n <= header_len_bound })
 = match h with
   | MShort _ _ _ dcid packet_number_length _ ->
-    2 + FB.length dcid + Secret.v packet_number_length
+    1 + FB.length dcid + Secret.v packet_number_length
   | MLong version dcid scid spec ->
     7 + FB.length dcid + FB.length scid +
     begin match spec with
-    | MInitial _ token _ packet_number_length _ ->
-      2 + FB.length token + Secret.v packet_number_length
-    | MZeroRTT _ _ packet_number_length _ ->
-      Secret.v packet_number_length
-    | MHandshake _ _ packet_number_length _ ->
-      Secret.v packet_number_length
+    | MInitial _ token payload_and_pn_length packet_number_length _ ->
+      varint_len (Cast.uint32_to_uint64 (FB.len token)) + FB.length token + varint_len payload_and_pn_length + Secret.v packet_number_length
+    | MZeroRTT _ payload_and_pn_length packet_number_length _ ->
+      varint_len payload_and_pn_length + Secret.v packet_number_length
+    | MHandshake _ payload_and_pn_length packet_number_length _ ->
+      varint_len payload_and_pn_length + Secret.v packet_number_length
     | MRetry _ odcid ->
       1 + FB.length odcid
     end

@@ -8,6 +8,7 @@ module U64 = FStar.UInt64
 module U8 = FStar.UInt8
 module LPB = LowParse.BitFields
 module FB = FStar.Bytes
+module Cast = FStar.Int.Cast
 
 noeq
 type long_header_specifics =
@@ -158,3 +159,30 @@ val serialize_set_protected_bits
   Seq.length sq > 0 /\
   LP.serialize (serialize_header short_dcid_len) (set_protected_bits h new_pb) `Seq.equal`
     (LPB.uint8.LPB.set_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4) new_pb `Seq.cons` Seq.tail sq))
+
+(* Explicit length computation is needed for the switch. *)
+
+let header_len'
+  (h: header)
+: GTot (n: pos { n <= header_len_bound })
+= match h with
+  | PShort _ _ dcid ->
+    1 + FB.length dcid
+  | PLong pb version dcid scid spec ->
+    7 + FB.length dcid + FB.length scid +
+    begin match spec with
+    | PInitial token payload_and_pn_length ->
+      varint_len (Cast.uint32_to_uint64 (FB.len token)) + FB.length token + varint_len payload_and_pn_length
+    | PZeroRTT payload_and_pn_length ->
+      varint_len payload_and_pn_length
+    | PHandshake payload_and_pn_length ->
+      varint_len payload_and_pn_length
+    | PRetry odcid ->
+      1 + FB.length odcid
+    end
+
+val header_len'_correct
+  (short_dcid_len: short_dcid_len_t)
+  (h: header' short_dcid_len)
+: Lemma
+  (header_len' h == Seq.length (LP.serialize (serialize_header short_dcid_len) h))

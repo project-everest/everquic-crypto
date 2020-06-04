@@ -40,3 +40,16 @@ let token_max_len = 16383 // arbitrary bound
 inline_for_extraction
 let vlbytes (min: nat) (max: nat) =
   (x: FB.bytes { min <= FB.length x /\ FB.length x <= max })
+
+(* Length computations need to be transparent because of the switch. *)
+
+let varint_len
+  (x: U62.t)
+: GTot (y: nat {y <= 8})
+= if x `U62.lt` 64uL
+  then 1
+  else if x `U62.lt` 16384uL
+  then 2
+  else if x `U62.lt` 1073741824uL
+  then 4
+  else 8

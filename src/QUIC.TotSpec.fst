@@ -393,7 +393,9 @@ let synth_header_recip
       (| Public.PLong (mk_long_protected_bits rb pnl) version dcid scid (Public.PZeroRTT payload_and_pn_length), pn |)
     end
 
-#push-options "--z3rlimit 64"
+#push-options "--z3rlimit 128"
+
+#restart-solver
 
 let serialize32_header
   (short_dcid_len: short_dcid_len_t)
