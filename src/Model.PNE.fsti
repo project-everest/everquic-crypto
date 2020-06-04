@@ -209,7 +209,7 @@ let encrypt_spec (a: Spec.cipher_alg)
 =
   let open QUIC.Spec.Lemmas in
   // We need the packet number length in order to know where to find the mask in the cipher block.
-  let mask = Model.Helpers.reveal #16 (QUIC.TotSpec.block_of_sample a k (Model.Helpers.hide #16 s)) in
+  let mask = Model.Helpers.reveal #16 (QUIC.TotSpec.block_of_sample a k (Model.Helpers.hide s)) in
   let pnmask = and_inplace (Seq.slice mask 1 (l + 1)) (QUIC.Spec.Header.pn_sizemask (l - 1)) 0 in
   // Classify, because HACL* specs require secret integers.
   let pnmask = Seq.init (Seq.length pnmask) (fun i -> Lib.IntTypes.u8 (UInt8.v (Seq.index pnmask i))) in
@@ -265,7 +265,7 @@ let decrypt_spec
 =
   // This mimics the specification of header_decrypt_aux starting after:
   // let sample = ...
-  let mask = Model.Helpers.reveal #16 (QUIC.TotSpec.block_of_sample a k (Model.Helpers.hide #16 s)) in
+  let mask = Model.Helpers.reveal #16 (QUIC.TotSpec.block_of_sample a k (Model.Helpers.hide s)) in
   // Decrypting protected bits
   let mask_bits: bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
   let b = mask_bits `FStar.UInt.logxor` b in

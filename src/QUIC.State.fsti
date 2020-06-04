@@ -127,12 +127,12 @@ val frame_invariant: #i:index -> l:B.loc -> s:state i -> h0:HS.mem -> h1:HS.mem 
     g_traffic_secret (B.deref h0 s) == g_traffic_secret (B.deref h1 s)
     ))
   // Assertion failure: unexpected pattern term
-  (*[ SMTPat (B.modifies l h0 h1); SMTPatOr [
-    [ SMTPat (invariant h1 s) ];
-    [ SMTPat (footprint h1 s) ];
-    [ SMTPat (g_aead_key (B.deref h1 s)) ];
-    [ SMTPat (g_counter (B.deref h1 s)) ]
-  ]]*)
+  [ SMTPatOr [
+    [ SMTPat (B.modifies l h0 h1); SMTPat (invariant h1 s) ];
+    [ SMTPat (B.modifies l h0 h1); SMTPat (footprint h1 s) ];
+    [ SMTPat (B.modifies l h0 h1); SMTPat (g_last_packet_number (B.deref h1 s)) ];
+    [ SMTPat (B.modifies l h0 h1); SMTPat (g_traffic_secret (B.deref h1 s)) ]
+  ] ]
 
 
 

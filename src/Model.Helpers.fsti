@@ -2,15 +2,15 @@ module Model.Helpers
 
 let lbytes (l:nat) = b:Seq.seq Lib.IntTypes.uint8 { Seq.length b = l }
 
-let hide #l (b:Seq.seq UInt8.t{Seq.length b = l}) : lbytes l=
-  Seq.init l (fun i -> Lib.RawIntTypes.u8_from_UInt8 (Seq.index b i))
+let hide (b:Seq.seq UInt8.t) : lbytes (Seq.length b) =
+  Seq.init (Seq.length b) (fun i -> Lib.RawIntTypes.u8_from_UInt8 (Seq.index b i))
 
 let reveal #l (b:lbytes l) : (QUIC.Spec.lbytes l) =
   Seq.init l (fun i -> Lib.RawIntTypes.u8_to_UInt8 (Seq.index b i)) 
 
 val correct (#l: nat) (b:Seq.seq UInt8.t{Seq.length b = l})
-  : Lemma (reveal #l (hide #l b) == b)
-  [SMTPat (reveal #l (hide #l b))]
+  : Lemma (reveal #l (hide b) == b)
+  [SMTPat (reveal #l (hide b))]
 
 let random (l: nat { l < pow2 32 })
   : HyperStack.ST.ST (lbytes l)

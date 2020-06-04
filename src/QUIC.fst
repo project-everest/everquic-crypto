@@ -1,8 +1,8 @@
 module QUIC
 
 module QSpec = QUIC.Spec
-module QImpl = QUIC.Impl
-module QImplBase = QUIC.Impl.Base
+module QImpl = QUIC.State
+module QImplBase = QUIC.Impl.Header.Base
 module QModel = Model.QUIC
 
 module I = Model.Indexing
@@ -46,11 +46,11 @@ let derived (#i:QModel.id) (#w:QModel.stream_writer i) (r:QModel.stream_reader w
     let ha = I.ae_id_hash (fst i) in
     let ea = I.ae_id_info (fst i) in
     let (k1, k2) = QModel.reader_leak r in
-    QModel.writer_static_iv w ==
+    MH.hide (QModel.writer_static_iv w) ==
       QSpec.derive_secret ha ts QSpec.label_iv 12 /\
-    k1 == QSpec.derive_secret ha ts
-        QSpec.label_key (QSpec.ae_keysize ea) /\
-    k2 == QUIC.Spec.derive_secret ha ts
+    MH.hide k1 == QSpec.derive_secret ha ts
+        QSpec.label_key (QSpec.cipher_keysize ea) /\
+    MH.hide k2 == QUIC.Spec.derive_secret ha ts
         QUIC.Spec.label_key (QSpec.cipher_keysize ea)
   else True
 
@@ -87,14 +87,17 @@ let g_traffic_secret #i s h =
   else
     QImpl.g_traffic_secret (B.deref h (istate s))
 
-let g_initial_packet_number #i s =
-  if I.model then QModel.writer_offset #(mid i) (mstate s).writer
+let g_initial_packet_number #i s h =
+  assert_norm (pow2 62 - 1 < pow2 64);
+  if I.model then
+    Lib.IntTypes.u64 (QModel.writer_offset #(mid i) (mstate s).writer)
   else
     QImpl.g_initial_packet_number (B.deref h (istate s))
 
 let g_last_packet_number #i s h =
+  assert_norm (pow2 62 - 1 < pow2 64);
   if I.model then
-    QModel.expected_pnT #(mid i) (mstate s).reader // - 1 ?
+    Lib.IntTypes.u64 (UInt64.v (QModel.expected_pnT #(mid i) (mstate s).reader h)) // - 1 ?
   else
     QImpl.g_last_packet_number (B.deref h (istate s)) h
 
@@ -139,25 +142,35 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let plain_s = as_seq plain in
 
     // We can clear out the contents of the "real" buffer.
-    B.fill plain 0uy plain_len;
+    B.fill plain (Lib.IntTypes.u8 0) plain_len;
+
+    let _ = allow_inversion QImplBase.header in
+    let _ = allow_inversion QImplBase.long_header_specifics in
 
     // Yet do a "fake" call that generates the same side-effects.
     push_frame ();
     let hash_alg: QSpec.ha = I.ae_id_hash (fst i) in
     let aead_alg = I.ae_id_info (fst i) in
-    let dummy_traffic_secret = B.alloca 0uy (Hacl.Hash.Definitions.hash_len hash_alg) in
+    let dummy_traffic_secret = B.alloca (Lib.IntTypes.u8 0) (Hacl.Hash.Definitions.hash_len hash_alg) in
     let dummy_index: QImpl.index = { QImpl.hash_alg = hash_alg; QImpl.aead_alg = aead_alg } in
     let dummy_dst = B.alloca B.null 1ul in
-    (*let dummy_cipher =
-      B.alloca 0uy (QImpl.header_len h `U32.add` plain_len `U32.add` Model.AEAD.tag_len)
-    in
-    let dummy_dst_pn = B.alloca 0UL 1ul in*)
-    let r = QImpl.create_in dummy_index (HS.get_tip ()) dummy_dst 0UL dummy_traffic_secret in
+    // This changes the side-effects between the two branches, which is
+    // precisely what we're trying to avoid. We could allocate this on the stack
+    // with QImpl.alloca (hence eliminating the heap allocation effect), but for
+    // that we need EverCrypt.AEAD.alloca which was merged to master only two
+    // days ago. So this will have to be fixed for the final version.
+    let r = QImpl.create_in dummy_index HS.root dummy_dst (Lib.IntTypes.u64 0) dummy_traffic_secret in
+    // This is just annoying because EverCrypt still doesn't have a C fallback
+    // implementation for AES-GCM so UnsupportedAlgorithm errors may be thrown
+    // for one of our chosen algorithms.
+    // Assuming here a C implementation of AES-GCM will eventually happen and
+    // EverCrypt will allow eliminating in the post-condition the
+    // UnsupportedAlgorithm case provided the user passes in an aead_alg that is
+    // one of the supported ones (i.e. not one of the CCM variants, which we do
+    // not use here).
     assume (r <> UnsupportedAlgorithm);
     let dummy_s = LowStar.BufferOps.(!* dummy_dst) in
-    admit (); // problem with header_live precondition, need to debug
     let r = QImpl.encrypt #(G.hide dummy_index) dummy_s dst dst_pn h plain plain_len in
-    B.free dummy_s;
     pop_frame ();
 
     admit ();

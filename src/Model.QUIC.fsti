@@ -186,7 +186,7 @@ val reader_static_iv: #k:id -> #w:stream_writer k -> r:stream_reader w ->
   iv:qiv k{iv == writer_static_iv w}
 
 val expected_pnT: #k:id -> #w:stream_writer k -> r:stream_reader w -> h:mem ->
-  GTot rpn
+  GTot (r:rpn { U64.v r >= writer_offset w })
 val expected_pn: #k:id -> #w:stream_writer k -> r:stream_reader w -> ST rpn
   (requires fun h0 -> True)
   (ensures fun h0 c h1 -> h0 == h1 /\
@@ -291,12 +291,12 @@ val coerce: k:unsafe_id -> u:info ->
     writer_ae_info w == u1 /\
     writer_pne_info w == u2 /\
     writer_info w == u /\
-    writer_static_iv w ==
+    Model.Helpers.hide (writer_static_iv w) ==
       Spec.derive_secret u1.AEAD.halg ts
         Spec.label_iv 12 /\
-    Model.Helpers.hide #(SAE.key_length u1.AEAD.alg) k1 == Spec.derive_secret u1.AEAD.halg ts
+    Model.Helpers.hide k1 == Spec.derive_secret u1.AEAD.halg ts
         Spec.label_key (SAE.key_length u1.AEAD.alg) /\
-    Model.Helpers.hide #(PNE.key_len u2) k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
+    Model.Helpers.hide k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
         QUIC.Spec.label_hp (PNE.key_len u2)
   )
 
@@ -364,7 +364,7 @@ val encrypt
       (let ea = (writer_ae_info w).AE.alg in
       let k1, k2 = writer_leak w in
       let plain : Spec.pbytes = (writer_info w).plain_pkg.repr p in
-      c == Spec.encrypt ea (Model.Helpers.hide #(Seq.length k1) k1) (Model.Helpers.hide #12 (writer_static_iv w)) (Model.Helpers.hide #(Seq.length k2) k2) h
+      c == Spec.encrypt ea (Model.Helpers.hide k1) (Model.Helpers.hide (writer_static_iv w)) (Model.Helpers.hide k2) h
 	(plain <: Spec.pbytes' (Spec.is_retry h)))
     ))
 
@@ -436,7 +436,7 @@ val decrypt
     (unsafe k ==>
       (let ea = (writer_ae_info w).AE.alg in
       let k1, k2 = reader_leak r in
-      match Spec.decrypt ea (Model.Helpers.hide #(Seq.length k1) k1) (Model.Helpers.hide #12 (writer_static_iv w)) (Model.Helpers.hide #(Seq.length k2) k2)
+      match Spec.decrypt ea (Model.Helpers.hide k1) (Model.Helpers.hide (writer_static_iv w)) (Model.Helpers.hide k2)
 	    (UInt64.v expected) cid_len packet,
 	    res
       with

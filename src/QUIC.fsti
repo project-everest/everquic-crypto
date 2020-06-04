@@ -54,11 +54,11 @@ val footprint: #i:index -> HS.mem -> state i -> GTot B.loc
 val invariant: #i:index -> HS.mem -> state i -> Type0
 
 val g_traffic_secret: #i:index -> state i -> HS.mem -> GTot (traffic_secret i)
-val g_initial_packet_number: #i:index -> (s: state i) -> GTot PN.packet_number_t
+val g_initial_packet_number: #i:index -> (s: state i) -> (h: HS.mem) -> GTot PN.packet_number_t
 val g_last_packet_number: #i:index -> (s:state i) -> (h: HS.mem { invariant h s }) ->
   GTot (pn: PN.packet_number_t {
     let open Lib.IntTypes in
-    Secret.v pn >= Secret.v #U64 #SEC (g_initial_packet_number s)
+    Secret.v pn >= Secret.v #U64 #SEC (g_initial_packet_number s h)
   })
 
 let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
@@ -70,7 +70,7 @@ val encrypt: #i:(*G.erased *)index -> (
   dst: B.buffer U8.t ->
   dst_pn: B.pointer PN.packet_number_t ->
   h: QImplBase.header ->
-  plain: B.buffer U8.t ->
+  plain: B.buffer Secret.uint8 ->
   plain_len: U32.t ->
   Stack error_code
     (requires fun h0 ->
@@ -109,7 +109,7 @@ val encrypt: #i:(*G.erased *)index -> (
           let packet: packet = B.as_seq h1 dst in
           let pn = g_last_packet_number s h0 `Secret.add` Secret.to_u64 1uL in
           B.deref h1 dst_pn == pn /\
-          packet == encrypt (alg i) k iv pne (QImpl.g_header h h0 pn) plain /\
+          packet == encrypt (alg i) k iv pne (QImpl.g_header h h0 pn) (QUIC.Secret.Seq.seq_reveal plain) /\
           g_last_packet_number s h1 == pn)
       | _ ->
           False))
