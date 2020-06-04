@@ -45,19 +45,21 @@ val encrypt:
   plain: pbytes' (is_retry h) ->
   GTot packet
 
-val encrypt_length_ext:
+val encrypt_length:
   a: ea ->
   k: AEAD.kv a ->
   static_iv: iv_t a ->
   hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   h: header ->
-  plain1: pbytes' (is_retry h) ->
-  plain2: pbytes' (is_retry h) ->
+  plain: pbytes' (is_retry h) ->
   Lemma
-  (requires (Seq.length plain1 == Seq.length plain2))
   (ensures (
-    Seq.length (encrypt a k static_iv hpk h plain1) ==
-    Seq.length (encrypt a k static_iv hpk h plain2)
+    Seq.length (encrypt a k static_iv hpk h plain) ==
+    header_len h +
+      begin if is_retry h
+      then Seq.length plain
+      else AEAD.tag_length a + Seq.length plain
+      end
   ))
 
 /// decryption and correctness

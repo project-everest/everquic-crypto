@@ -262,7 +262,19 @@ let encrypt #i s dst dst_pn h plain plain_len =
     // not use here).
     assume (r <> UnsupportedAlgorithm);
     let dummy_s = LowStar.BufferOps.(!* dummy_dst) in
+    let h6 = ST.get () in
     let r = QImpl.encrypt #(G.hide dummy_index) dummy_s dst dst_pn h plain plain_len in
+    let h7 = ST.get () in
+    let dummy_pn = B.index dst_pn 0ul in
+    assert (
+      B.as_seq h7 dst == QSpec.encrypt
+        aead_alg
+        (QImpl.derive_k dummy_index dummy_s h6)
+        (QImpl.derive_iv dummy_index dummy_s h6)
+        (QImpl.derive_pne dummy_index dummy_s h6)
+        (QUIC.Impl.g_header h h6 dummy_pn)
+        (Model.Helpers.reveal #(UInt32.v plain_len) (B.as_seq h6 plain))
+    );
     pop_frame ();
 
     // Now call the spec. This is pure-land, so no observable side-effects since
@@ -274,7 +286,15 @@ let encrypt #i s dst dst_pn h plain plain_len =
     let last_pn = QModel.expected_pn #i reader in
     let spec_h = as_header h (Lib.RawIntTypes.u64_from_UInt64 last_pn) in
     let cipher = QUIC.TotSpec.encrypt aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s) in
-    assume (S.length cipher == B.length dst);
+    QUIC.Spec.encrypt_length aead_alg k iv pne spec_h (Model.Helpers.reveal #(UInt32.v plain_len) plain_s);
+    QUIC.Spec.encrypt_length aead_alg
+      (QImpl.derive_k dummy_index dummy_s h6)
+      (QImpl.derive_iv dummy_index dummy_s h6)
+      (QImpl.derive_pne dummy_index dummy_s h6)
+      (QUIC.Impl.g_header h h6 dummy_pn)
+      (Model.Helpers.reveal #(UInt32.v plain_len) (B.as_seq h6 plain));
+    assert (QSpec.header_len spec_h == QSpec.header_len (QUIC.Impl.g_header h h6 dummy_pn));
+    assert (S.length cipher == B.length dst);
     from_seq dst cipher;
     admit ();
     Success

@@ -581,12 +581,20 @@ let in_window_last_packet_number
 
 (* Fulfill the interface now *)
 
-let header_len
-  h
+let header_len'
+  (h: header)
+: GTot nat
 = 
   let s = serialize_header (U32.uint_to_t (dcid_len h)) (last_packet_number h) in
   LP.serialize_length s h;
   Seq.length (LP.serialize s h)
+
+let header_len'_correct
+  (h: header)
+: Lemma
+  (header_len h == header_len' h)
+  [SMTPat (header_len h)]
+= admit ()
 
 let format_header
   h

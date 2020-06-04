@@ -130,3 +130,25 @@ let payload_length
 let is_valid_header (h: header) (cid_len: nat) (last: nat) : Tot Type0 =
   (MShort? h ==> dcid_len h == cid_len) /\
   ((~ (is_retry h)) ==> PN.in_window (Secret.v (pn_length h) - 1) last (Secret.v (packet_number h)))
+
+(* Explicit length computation is needed for the switch. *)
+
+let header_len
+  (h: header)
+: GTot (n: pos { n <= header_len_bound })
+= match h with
+  | MShort _ _ _ dcid packet_number_length _ ->
+    2 + FB.length dcid + Secret.v packet_number_length
+  | MLong version dcid scid spec ->
+    7 + FB.length dcid + FB.length scid +
+    begin match spec with
+    | MInitial _ token _ packet_number_length _ ->
+      2 + FB.length token + Secret.v packet_number_length
+    | MZeroRTT _ _ packet_number_length _ ->
+      Secret.v packet_number_length
+    | MHandshake _ _ packet_number_length _ ->
+      Secret.v packet_number_length
+    | MRetry _ odcid ->
+      1 + FB.length odcid
+    end
+  

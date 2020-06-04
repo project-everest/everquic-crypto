@@ -7,8 +7,6 @@ module S = FStar.Seq
 module U64 = FStar.UInt64
 module Secret = QUIC.Secret.Int
 
-val header_len (h:header) : GTot (n: pos { n <= header_len_bound })
-
 val format_header: h:header -> GTot (lbytes (header_len h))
 
 module BF = LowParse.BitFields

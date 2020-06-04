@@ -29,18 +29,16 @@ val header_encrypt:
   c: cbytes' (is_retry h) ->
   GTot packet
 
-val header_encrypt_length_ext:
+val header_encrypt_length:
   a: ea ->
   hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a) ->
   h: header ->
-  c1: cbytes' (is_retry h) ->
-  c2: cbytes' (is_retry h) ->
+  c: cbytes' (is_retry h) ->
   Lemma
-  (requires (Seq.length c1 == Seq.length c2))
-  (ensures (
-    Seq.length (header_encrypt a hpk h c1) ==
-    Seq.length (header_encrypt a hpk h c2)
-  ))
+  (
+    Seq.length (header_encrypt a hpk h c) ==
+    header_len h + Seq.length c
+  )
 
 noeq
 type h_result =

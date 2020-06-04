@@ -51,15 +51,15 @@ let encrypt
   in
   H.header_encrypt a hpk h cipher
 
-let encrypt_length_ext
-  a k siv hpk h plain1 plain2
+let encrypt_length
+  a k siv hpk h plain
 =
-  let c1, c2 =
+  let c =
     if is_retry h
-    then plain1, plain2
-    else payload_encrypt a k siv h plain1, payload_encrypt a k siv h plain2
+    then plain
+    else payload_encrypt a k siv h plain
   in
-  H.header_encrypt_length_ext a hpk h c1 c2
+  H.header_encrypt_length a hpk h c
 
 #restart-solver
 

@@ -130,11 +130,10 @@ let header_encrypt_post
 
 #pop-options
 
-let header_encrypt_length_ext
-  a hpk h c1 c2
+let header_encrypt_length
+  a hpk h c
 =
-  header_encrypt_post a hpk h c1 (dcid_len h);
-  header_encrypt_post a hpk h c2 (dcid_len h)
+  header_encrypt_post a hpk h c (dcid_len h)
 
 noextract
 type header_decrypt_aux_t = {
