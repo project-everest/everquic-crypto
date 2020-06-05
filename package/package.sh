@@ -8,6 +8,7 @@ ARCHIVE=$NAME.tar.bz2
 ln -s .. $NAME
 tar cjf $ARCHIVE \
     $NAME/Dockerfile \
+    $NAME/install-everest.sh \
     $NAME/src/*.fst \
     $NAME/src/*.fsti \
     $NAME/src/Makefile \
