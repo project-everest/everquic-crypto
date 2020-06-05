@@ -444,4 +444,4 @@ let encrypt #i s dst dst_pn h plain plain_len =
 
 /// Decrypt follows in a similar fashion. A complete proof will be provided for the final version.
 
-let decrypt = admit ()
+let decrypt #_ _ _ _ _ _ = admit ()
