@@ -14,6 +14,7 @@ tar cjf $ARCHIVE \
     $NAME/test/* \
     $NAME/Makefile* \
     $NAME/README.md \
+    $NAME/package/package.sh \
     $NAME/package/fstar.sh \
     $NAME/package/*.el \
     $NAME/noheader.txt \
