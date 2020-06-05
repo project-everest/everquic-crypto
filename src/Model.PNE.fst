@@ -79,8 +79,13 @@ let quic_coerce j u ts =
         QUIC.Spec.label_hp (key_len u)) in
   coerce j u k
 
-let random_bits (): bits =
-  LowParse.BitFields.get_bitfield #8 (UInt8.v (Lib.RawIntTypes.u8_to_UInt8 (Seq.index (random 1) 0))) 0 5
+let random_bits ():
+  HyperStack.ST.ST bits
+    (requires fun h0 -> True)
+    (ensures fun h0 _ h1 -> h0 == h1)
+=
+  let r = random 1 in
+  LowParse.BitFields.get_bitfield #8 (UInt8.v (Lib.RawIntTypes.u8_to_UInt8 (Seq.index r 0))) 0 5
 
 let encrypt #j #u st #l n s =
   let h0 = ST.get () in
@@ -126,11 +131,19 @@ let decrypt #j #u st cp s =
         let l = LowParse.BitFields.get_bitfield bits 0 2 + 1 in
         let c' = random 5, bits in
         // let n' = clip_cipherpad (c' `xor_cipherpad` cp) l in
-        let n = PNEPlainPkg?.mk u.plain j l (random l) bits in
+        let r = random l in
+        let n = PNEPlainPkg?.mk u.plain j l r bits in
         let new_log = Seq.snoc log (Entry s #l n c') in
         p *= new_log;
         snoc_find log (sample_filter u s) (Entry s #l n c');
-        PNEPlainPkg?.xor u.plain j l n (c' `xor_cipherpad` cp)
+        let h1 = ST.get () in
+        let r = PNEPlainPkg?.xor u.plain j l n (c' `xor_cipherpad` cp) in
+        assert (
+          let entry = entry_for_sample s st h1 in
+          Some? entry /\ (
+          let Some (Entry _ #l' n' c') = entry in
+          r == PNEPlainPkg?.xor u.plain j l' n' (c' `xor_cipherpad` cp)));
+        r
   else
     let info, k = st <: unsafe_state j in
     decrypt_spec info.calg (fst cp) (snd cp) k s
