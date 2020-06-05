@@ -20,5 +20,6 @@ tar cjf $ARCHIVE \
     $NAME/noheader.txt \
     $NAME/dist/EverQuic.c \
     $NAME/dist/EverQuic.h \
+    $NAME/hints/* \
     $(for f in $NAME/dist/*.c $NAME/dist/*.h $NAME/dist/*.def $NAME/dist/Makefile.* ; do if [[ -e $f ]] ; then echo $f ; fi ; done)
 rm $NAME
