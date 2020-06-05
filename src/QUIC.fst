@@ -31,22 +31,22 @@ let mid (i:index{I.model}) = i <: QModel.id
 let iid (i:index{not I.model}) = i <: QImpl.index
 
 let alg (i:index) =
-  if I.model then I.ae_id_ginfo (fst (mid i))
+  if I.model then I.ae_id_ginfo (dfst (mid i))
   else (iid i).QImpl.aead_alg
 
 let halg (i:index) =
-  if I.model then I.ae_id_ghash (fst (mid i))
+  if I.model then I.ae_id_ghash (dfst (mid i))
   else (iid i).QImpl.hash_alg
 
 let itraffic_secret (i:QModel.id) =
-  Spec.Hash.Definitions.bytes_hash (I.ae_id_ghash (fst i))
+  Spec.Hash.Definitions.bytes_hash (I.ae_id_ghash (dfst i))
 
 module MH = Model.Helpers
 
 let derived (#i:QModel.id) (#w:QModel.stream_writer i) (r:QModel.stream_reader w) (ts:itraffic_secret i) =
   if I.model && QModel.unsafe i then
-    let ha = I.ae_id_hash (fst i) in
-    let ea = I.ae_id_info (fst i) in
+    let ha = I.ae_id_hash (dfst i) in
+    let ea = I.ae_id_info (dfst i) in
     let (k1, k2) = QModel.reader_leak r in
     MH.hide (QModel.writer_static_iv w) ==
       QSpec.derive_secret ha ts QSpec.label_iv 12 /\
@@ -264,8 +264,8 @@ let encrypt #i s dst dst_pn h plain plain_len =
     // Yet do a "fake" call that generates the same side-effects.
     push_frame ();
     (**) let h2 = ST.get () in
-    let hash_alg: QSpec.ha = I.ae_id_hash (fst i) in
-    let aead_alg = I.ae_id_info (fst i) in
+    let hash_alg: QSpec.ha = I.ae_id_hash (dfst i) in
+    let aead_alg = I.ae_id_info (dfst i) in
     let dummy_traffic_secret = B.alloca (Lib.IntTypes.u8 0) (Hacl.Hash.Definitions.hash_len hash_alg) in
     (**) let h3 = ST.get () in
     (**) B.loc_unused_in_not_unused_in_disjoint h3;
@@ -411,8 +411,8 @@ let encrypt #i s dst dst_pn h plain plain_len =
         (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
     (S.equal) { }
       (let k1, k2 = QModel.writer_leak writer in
-      let ha = I.ae_id_hash (fst i) in
-      let ea = I.ae_id_info (fst i) in
+      let ha = I.ae_id_hash (dfst i) in
+      let ea = I.ae_id_info (dfst i) in
       QUIC.Spec.encrypt aead_alg
         (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_key (Spec.Agile.AEAD.key_length (alg i)))
         (Model.Helpers.hide (QModel.writer_static_iv writer))
@@ -421,8 +421,8 @@ let encrypt #i s dst dst_pn h plain plain_len =
         (QUIC.Secret.Seq.seq_reveal (B.as_seq h0 plain)));
     (S.equal) { }
       (let k1, k2 = QModel.writer_leak writer in
-      let ha = I.ae_id_hash (fst i) in
-      let ea = I.ae_id_info (fst i) in
+      let ha = I.ae_id_hash (dfst i) in
+      let ea = I.ae_id_info (dfst i) in
       QUIC.Spec.encrypt aead_alg
         (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_key (Spec.Agile.AEAD.key_length (alg i)))
         (QSpec.derive_secret (halg i) (g_traffic_secret s h0) QSpec.label_iv 12)

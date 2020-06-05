@@ -7,3 +7,6 @@ let correct #l (b:Seq.seq UInt8.t{Seq.length b = l})
   [SMTPat (reveal #l (hide b))]
 =
   assert (reveal #l (hide b) `Seq.equal` b)
+
+let correct2 #l b =
+  assert (hide (reveal #l b) `Seq.equal` b)

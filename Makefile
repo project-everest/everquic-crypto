@@ -65,6 +65,7 @@ dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	  -bundle LowStar.* \
 	  -bundle Prims,C.Failure,C,C.String,C.Loops,Spec.Loops,C.Endianness,FStar.*[rename=EverQuic_Kremlib] \
 	  -bundle 'Meta.*,Hacl.*,Vale.*,Spec.*,Lib.*,EverCrypt,EverCrypt.*[rename=EverQuic_EverCrypt]' \
+	  -bundle Model.* \
 	  -bundle 'QUIC.State+QUIC.Impl.Header.Base=QUIC.\*[rename=EverQuic,rename-prefix]'
 
 dist/libeverquic.a: dist/Makefile.basic
