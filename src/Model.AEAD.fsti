@@ -61,19 +61,10 @@ type plain_pkg (idt: eqtype) (safe: idt -> bool) =
     mk: (i:idt{not (safe i)} -> l:plain_length_at_least min_len -> p:Spec.lbytes l -> p':plain i l { as_bytes i l p' == p }) ->
     plain_pkg idt safe
 
-noeq
-type nonce_pkg (idt: eqtype) (safe: idt -> bool) (alg: idt -> GTot I.ea) =
-  | NoncePkg:
-    nonce: (i:idt -> eqtype) ->
-    as_bytes: (i:idt -> nonce i -> GTot (Spec.iv (alg i))) ->
-    repr: (i:idt{not (safe i)} -> n:nonce i -> Tot (r:Spec.iv (alg i) {r == as_bytes i n})) ->
-    nonce_pkg idt safe alg
-
 noeq type info' = {
   alg: alg;
   halg: I.ha;
   plain: plain_pkg id is_safe;
-  nonce: nonce_pkg id is_safe I.ae_id_ginfo;
 }
 
 let info (i:id) =
@@ -98,9 +89,6 @@ let plain_as_bytes (#i:id) (#u:info i) (#l:at_least u) (p:plain u l) : GTot (Spe
 let plain_repr (#i: unsafe_id) (#u:info i) (#l:at_least u) (p:plain u l) : Tot (r:Spec.lbytes l{r == plain_as_bytes p}) =
   (PlainPkg?.repr u.plain) i l p
 
-let nonce (#i:id) (u:info i) =
-  NoncePkg?.nonce u.nonce i
-
 /// Plains, ciphers and entries in the log
 /// --------------------------------------
 
@@ -110,10 +98,12 @@ let cipher (#i:id) (u:info i) (l:at_least u) =
 let ad #i (u: info i) =
   Spec.ad u.alg
 
+let nonce : eqtype = b:Seq.seq UInt8.t{Seq.length b == 12}
+
 noeq
 type entry (i:id) (u:info i) =
   | Entry:
-    n: nonce u ->
+    n: nonce ->
     ad: ad u ->
     #l: at_least u ->
     p: plain u l ->
@@ -220,21 +210,21 @@ val quic_coerce (#i:unsafe_id) (u:info i)
         QUIC.Spec.label_key (Spec.key_length u.alg)
   )
 
-let nonce_filter (#i:id) (#w:aead_writer i) (n:nonce (wgetinfo w)) (e:entry i (wgetinfo w)) : bool =
+let nonce_filter (#i:id) (w:aead_writer i) (n:nonce) (e:entry i (wgetinfo w)) : bool =
   Entry?.n e = n
 
-let wentry_for_nonce (#i:safe_id) (w:aead_writer i) (n:nonce (wgetinfo w)) (h:mem)
+let wentry_for_nonce (#i:safe_id) (w:aead_writer i) (n:nonce) (h:mem)
   : GTot (option (entry i (wgetinfo w))) =
-  Seq.find_l (nonce_filter #i #w n) (wlog w h)
+  Seq.find_l (nonce_filter #i w n) (wlog w h)
 
-let fresh_nonce (#i:safe_id) (w:aead_writer i) (n:nonce (wgetinfo w)) (h:mem)
+let fresh_nonce (#i:safe_id) (w:aead_writer i) (n:nonce) (h:mem)
   : GTot bool =
   None? (wentry_for_nonce w n h)
 
 val encrypt
   (i: id)
   (w: aead_writer i)
-  (n: nonce (wgetinfo w))
+  (n: nonce)
   (aad: ad (wgetinfo w))
   (l: at_least (wgetinfo w))
   (p: plain (wgetinfo w) l)
@@ -250,7 +240,7 @@ val encrypt
     (~ (is_safe i) ==> (
       let a: Spec.supported_alg = I.ae_id_ginfo i in
       let k: Spec.kv a = wkey w in
-      let iv = NoncePkg?.as_bytes (wgetinfo w).nonce i n in
+      let iv : Spec.iv a = Model.Helpers.hide n in
       let p = PlainPkg?.as_bytes (wgetinfo w).plain i l p in
       c == Spec.encrypt #(I.ae_id_ginfo i) k iv aad p))))
 
@@ -259,7 +249,7 @@ val decrypt
   (#w: aead_writer i)
   (r: aead_reader w)
   (aad: ad (wgetinfo w))
-  (n: nonce (rgetinfo r))
+  (n: nonce)
   (l:at_least (wgetinfo w))
   (c:cipher (wgetinfo w) l)
   : Stack (option (plain (rgetinfo r) l))
@@ -284,7 +274,7 @@ val decrypt
     (~ (is_safe i) ==> (
       let a: Spec.supported_alg = I.ae_id_ginfo i in
       let k: Spec.kv a = wkey w in
-      let iv = NoncePkg?.as_bytes (wgetinfo w).nonce i n in
+      let iv : Spec.iv a = Helpers.hide n in
       let maybe_plain = Spec.decrypt k iv aad c in
       match maybe_plain with
       | None -> None? res

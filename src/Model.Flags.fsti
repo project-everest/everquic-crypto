@@ -16,7 +16,4 @@ inline_for_extraction val ideal_TS: ideal_flag
 inline_for_extraction val ideal_AEAD : f:ideal_flag{b2t f ==> b2t ideal_TS}
 
 /// Ideal PRF used with an auxiliary key.
-///
-/// TODO: figure out whether sequentialization is needed (e.g. because PRF needs
-/// a perfect random input from AEAD) or if it's just a stylistic thing
-inline_for_extraction val ideal_PRF : f:ideal_flag{b2t f ==> b2t ideal_AEAD}
+inline_for_extraction val ideal_PNE : f:ideal_flag{b2t f <==> b2t ideal_AEAD}

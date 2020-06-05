@@ -1,5 +1,14 @@
 module Model.Indexing
 
+(*
+This module provides the functions that the QUIC
+record layer security model expect to be provided
+by the TLS handshake security model. In particular,
+it assumes that the indexes contain the history of
+the derivation of each key, including the implicit
+authentication of algorithms to use.
+*)
+
 open Mem
 include Model.Flags
 

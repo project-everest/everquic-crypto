@@ -19,6 +19,10 @@ val correct (#l: nat) (b:Seq.seq UInt8.t{Seq.length b = l})
   : Lemma (reveal #l (hide b) == b)
   [SMTPat (reveal #l (hide b))]
 
+val correct2 (#l: nat) (b:lbytes l)
+  : Lemma (hide (reveal #l b) == b)
+  [SMTPat (hide (reveal #l b))]
+
 let random (l: nat { l < pow2 32 })
   : HyperStack.ST.ST (lbytes l)
   (requires fun h0 -> True)
