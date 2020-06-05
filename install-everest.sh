@@ -5,8 +5,9 @@ git clone https://github.com/project-everest/everest.git
 old_pwd="$PWD"
 everest_home="$old_pwd/everest"
 cd "$everest_home"
+git checkout b0d4d92bff399618e751881771f5b49f57069cbe
 ./everest --yes opam
-./everest --yes pull
+./everest --yes reset
 ./everest --yes z3
 export PATH=$everest_home/z3/bin:$PATH
 export FSTAR_HOME=$everest_home/FStar
