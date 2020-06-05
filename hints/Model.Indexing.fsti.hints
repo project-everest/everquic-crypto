@@ -1,1 +1,23 @@
-[ "Òä1≠Xã∑ˇ©›‰Œ\u0000FÀ£", [] ]
+[
+  "Ç‰\u0002\u0004y\u0007ìÈ\u0018Åüß· Ú≥",
+  [
+    [
+      "Model.Indexing.cipher_of_aead",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "bool_inversion",
+        "disc_equation_Spec.Agile.AEAD.AES128_GCM",
+        "disc_equation_Spec.Agile.AEAD.AES256_GCM",
+        "disc_equation_Spec.Agile.AEAD.CHACHA20_POLY1305",
+        "equation_Model.Indexing.ea",
+        "equation_Model.Indexing.is_supported_aead",
+        "refinement_interpretation_Tm_refine_b80938e075142236aafbfb01e60d70df",
+        "typing_Model.Indexing.is_supported_aead"
+      ],
+      0,
+      "04f4780aea77a5ac3d10f85dbafe7bf0"
+    ]
+  ]
+]

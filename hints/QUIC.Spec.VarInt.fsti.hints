@@ -1,5 +1,5 @@
 [
-  "tôyä0¦õLÕ W÷*\u0011Ø@",
+  "DŽ–\u0004£¨\u0010Ê³á\u0013n[}^‹",
   [
     [
       "QUIC.Spec.VarInt.parse_varint",
@@ -18,7 +18,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "8a178a93e312f3a75656560be8cfb8d8"
+      "35b0d7d0e65c81a383c75745b54aacf8"
     ],
     [
       "QUIC.Spec.VarInt.serialize_varint",
@@ -37,7 +37,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "52848c7e99626697d68656258fdbff49"
+      "2c177c1a639535328d7c5a37f62d2b96"
     ],
     [
       "QUIC.Spec.VarInt.parse_bounded_varint",
@@ -56,7 +56,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "c0dd3c992ac14e6a415c8dfa19ae82f7"
+      "efbf8130e2abaf046c2ad0c51ff74727"
     ],
     [
       "QUIC.Spec.VarInt.serialize_bounded_varint",
@@ -75,7 +75,64 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "ca62fff3c7a08b159a5e1e0982ae7e3c"
+      "83acc56ba49533bb74ae24985b2ab93a"
+    ],
+    [
+      "QUIC.Spec.VarInt.varint_len_correct",
+      1,
+      2,
+      1,
+      [
+        "@query", "equation_Prims.nat",
+        "equation_QUIC.Spec.VarInt.parse_varint_kind",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
+      ],
+      0,
+      "c308a31bc8dd631d4fcda3e324ec6019"
+    ],
+    [
+      "QUIC.Spec.VarInt.bounded_varint_len_correct",
+      1,
+      2,
+      1,
+      [
+        "@MaxFuel_assumption", "@MaxIFuel_assumption",
+        "@fuel_correspondence_Prims.pow2.fuel_instrumented",
+        "@fuel_irrelevance_Prims.pow2.fuel_instrumented", "@query",
+        "b2t_def", "bool_inversion", "bool_typing",
+        "equation_FStar.UInt.fits", "equation_FStar.UInt.max_int",
+        "equation_FStar.UInt.min_int", "equation_FStar.UInt.size",
+        "equation_FStar.UInt.uint_t",
+        "equation_LowParse.Spec.BoundedInt.bounded_int32",
+        "equation_LowParse.Spec.BoundedInt.in_bounds", "equation_Prims.nat",
+        "equation_QUIC.Spec.VarInt.parse_varint_kind",
+        "equation_QUIC.UInt62.bound", "int_inversion", "int_typing",
+        "lemma_FStar.UInt.pow2_values", "lemma_FStar.UInt64.vu_inv",
+        "primitive_Prims.op_AmpAmp", "primitive_Prims.op_BarBar",
+        "primitive_Prims.op_LessThan", "primitive_Prims.op_LessThanOrEqual",
+        "primitive_Prims.op_Negation", "primitive_Prims.op_Subtraction",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "proj_equation_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_high",
+        "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low",
+        "refinement_interpretation_Tm_refine_4689762d8936cd661071819a684ec9b0",
+        "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_a87dbe8fa6c2ba694a031fa266bf0206",
+        "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
+        "typing_FStar.UInt32.v", "typing_LowParse.Spec.BoundedInt.in_bounds"
+      ],
+      0,
+      "ce59e016e4c27a8a0c80841bfd7e528b"
     ]
   ]
 ]
