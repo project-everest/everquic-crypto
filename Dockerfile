@@ -37,6 +37,7 @@ RUN emacs --script .emacs.d/install-fstar-mode.el
 RUN mkdir quic-crypto
 WORKDIR quic-crypto
 ADD --chown=test src/*.fst src/*.fsti src/Makefile src/
+ADD --chown=test hints/*.hints hints/
 ADD --chown=test Makefile Makefile
 ADD --chown=test Makefile.include Makefile.include
 ADD --chown=test README.md README.md
