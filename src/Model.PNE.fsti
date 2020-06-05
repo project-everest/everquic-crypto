@@ -46,7 +46,7 @@ let length_bits (l: pne_plain_length) =
   b:bits { LowParse.BitFields.get_bitfield b 0 2 + 1 == l }
 
 let pne_cipher (l:pne_plain_length) = lbytes l & bits
-let pne_cipherpad = lbytes 5 & bits
+let pne_cipherpad = lbytes 4 & bits
 
 /// Restrict a generated cipherpad to the length of the encoded packet number.
 val clip_cipherpad : (cp:pne_cipherpad) -> (l:pne_plain_length) -> pne_cipher l
@@ -257,7 +257,7 @@ let decrypt_spec
   (#j:unsafe_id)
   (#u:info j)
   (a: Spec.cipher_alg)
-  (padded_cipher: lbytes 5)
+  (padded_cipher: lbytes 4)
   (b: bits)
   (k: Spec.key a)
   (s: sample):
@@ -286,7 +286,7 @@ let xor_cipherpad (cp1 cp2: pne_cipherpad): pne_cipherpad =
   let c2, b2 = cp2 in
   let x1 = LowParse.BitFields.get_bitfield b1 0 5 in
   let x2 = LowParse.BitFields.get_bitfield b2 0 5 in
-  Seq.init 5 (fun i -> Seq.index c1 i `Lib.IntTypes.(logxor #U8 #SEC)` Seq.index c2 i),
+  Seq.init 4 (fun i -> Seq.index c1 i `Lib.IntTypes.(logxor #U8 #SEC)` Seq.index c2 i),
   LowParse.BitFields.set_bitfield 0 0 5 (x1 `UInt.logxor #5` x2)
 
 val decrypt:

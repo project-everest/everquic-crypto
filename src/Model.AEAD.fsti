@@ -51,20 +51,19 @@ type plain_length_at_least (lmin: plain_length) = l:plain_length{lmin <= l}
 /// ------------------
 
 noeq
-type plain_pkg (idt: eqtype) (safe: idt -> bool) =
+type plain_pkg (min_len:plain_length) (idt: eqtype) (safe: idt -> bool) =
   | PlainPkg:
-    // Make this parameterized from idt rather than an argument to the constructor?
-    min_len: plain_length ->
     plain: (i:idt -> plain_length_at_least min_len -> eqtype) ->
     as_bytes: (i:idt -> l:plain_length_at_least min_len -> plain i l -> GTot (Spec.lbytes l)) ->
     repr: (i:idt{not (safe i)} -> l:plain_length_at_least min_len -> p:plain i l -> Tot (b:Spec.lbytes l{b == as_bytes i l p})) ->
     mk: (i:idt{not (safe i)} -> l:plain_length_at_least min_len -> p:Spec.lbytes l -> p':plain i l { as_bytes i l p' == p }) ->
-    plain_pkg idt safe
+    plain_pkg min_len idt safe
 
 noeq type info' = {
   alg: alg;
   halg: I.ha;
-  plain: plain_pkg id is_safe;
+  min_len: plain_length;
+  plain_pkg: plain_pkg min_len id is_safe;
 }
 
 let info (i:id) =
@@ -78,16 +77,16 @@ let info (i:id) =
 
 // Accessor for the info type.
 let at_least (#i:id) (u:info i) =
-  plain_length_at_least (PlainPkg?.min_len u.plain)
+  plain_length_at_least u.min_len
 
 let plain (#i:id) (u:info i) (l: at_least u) =
-  (PlainPkg?.plain u.plain) i l
+  u.plain_pkg.plain i l
 
 let plain_as_bytes (#i:id) (#u:info i) (#l:at_least u) (p:plain u l) : GTot (Spec.lbytes l) =
-  (PlainPkg?.as_bytes u.plain) i l p
+  u.plain_pkg.as_bytes i l p
 
 let plain_repr (#i: unsafe_id) (#u:info i) (#l:at_least u) (p:plain u l) : Tot (r:Spec.lbytes l{r == plain_as_bytes p}) =
-  (PlainPkg?.repr u.plain) i l p
+  u.plain_pkg.repr i l p
 
 /// Plains, ciphers and entries in the log
 /// --------------------------------------
@@ -241,7 +240,7 @@ val encrypt
       let a: Spec.supported_alg = I.ae_id_ginfo i in
       let k: Spec.kv a = wkey w in
       let iv : Spec.iv a = Model.Helpers.hide n in
-      let p = PlainPkg?.as_bytes (wgetinfo w).plain i l p in
+      let p = (wgetinfo w).plain_pkg.as_bytes i l p in
       c == Spec.encrypt #(I.ae_id_ginfo i) k iv aad p))))
 
 val decrypt
@@ -280,7 +279,7 @@ val decrypt
       | None -> None? res
       | Some p ->
           Some? res /\ (
-          let p' = PlainPkg?.as_bytes (wgetinfo w).plain i l (Some?.v res) in
+          let p' = (wgetinfo w).plain_pkg.as_bytes i l (Some?.v res) in
           p == p')
     ))
   )

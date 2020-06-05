@@ -98,7 +98,7 @@ let encrypt i w nonce aad plain_length plain =
     let a = (wgetinfo w).alg in
     let k: Spec.kv a = wkey w in
     let iv = Helpers.hide nonce in
-    let p = PlainPkg?.repr (wgetinfo w).plain i plain_length plain in
+    let p = (wgetinfo w).plain_pkg.repr i plain_length plain in
     Spec.encrypt #a k iv aad p
 
 let decrypt i #w r aad n l c =
@@ -119,4 +119,4 @@ let decrypt i #w r aad n l c =
     match Spec.decrypt k (Helpers.hide n) aad c with
     | None -> None
     | Some p ->
-        Some ((wgetinfo w).plain.mk i (Seq.length p) p)
+        Some ((wgetinfo w).plain_pkg.mk i (Seq.length p) p)

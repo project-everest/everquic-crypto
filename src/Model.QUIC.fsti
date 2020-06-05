@@ -32,74 +32,8 @@ let unsafe_id = i:id{unsafe i}
 /// This would be implemented as a serializable list of frames
 /// (using EverParse refined lists)
 
-type qplain_len = n:nat{3 <= n /\ n < Spec.max_plain_length}
+type qplain_len = n:AEAD.plain_length_at_least 3{n < Spec.max_plain_length}
 let pnl = PNE.pne_plain_length
-
-// N.B. this is QUIC-specific so not index type parametric,
-// unlike the universal AEAD plain package in Model.AEAD
-inline_for_extraction noeq
-type qplain_pkg =
-  | PlainPkg:
-    plain: (i:id -> l:qplain_len -> eqtype) ->
-    as_bytes: (#i:id -> #l:qplain_len -> plain i l -> GTot (b:Spec.pbytes{Seq.length b == l})) ->
-    repr: (#i:unsafe_id -> #l:qplain_len -> p:plain i l -> Tot (b:Spec.pbytes{Seq.length b == l /\ b == as_bytes p})) ->
-    mk: (i:unsafe_id -> l:qplain_len -> p:Spec.pbytes -> p':plain i l { as_bytes #i #l p' == p }) ->
-    qplain_pkg
-
-(* TODO move to impl
-let pne_plain (j:PNE.id) (l:pnl) : eqtype =
-  lbytes l & PNE.length_bits l
-
-let pne_as_bytes (j:PNE.id) (l:pnl) (n:pne_plain j l)
-  : GTot (lbytes l & PNE.length_bits l) = n
-
-let pne_repr (j:PNE.unsafe_id) (l:pnl) (n:pne_plain j l) :
-  Tot (b:(lbytes l & PNE.length_bits l){b == pne_as_bytes j l n}) = n
-
-let pne_plain_pkg = PNE.PNEPlainPkg pne_plain pne_as_bytes pne_repr
-
-type plainlen = l:nat{l + v AEAD.taglen <= pow2 32 - 1}
-type pnplainlen = l:nat{l + v AEAD.taglen <= pow2 32 - 1 /\ l + v AEAD.taglen >= samplelen + 4}
-
-type quic_protect (k:id) (l:pnplainlen) =
-  lbytes (l + v AEAD.taglen)
-
-type quic_packet (k:id) (hl:headerlen) (l:pnplainlen{hl + l + v AEAD.taglen <= pow2 32 - 1}) =
-  quic_header k hl * quic_protect k l
-
-type cipher (i:id) (l:plainlen) = lbytes (l + v AEAD.taglen)
-
-val plain: i:AEAD.id -> l:plainlen -> t:Type0{hasEq t}
-
-val plain_as_bytes : i:AEAD.id -> l:plainlen -> p:plain i l -> GTot (lbytes l)
-
-val mk_plain: i:AEAD.id -> l:plainlen -> b:lbytes l -> p:plain i l{~(AEAD.is_safe i) ==> plain_as_bytes i l p == b}
-
-val plain_repr : i:AEAD.id{~(AEAD.is_safe i)} -> l:plainlen -> p:plain i l -> b:lbytes l{b == plain_as_bytes i l p}
-
-type qiv (k:id) = AEAD.iv (I.ae_id_ginfo (fst k))
-
-val nonce (i:AEAD.id) : (t:Type0{hasEq t})
-
-val nonce_as_bytes (i:AEAD.id) (n:nonce i) : GTot (AEAD.iv (I.ae_id_ginfo i))
-
-val nonce_repr (i:AEAD.id{not (AEAD.is_safe i)}) (n:nonce i) :
-  Tot (b:AEAD.iv (I.ae_id_ginfo i){b == nonce_as_bytes i n})
-
-let aead_nonce_pkg : AEAD.nonce_pkg AEAD.id AEAD.is_safe I.ae_id_ginfo =
-  AEAD.NoncePkg nonce nonce_as_bytes nonce_repr
-
-type sample = PNE.sample
-
-type epn (nl:pnlen) = lbytes nl
-
-type rpn = n:U64.t{U64.v n <= max_ctr}
-
-let rpn_of_nat (j:nat{j<= max_ctr}) : rpn =
-  U64.uint_to_t j
-
-type npn (j:PNE.id) (nl:pnlen) = lbytes nl
-**)
 
 (*
 //get the first byte of the (unprotected) header + the pn = what needs to be protected by pne
@@ -128,7 +62,6 @@ val create_nonce : #i:id -> #alg:I.ea{alg == I.ae_id_ginfo (fst i)} ->
 
 noeq type info = {
   region: r:subq{r `HS.disjoint` q_ae_region};
-  plain_pkg: qplain_pkg;
 }
 
 let max_ctr = pow2 62 - 1
@@ -142,8 +75,8 @@ val stream_reader: #k:id -> w:stream_writer k -> Type u#1
 val writer_info: #k:id -> w:stream_writer k -> info
 val reader_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> i:info{i == writer_info w}
 
-val writer_ae_info: #k:id -> w:stream_writer k -> a:AEAD.info (dfst k)
-val reader_ae_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:AEAD.info (dfst k)
+val writer_ae_info: #k:id -> w:stream_writer k -> a:AEAD.info (dfst k){a.AEAD.min_len == 3}
+val reader_ae_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:AEAD.info (dfst k){a.AEAD.min_len == 3}
 val writer_pne_info: #k:id -> w:stream_writer k -> a:PNE.info (dsnd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (writer_ae_info w).AEAD.alg /\ a.PNE.halg == (writer_ae_info w).AEAD.halg}
 val reader_pne_info: #k:id -> #w:stream_writer k -> r:stream_reader w -> a:PNE.info (dsnd k){a.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (reader_ae_info r).AEAD.alg /\ a.PNE.halg == (reader_ae_info r).AEAD.halg}
 
@@ -272,7 +205,8 @@ val create: k:id -> u:info ->
   ST (stream_writer k)
   (requires fun h0 -> u2.PNE.calg ==
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
-    u2.PNE.halg == u1.AEAD.halg)
+    u2.PNE.halg == u1.AEAD.halg /\
+    u1.AEAD.min_len == 3)
   (ensures fun h0 w h1 ->
     invariant w h1 /\
     M.modifies (footprint w) h0 h1 /\
@@ -293,7 +227,8 @@ val coerce: k:unsafe_id -> u:info ->
   ST (stream_writer k)
   (requires fun h0 -> u2.PNE.calg ==
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
-    u2.PNE.halg == u1.AEAD.halg)
+    u2.PNE.halg == u1.AEAD.halg /\
+    u1.AEAD.min_len == 3)
   (ensures fun h0 w h1 ->
     let (k1, k2) = writer_leak w in
     invariant w h1 /\
@@ -351,7 +286,7 @@ val encrypt
   (w:stream_writer k)
   (h:Spec.header)
   (#l:qplain_len)
-  (p:(writer_info w).plain_pkg.plain k l)
+  (p:(writer_ae_info w).AEAD.plain_pkg.AEAD.plain (dfst k) l)
   : ST Spec.packet
   (requires fun h0 ->
     invariant w h0 /\
@@ -374,19 +309,18 @@ val encrypt
     (unsafe k ==>
       (let ea = (writer_ae_info w).AE.alg in
       let k1, k2 = writer_leak w in
-      let plain : Spec.pbytes = (writer_info w).plain_pkg.repr p in
-      c == Spec.encrypt ea (Model.Helpers.hide k1) (Model.Helpers.hide (writer_static_iv w)) (Model.Helpers.hide k2) h
-	(plain <: Spec.pbytes' (Spec.is_retry h)))
+      let plain_pkg = (writer_ae_info w).AEAD.plain_pkg in
+      let plain = plain_pkg.AEAD.repr i l p in
+      c == Spec.encrypt ea (Helpers.hide k1) (Helpers.hide (writer_static_iv w)) (Helpers.hide k2) h
+	(Helpers.reveal #l plain <: Spec.pbytes' (Spec.is_retry h)))
     ))
 
 #push-options "--fuel 2 --z3rlimit 30"
 noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
 | M_Success:
   h: Spec.header{not (Spec.is_retry h)} ->
-//  nl: PNE.pne_plain_length ->
-//  npn: PNE.pne_plain (reader_pne_info r) nl ->
   l: qplain_len ->
-  p: (reader_info r).plain_pkg.plain k l ->
+  p: (reader_ae_info r).AEAD.plain_pkg.AEAD.plain (dfst k) l ->
   remainder: Spec.bytes ->
   model_result r
 | M_Failure
@@ -455,7 +389,7 @@ val decrypt
       | Spec.Failure, M_Failure -> True
       | Spec.Success h plain rem, M_Success h' l p remainder ->
 	  h == h' /\ rem == remainder /\
-	  (reader_info r).plain_pkg.repr p == plain
+	  (reader_ae_info r).AEAD.plain_pkg.AEAD.repr (dfst k) l p == Helpers.hide plain
       | _ -> False)
     )
   )
@@ -516,8 +450,7 @@ val decrypt
     ne:epn nl ->
     c:cipher i l ->
     stream_entry i j
-*)
-(*)
+
     (Flag.safePNE j ==>
       let s = PNE.sample_cipher c in
       match PNE.entry_for_sample s (pne_state r) h0 with
@@ -534,7 +467,7 @@ val decrypt
 	    else None? res
 	else None? res
 
-(*      let npn = 'find nl ne in pnetable' in
+      let npn = 'find nl ne in pnetable' in
       let rpn = 'decode npn maxpn' in
       match 'find rpn in enctable' with
         ne' -> ne' =? ne
