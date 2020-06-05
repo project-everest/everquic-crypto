@@ -7,9 +7,14 @@ and compiled to C.
 ## How to verify, extract and build
 
 EverQuic is implemented in F\* in `src/`, and extracted to C in
-`dist/EverQuic.c` and `dist/EverQuic.h`. Then, you can build the
-EverQuic static library, `dist/libeverquic.a`, by running: `cd dist &&
-make -f Makefile.basic`
+`dist/EverQuic.c` and `dist/EverQuic.h`. Then, to build the
+EverQuic static library, `dist/libeverquic.a`:
+
+1. Clone KReMLin from https://github.com/FStarLang/kremlin and point
+   the `KREMLIN_HOME` environment variable to the KReMLin clone
+   directory.
+
+2. In EverQuic, do `cd dist && make -f Makefile.basic`
 
 If `dist/EverQuic.c` and `dist/EverQuic.h` are not present, then you
 will need to regenerate them by verifying the F\* code and extracting
