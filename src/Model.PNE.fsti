@@ -21,7 +21,7 @@ type id = I.pne_id
 type alg = I.ca
 
 let is_safe (i:id) =
-  I.is_pne_honest i && I.ideal_PRF
+  I.is_pne_honest i && I.ideal_PNE
 
 type safe_id =
   i:id{is_safe i}
