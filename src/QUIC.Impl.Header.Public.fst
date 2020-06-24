@@ -908,7 +908,7 @@ module Seq = QUIC.Secret.Seq
 
 #pop-options
 
-#push-options "--z3rlimit 64 --query_stats"
+#push-options "--z3rlimit 128 --query_stats"
 
 #restart-solver
 
