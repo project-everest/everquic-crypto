@@ -40,7 +40,7 @@ let be_to_n_4_eq
   E.reveal_be_to_n b1;
   E.reveal_be_to_n (Seq.slice b1 0 0)
 
-#push-options "--z3rlimit 32"
+#push-options "--z3rlimit 64"
 
 let read_u32
   (b: B.buffer Secret.uint8)
