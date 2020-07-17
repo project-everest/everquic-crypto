@@ -35,7 +35,7 @@ type unsafe_id =
 // For simplicity, we do not distinguish between long and short headers; caller
 // of this module will just 0-left-pad the protected bits in the case of a long
 // header.
-let bits: Type0 = LowParse.BitFields.ubitfield 5 5
+let bits: Type0 = LowParse.BitFields.ubitfield 8 5
 
 // Note: the sample is PUBLIC so is using QUIC.Spec.lbytes which do not operate over secret integers.
 let sample_length = 16
@@ -199,6 +199,11 @@ val quic_coerce (j:unsafe_id) (u:info j)
       QUIC.Spec.derive_secret u.halg ts
         QUIC.Spec.label_hp (key_len u))
 
+private let lemma_logxor_lt (#n:pos) (a b:UInt.uint_t n) (k:nat{k <= n})
+  : Lemma (requires a < pow2 k /\ b < pow2 k)
+  (ensures a `UInt.logxor` b < pow2 k)
+  = admit()
+
 let encrypt_spec (a: Spec.cipher_alg)
   (l: pne_plain_length)
   (pn: lbytes l)
@@ -223,6 +228,7 @@ let encrypt_spec (a: Spec.cipher_alg)
   // (header.[0] `xor` mask.[0]) == get_bf header.[0] `xor` get_bf mask.[0]
   let mask_bits: bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
   let protected_bits = mask_bits `FStar.UInt.logxor` b in
+  lemma_logxor_lt #8 mask_bits b 5;
   encrypted_pn, protected_bits
 
 val encrypt :
@@ -241,6 +247,7 @@ val encrypt :
     // table which is only available for safe id's
     (is_safe j ==> fresh_sample s st h0))
   (ensures fun h0 c h1 ->
+    invariant st h1 /\
     B.modifies (footprint st) h0 h1 /\ (
     if is_safe j then
       exists (c': pne_cipherpad).
@@ -268,6 +275,7 @@ let decrypt_spec
   let mask = Model.Helpers.reveal #16 (QUIC.TotSpec.block_of_sample a k (Model.Helpers.hide s)) in
   // Decrypting protected bits
   let mask_bits: bits = LowParse.BitFields.get_bitfield (UInt8.v (Seq.index mask 0)) 0 5 in
+  lemma_logxor_lt #8 mask_bits b 5;
   let b = mask_bits `FStar.UInt.logxor` b in
   // Moving on to the pn length which is part of the protected bits
   let pn_len = LowParse.BitFields.get_bitfield b 0 2 in
@@ -286,9 +294,12 @@ let xor_cipherpad (cp1 cp2: pne_cipherpad): pne_cipherpad =
   let c2, b2 = cp2 in
   let x1 = LowParse.BitFields.get_bitfield b1 0 5 in
   let x2 = LowParse.BitFields.get_bitfield b2 0 5 in
+  lemma_logxor_lt #8 x1 x2 5;
+  let v = x1 `UInt.logxor` x2 in
+  LowParse.BitFields.set_bitfield_bound #8 0 5 0 5 v;
   Seq.init 4 (fun i -> Seq.index c1 i `Lib.IntTypes.(logxor #U8 #SEC)` Seq.index c2 i),
-  LowParse.BitFields.set_bitfield 0 0 5 (x1 `UInt.logxor #5` x2)
-
+  LowParse.BitFields.set_bitfield #8 0 0 5 v
+  
 val decrypt:
   (#j:id) ->
   (#u:info j) ->
@@ -299,6 +310,7 @@ val decrypt:
   (requires fun h0 ->
     invariant st h0)
   (ensures fun h0 r h1 ->
+    invariant st h1 /\
     B.modifies (footprint st) h0 h1 /\ (
     if is_safe j then
       let entry = entry_for_sample s st h1 in

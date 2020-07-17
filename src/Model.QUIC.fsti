@@ -35,30 +35,7 @@ let unsafe_id = i:id{unsafe i}
 type qplain_len = n:AEAD.plain_length_at_least 3{n < Spec.max_plain_length}
 let pnl = PNE.pne_plain_length
 
-(*
-//get the first byte of the (unprotected) header + the pn = what needs to be protected by pne
-val pne_plain_of_header_pn (#k:id) (#hl:headerlen) (hd:quic_header k hl) (#nl:pnlen) (n:npn (snd k) nl) :  pne_plain (snd k) (nl+1)
-
-//reconstruct the unprotected header (using the protected header), and the pn, from the protected header and pn
-val header_pn_of_pne_plain (#k:id) (#hl:headerlen) (ph:quic_header k hl) (#ll:PNE.pne_plainlen) (pp:pne_plain (snd k) ll) : quic_header k hl * npn (snd k) (ll-1)
-
-//val pheader_epn_of_pne_cipher (#k:quicid) (#hl:headerlen) (hd:quic_header k hl) (l:PNE.pne_plainlen) (c:PNE.pne_cipher l) : quic_header k hl * (nl:pnlen & epn nl)
-
-//get the protected first byte from the (protected) header + the epn = a cipher for pne
-val pne_cipher_of_pheader_epn (#k:id) (#hl:headerlen) (ph:quic_header k hl) (#nl:pnlen) (ne:epn nl) :
-  c:PNE.pne_cipher (nl + 1)
-
-//get the pne ciphertext assuming the largest possible pn length (ie 4)
-val pne_cipherpad_of_pheader_quicprotect (#k:id) (#hl:headerlen) (ph:quic_header k hl) (#nll:pnplainlen) (qp:quic_protect k nll) :
-  c:PNE.pne_cipherpad
-
-val npn_encode : (j:PNE.id) -> (r:rpn) -> (nl:pnlen) -> (n:npn j nl)
-
-val npn_decode : (#j:PNE.id) -> (#nl:pnlen) -> (n:npn j nl) -> (expected_pn:rpn) -> rpn
-
-val create_nonce : #i:id -> #alg:I.ea{alg == I.ae_id_ginfo (fst i)} ->
-  iv: AEAD.iv alg -> r:rpn -> Tot (nonce (fst i))
-*)
+val pne_pkg: PNE.pne_plain_pkg
 
 noeq type info = {
   region: r:subq{r `HS.disjoint` q_ae_region};
@@ -206,6 +183,7 @@ val create: k:id -> u:info ->
   (requires fun h0 -> u2.PNE.calg ==
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
     u2.PNE.halg == u1.AEAD.halg /\
+    u2.PNE.plain == pne_pkg /\
     u1.AEAD.min_len == 3)
   (ensures fun h0 w h1 ->
     invariant w h1 /\
@@ -228,6 +206,7 @@ val coerce: k:unsafe_id -> u:info ->
   (requires fun h0 -> u2.PNE.calg ==
     Spec.Agile.AEAD.cipher_alg_of_supported_alg u1.AEAD.alg /\
     u2.PNE.halg == u1.AEAD.halg /\
+    u2.PNE.plain == pne_pkg /\
     u1.AEAD.min_len == 3)
   (ensures fun h0 w h1 ->
     let (k1, k2) = writer_leak w in
@@ -281,6 +260,23 @@ let _ = assert_norm(pow2 32 < pow2 64)
                 (PNE.Entry #j #pne_plain_pkg s #(nl+1) nn cc))
 *)
 
+module PN = QUIC.Spec.PacketNumber.Base
+module U62 = QUIC.UInt62
+module Secret = QUIC.Secret.Int
+
+let set_pn_long (l:Spec.long_header_specifics{not (Spec.MRetry? l)}) (pn:PN.packet_number_t) =
+  let open Spec in
+  match l with
+  | MInitial r t p pnl _ -> MInitial r t p pnl pn
+  | MZeroRTT r p pnl _ -> MZeroRTT r p pnl pn
+  | MHandshake r p pnl _ -> MHandshake r p pnl pn
+
+let set_pn (h:Spec.header{not (Spec.is_retry h)}) (pn:nat{pn <= max_ctr}) =
+  let pn : PN.packet_number_t = Secret.hide (U62.uint_to_t pn) in
+  match h with 
+  | Spec.MLong b d s l -> Spec.MLong b d s (set_pn_long l pn)
+  | Spec.MShort r s k d pnl _ -> Spec.MShort r s k d pnl pn
+
 val encrypt
   (#k:id)
   (w:stream_writer k)
@@ -311,11 +307,10 @@ val encrypt
       let k1, k2 = writer_leak w in
       let plain_pkg = (writer_ae_info w).AEAD.plain_pkg in
       let plain = plain_pkg.AEAD.repr i l p in
-      c == Spec.encrypt ea (Helpers.hide k1) (Helpers.hide (writer_static_iv w)) (Helpers.hide k2) h
-	(Helpers.reveal #l plain <: Spec.pbytes' (Spec.is_retry h)))
+      c == Spec.encrypt ea (Helpers.hide k1) (Helpers.hide (writer_static_iv w)) (Helpers.hide k2) h (Helpers.reveal #l plain))
     ))
 
-#push-options "--fuel 2 --z3rlimit 30"
+#push-options "--fuel 1 --z3rlimit 30"
 noeq type model_result (#k:id) (#w:stream_writer k) (r:stream_reader w) =
 | M_Success:
   h: Spec.header{not (Spec.is_retry h)} ->

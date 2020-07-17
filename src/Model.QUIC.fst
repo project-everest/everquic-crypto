@@ -25,33 +25,34 @@ open FStar.HyperStack.ST
 open FStar.UInt32
 open Mem
 
-type _ctr (offset:pn) = p:pn{p >= offset}
-
 let pne_plain (j:PNE.id) (l:pnl) : eqtype = Spec.lbytes l & PNE.length_bits l
 let as_bytes (j:PNE.id) (l:pnl) (x:pne_plain j l) : GTot (Helpers.lbytes l & PNE.length_bits l) = let (n,b) = x in (Helpers.hide n, b)
 let repr (j:PNE.unsafe_id) (l:pnl) (x:pne_plain j l) : b:(Helpers.lbytes l & PNE.length_bits l){b == as_bytes j l x} =
   let (n,b)=x in (Helpers.hide n, b)
 let mk (j:PNE.id) (l:pnl) (n:Helpers.lbytes l) (b:PNE.length_bits l) : p:pne_plain j l{as_bytes j l p == (n,b)} = Helpers.reveal n,b
 
+let extend (#l:pnl) (b:Spec.lbytes l) (l':pnl)
+  : Spec.lbytes l' =
+  if l' <= l then Seq.slice b 0 l'
+  else Seq.append (Seq.create (l'-l) 0z) b
+
+private let lemma_logxor_lt (#n:pos) (a b:UInt.uint_t n) (k:nat{k <= n})
+  : Lemma (requires a < pow2 k /\ b < pow2 k)
+  (ensures a `UInt.logxor` b < pow2 k)
+  = admit()
+
 let pnenc (j:PNE.id) (l:pnl) (p:pne_plain j l) (c:PNE.pne_cipherpad)
   : (l':pnl & pne_plain j l') =
   let npn, bits = p in
   let pnm, bm = c in
-  let npn' = QUIC.Spec.Lemmas.xor_inplace npn (Seq.slice (Helpers.reveal pnm) 0 l) in
-  let bits' = BF.set_bitfield bits 0 5 (BF.get_bitfield (bits `FStar.UInt.logxor` bm) 0 5) in
-  let ln = BF.get_bitfield bits' 0 2 + 1 in
+  lemma_logxor_lt #8 bits bm 5;
+  let v = BF.get_bitfield #8 (bits `FStar.UInt.logxor` bm) 0 5 in
+  BF.set_bitfield_bound bits 5 0 5 v;
+  let bits' : PNE.bits = BF.set_bitfield bits 0 5 v in
+  let ln : pnl = BF.get_bitfield bits' 0 2 + 1 in
+  let npn' : Spec.lbytes ln = extend #l npn ln in    
+  let npn'' = QUIC.Spec.Lemmas.xor_inplace npn' (Seq.slice (Helpers.reveal pnm) 0 ln) 0 in
   (| ln, (npn', bits') |)
-  
-  admit()
-
-(*
-    let protected_bits = if MShort? h then 5 else 4 in
-    let f' = BF.set_bitfield (U8.v f) 0 protected_bits (BF.get_bitfield (U8.v f `FStar.UInt.logxor` U8.v (Seq.index mask 0)) 0 protected_bits) in
-
-    let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
-
-  admit()
-*)
 
 let lemma_xor (j:PNE.id) (l:pnl) (p:(Spec.lbytes l & PNE.length_bits l)) (c:PNE.pne_cipherpad)
   : Lemma (requires True)
@@ -59,10 +60,13 @@ let lemma_xor (j:PNE.id) (l:pnl) (p:(Spec.lbytes l & PNE.length_bits l)) (c:PNE.
     let _, bits = as_bytes j l' b' in
     let l:pnl = LowParse.BitFields.get_bitfield bits 0 2 + 1 in
     l == (l' <: pnl)))
-  = admit()
+  = ()
 
-let pne_pkg : PNE.pne_plain_pkg =
- PNE.PNEPlainPkg pne_plain as_bytes repr mk pnenc lemma_xor
+// The (abstract) type of encrypted QUIC headers,
+let pne_pkg =
+  PNE.PNEPlainPkg pne_plain as_bytes repr mk pnenc lemma_xor
+
+type _ctr (offset:pn) = p:pn{p >= offset}
 
 noeq type stream_writer' (i:id) = 
 | Writer:
@@ -72,7 +76,8 @@ noeq type stream_writer' (i:id) =
   ae: AE.aead_writer (dfst i){(AEAD.wgetinfo ae).AEAD.min_len == 3} ->
   pne_info: PNE.info (dsnd i){
     pne_info.PNE.calg == Spec.Agile.AEAD.cipher_alg_of_supported_alg (AEAD.wgetinfo ae).AEAD.alg /\
-    pne_info.PNE.halg == (AEAD.wgetinfo ae).AEAD.halg} ->
+    pne_info.PNE.halg == (AEAD.wgetinfo ae).AEAD.halg /\
+    pne_info.PNE.plain == pne_pkg} ->
   pne: PNE.pne_state pne_info ->
   ctr: reference (_ctr offset) ->
   stream_writer' i
@@ -157,22 +162,21 @@ let create k u u1 u2 init =
   let open Model.Helpers in
   let alg = u1.AEAD.alg in
   let siv = random 12 in
-  let h0 = get() in
+  (**) let h0 = get() in
   let ae = AEAD.gen (dfst k) u1 in
-  let h1 = get () in  
+  (**) let h1 = get () in  
   let pne = PNE.create (dsnd k) u2 in
-  let h2 = get () in
+  (**) let h2 = get () in
   let ctr = ralloc u.region init in
-  let h3 = get () in 
-  AEAD.wframe_invariant M.loc_none ae h1 h3;
-  PNE.frame_invariant pne M.loc_none h2 h3;
+  (**) let h3 = get () in 
+  (**) AEAD.wframe_invariant M.loc_none ae h1 h3;
+  (**) PNE.frame_invariant pne M.loc_none h2 h3;
   if safe k then
    begin
-    AEAD.frame_log M.loc_none ae h1 h3;
-    PNE.frame_table pne M.loc_none h2 h3
+    (**) AEAD.frame_log M.loc_none ae h1 h3;
+    (**) PNE.frame_table pne M.loc_none h2 h3
    end;
-  let r = Writer u init (reveal siv) ae u2 pne ctr in
-  r
+  Writer u init (reveal siv) ae u2 pne ctr
 
 let coerce k u u1 u2 init ts =
   let open Model.Helpers in
@@ -188,8 +192,7 @@ let coerce k u u1 u2 init ts =
   let h3 = get () in 
   AEAD.wframe_invariant M.loc_none ae h1 h3;
   PNE.frame_invariant pne M.loc_none h2 h3;
-  let r = Writer u init (reveal siv) ae u2 pne ctr in
-  r
+  Writer u init (reveal siv) ae u2 pne ctr
 
 let createReader rgn #k w =
   let h0 = get () in
@@ -199,40 +202,63 @@ let createReader rgn #k w =
   let aer = AEAD.gen_reader w.ae in
   Reader aer last
 
-#push-options "--z3rlimit 30"
+let lemma_eq_add (a b c:nat)
+  : Lemma (requires a == b - c)
+  (ensures a + c == b)
+  = ()
+
+
+#push-options "--z3rlimit 30 --fuel 0"
 let encrypt #k w h #l p =
   let open Model.Helpers in
   let alg = (writer_ae_info w).AEAD.alg in
-  if safe k then
-    let h0 = get () in
-    let ln = Lib.RawIntTypes.uint_to_nat (TSpec.pn_length h) - 1 in
-    let iv = TSpec.iv_for_encrypt_decrypt alg (hide w.siv) h in
-    let iv = Helpers.reveal #12 iv in
-    let aad = Helpers.hide (TSpec.format_header h) in
-    let pno = TSpec.pn_offset h in
-    assume(AEAD.fresh_nonce w.ae iv h0);
-    let c1 = AEAD.encrypt (dfst k) w.ae iv aad l p in
-    let h1 = get () in
-    PNE.frame_invariant w.pne (AEAD.wfootprint w.ae) h0 h1;
-    let sample = (Seq.slice c1 (3-ln) (19-ln)) in
-//    let npn = mk (dsnd k) (ln+1) (Helpers.reveal #(ln+1) (Seq.slice aad pno (pno+ln+1))) ln in
-    admit()
-//    PNE.encrypt w.pne
-  else admit()
-
+  let h0 = get () in
+  let ln = Lib.RawIntTypes.uint_to_nat (TSpec.pn_length h) in
+  let iv = TSpec.iv_for_encrypt_decrypt alg (hide w.siv) h in
+  let iv0 = Helpers.reveal #12 iv in
+  let aad = TSpec.format_header h in
+  let f = Seq.index aad 0 in
+  let bits' = BF.get_bitfield (UInt8.v f) 0 5 in  
+  QUIC.Spec.Header.Parse.format_header_pn_length h;
+  BF.get_bitfield_get_bitfield (UInt8.v f) 0 5 0 2;
+  // SMT needs some help
+  lemma_eq_add (BF.get_bitfield bits' 0 2) ln 1;
+  let bits : PNE.length_bits ln = bits' in
+  let pno = TSpec.pn_offset h in
+  let rpn : Helpers.lbytes ln = Helpers.hide (Seq.slice aad pno (pno+ln)) in
+  // FIXME add to invariant forall i. i<ctr ==> fresh_nonce i
+  assume(AEAD.is_safe (dfst k) ==> AEAD.fresh_nonce w.ae iv0 h0);
+  let c1 = AEAD.encrypt (dfst k) w.ae iv0 (Helpers.hide aad) l p in
+  let h1 = get () in
+  PNE.frame_invariant w.pne (AEAD.wfootprint w.ae) h0 h1;
+  let sample : PNE.sample = Helpers.reveal #16 (Seq.slice c1 (4-ln) (20-ln)) in
+  let npn = mk (dsnd k) ln rpn bits in
+  // N.B. see paper for justification of this assumption
+  assume(PNE.is_safe (dsnd k) ==> PNE.fresh_sample sample w.pne h1);
+  assert(PNE.invariant w.pne h1); 
+  let pnc = PNE.encrypt w.pne #ln npn sample in
+  let h2 = get () in
+  AEAD.wframe_invariant (PNE.footprint w.pne) w.ae h1 h2;
+  w.ctr := !w.ctr + 1;
+  let h3 = get() in
+  AEAD.wframe_invariant (M.loc_mreference w.ctr) w.ae h2 h3;
+  PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h2 h3;
+  admit()
+  
 (*
-    let k1, k2 = writer_leak w in
-    let plain : Spec.pbytes' (Spec.is_retry h) = (writer_ae_info w).AEAD.plain_pkg.AEAD.repr (dfst k) l p in
-    let r = TSpec.encrypt alg
-    (hide k1) (hide w.siv) (hide k2) h plain in
     let h0 = get () in
-    w.ctr := !w.ctr + 1;
+    let ctr0 = !w.ctr + 1 in
+    let k1, k2 = writer_leak w in
+    let plain = (writer_ae_info w).AEAD.plain_pkg.AEAD.repr (dfst k) l p in
+    let c = TSpec.encrypt alg (hide k1) (hide w.siv) (hide k2) h (reveal #l plain) in
     let h1 = get () in
-    AEAD.wframe_invariant (M.loc_mreference w.ctr) w.ae h0 h1;
-    PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h0 h1;
-    r
+    w.ctr := ctr0;
+    let h2 = get () in
+    AEAD.wframe_invariant (M.loc_mreference w.ctr) w.ae h1 h2;
+    PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h1 h2;
+    c
 #pop-options
-*)
+
 let decrypt #k #w r cid_len packet =
   if safe k then
     admit()
