@@ -10,6 +10,7 @@ FSTAR_INCLUDE_PATH= \
 	$(EVERQUIC_HOME)/src \
 	$(EVERQUIC_HOME)/test \
 	$(KREMLIN_HOME)/kremlib \
+	$(KREMLIN_HOME)/kremlib/obj \
 	$(QD_HOME)/src/lowparse \
 	$(ALL_HACL_DIRS)
 
