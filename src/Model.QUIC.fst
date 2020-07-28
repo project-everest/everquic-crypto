@@ -2,6 +2,7 @@ module Model.QUIC
 
 module HS = FStar.HyperStack
 module I = Model.Indexing
+module U8 = FStar.UInt8
 module U32 = FStar.UInt32
 module U64 = FStar.UInt64
 module U128 = FStar.UInt128
@@ -108,7 +109,16 @@ let reader_aead_state #k #w r = r.aer
 let writer_pne_state #k w = w.pne
 let reader_pne_state #k #w r = w.pne
 
+let nonce_of_ctr #i (w:stream_writer i) (n:nat{n < pow2 62 /\ n>=w.offset})
+  : Tot AEAD.nonce
+  =
+  let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
+  let pn = FStar.Endianness.n_to_be 12 n in
+  QUIC.Spec.Lemmas.xor_inplace pn w.siv 0
+
 let invariant #k w h =
+//  (forall i. (i >= HS.sel h w.ctr /\ safe k) ==>
+//    AEAD.fresh_nonce w.ae (nonce_of_ctr w i) h) /\
   AEAD.winvariant w.ae h /\
   PNE.invariant w.pne h /\
   h `HS.contains` w.ctr /\
@@ -202,12 +212,30 @@ let createReader rgn #k w =
   let aer = AEAD.gen_reader w.ae in
   Reader aer last
 
-let lemma_eq_add (a b c:nat)
-  : Lemma (requires a == b - c)
-  (ensures a + c == b)
-  = ()
+private let lemma_eq_add (a b c:nat) : Lemma (requires a == b - c)
+  (ensures a + c == b) = ()
 
+let set_pne (h:Spec.header) (#ln:pnl) (pne:PNE.pne_cipher ln) (c1:Spec.bytes)
+  : Pure Spec.packet
+  (requires not (Spec.is_retry h) /\ ln == Lib.RawIntTypes.uint_to_nat (TSpec.pn_length h) /\
+  Seq.length c1 < pow2 32 - Spec.header_len_bound)
+  (ensures fun r -> True)
+  =
+  let pne, bits = pne in
+  let r = TSpec.format_header h in
+  let pno = TSpec.pn_offset h in
+  assume(pno < Seq.length r - ln);
+  let protected_bits = if Spec.MShort? h then 5 else 4 in
+  let f' = BF.set_bitfield (U8.v (Seq.index r 0)) 0 protected_bits (BF.get_bitfield (U8.v (Seq.index r 0) `FStar.UInt.logxor` bits) 0 protected_bits) in
+  let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 pno `Seq.append` pne `Seq.append` c1) in
+  r
 
+let _co (#i:AEAD.id) (#u:AEAD.info i{u.AEAD.min_len == 3}) (#l:AEAD.at_least u) (c:AEAD.cipher u l)
+  : Pure Spec.bytes
+  (requires True) (ensures fun b -> Seq.length b < pow2 32 - Spec.header_len_bound)
+  = assume false; c
+
+#restart-solver
 #push-options "--z3rlimit 30 --fuel 0"
 let encrypt #k w h #l p =
   let open Model.Helpers in
@@ -226,7 +254,6 @@ let encrypt #k w h #l p =
   let bits : PNE.length_bits ln = bits' in
   let pno = TSpec.pn_offset h in
   let rpn : Helpers.lbytes ln = Helpers.hide (Seq.slice aad pno (pno+ln)) in
-  // FIXME add to invariant forall i. i<ctr ==> fresh_nonce i
   assume(AEAD.is_safe (dfst k) ==> AEAD.fresh_nonce w.ae iv0 h0);
   let c1 = AEAD.encrypt (dfst k) w.ae iv0 (Helpers.hide aad) l p in
   let h1 = get () in
@@ -235,41 +262,19 @@ let encrypt #k w h #l p =
   let npn = mk (dsnd k) ln rpn bits in
   // N.B. see paper for justification of this assumption
   assume(PNE.is_safe (dsnd k) ==> PNE.fresh_sample sample w.pne h1);
-  assert(PNE.invariant w.pne h1); 
-  let pnc = PNE.encrypt w.pne #ln npn sample in
+  let pnc : PNE.pne_cipher ln = PNE.encrypt w.pne #ln npn sample in
+  let pne, bits = pnc in
   let h2 = get () in
   AEAD.wframe_invariant (PNE.footprint w.pne) w.ae h1 h2;
   w.ctr := !w.ctr + 1;
   let h3 = get() in
   AEAD.wframe_invariant (M.loc_mreference w.ctr) w.ae h2 h3;
   PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h2 h3;
-  admit()
-  
-(*
-    let h0 = get () in
-    let ctr0 = !w.ctr + 1 in
+  assert(invariant w h3);
+  if safe k then
+    set_pne h pnc (_co c1)
+  else
     let k1, k2 = writer_leak w in
     let plain = (writer_ae_info w).AEAD.plain_pkg.AEAD.repr (dfst k) l p in
-    let c = TSpec.encrypt alg (hide k1) (hide w.siv) (hide k2) h (reveal #l plain) in
-    let h1 = get () in
-    w.ctr := ctr0;
-    let h2 = get () in
-    AEAD.wframe_invariant (M.loc_mreference w.ctr) w.ae h1 h2;
-    PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h1 h2;
-    c
+    TSpec.encrypt alg (hide k1) (hide w.siv) (hide k2) h (reveal #l plain)
 #pop-options
-
-let decrypt #k #w r cid_len packet =
-  if safe k then
-    admit()
-  else
-    let open Model.Helpers in
-    let k1, k2 = reader_leak r in
-    let expected = expected_pn r in
-    let ea = (writer_ae_info w).AE.alg in
-    match QUIC.TotSpec.decrypt ea (hide k1)
-      (hide (reader_static_iv r)) (hide k2)
-      expected cid_len packet with
-    | Spec.Failure -> M_Failure
-    | _ -> admit()
- 
