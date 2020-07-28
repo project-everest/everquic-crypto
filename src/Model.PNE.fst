@@ -93,7 +93,7 @@ let encrypt #j #u st #l n s =
     let (| u, p |) = st <: model_state j in
     let log = !*p in
     assert (log == table st h0);
-    let cipher: pne_cipherpad = random 5, random_bits () in
+    let cipher: pne_cipherpad = random 4, random_bits () in
     p *= Seq.snoc log (Entry s #l n cipher);
     clip_cipherpad cipher l
   else
@@ -129,7 +129,7 @@ let decrypt #j #u st cp s =
         // Need to add into the table:
         let bits = random_bits () in
         let l = LowParse.BitFields.get_bitfield bits 0 2 + 1 in
-        let c' = random 5, bits in
+        let c' = random 4, bits in
         // let n' = clip_cipherpad (c' `xor_cipherpad` cp) l in
         let r = random l in
         let n = PNEPlainPkg?.mk u.plain j l r bits in
@@ -147,3 +147,4 @@ let decrypt #j #u st cp s =
   else
     let info, k = st <: unsafe_state j in
     decrypt_spec info.calg (fst cp) (snd cp) k s
+ 
