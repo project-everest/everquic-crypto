@@ -334,7 +334,7 @@ let encrypt #i s dst dst_pn h plain plain_len =
     assert (Model.QUIC.wincrementable writer h8);
 
     let cipher = Model.QUIC.encrypt writer spec_h
-      Model.QUIC.((writer_info writer).plain_pkg.mk i (S.length plain_s) (Model.Helpers.reveal #(S.length plain_s) plain_s)) in
+      Model.QUIC.((writer_ae_info writer).Model.AEAD.plain_pkg.Model.AEAD.mk (dfst i) (S.length plain_s) plain_s) in
     QUIC.Spec.encrypt_length aead_alg
       (QImpl.derive_k dummy_index dummy_s h5)
       (QImpl.derive_iv dummy_index dummy_s h5)

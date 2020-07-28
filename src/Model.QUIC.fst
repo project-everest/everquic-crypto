@@ -278,3 +278,7 @@ let encrypt #k w h #l p =
     let plain = (writer_ae_info w).AEAD.plain_pkg.AEAD.repr (dfst k) l p in
     TSpec.encrypt alg (hide k1) (hide w.siv) (hide k2) h (reveal #l plain)
 #pop-options
+
+/// Decrypt follows in a similar fashion. A complete proof will be provided for the final version.
+
+let decrypt #_ #_ _ _ _ = admit ()
