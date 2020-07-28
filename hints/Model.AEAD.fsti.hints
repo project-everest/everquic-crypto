@@ -1,5 +1,5 @@
 [
-  "\u0015~àÎ„\u0000§­šæ®\u0014†k¬Œ",
+  "\u0018¦í6pYQ•\u000eCëŠÂ“1t",
   [
     [
       "Model.AEAD.tag_len",
@@ -31,7 +31,7 @@
         "typing_Mem.quic_region"
       ],
       0,
-      "496e0e1a5aac6ce38924d59006377d16"
+      "a6dffbbf1f1dbe2d6dae07bceffacba3"
     ],
     [
       "Model.AEAD.plain_pkg",
@@ -40,19 +40,7 @@
       0,
       [ "@query" ],
       0,
-      "8246ed35d0d501b4d44089967d44ca0e"
-    ],
-    [
-      "Model.AEAD.__proj__PlainPkg__item__plain",
-      1,
-      0,
-      0,
-      [
-        "@query", "proj_equation_Model.AEAD.PlainPkg_min_len",
-        "projection_inverse_Model.AEAD.PlainPkg_min_len"
-      ],
-      0,
-      "d5f87386aa5903e596ebcdedd6f2276c"
+      "b9d7a02ea6e4cc22e55e26f1db58f069"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__as_bytes",
@@ -61,7 +49,7 @@
       0,
       [ "@query" ],
       0,
-      "6d1ce88f2be184502ebc1f2522d98b71"
+      "2e7530bab095c40e557d8ae376de1e77"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__as_bytes",
@@ -76,7 +64,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "34538da0becbbed3aafcdc1166566bc6"
+      "cd926edee9bf86720d0380d689f2fcde"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__repr",
@@ -85,7 +73,7 @@
       0,
       [ "@query" ],
       0,
-      "c4133fd0cf1eedd29598cce2c7614c72"
+      "e388dc27ce65e91cf50380f99e842be7"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__repr",
@@ -103,7 +91,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "c1cf2e779b3fb24532702416f2339ddf"
+      "1bde8a1374efa8880c75c03ca66b966a"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__mk",
@@ -112,7 +100,7 @@
       0,
       [ "@query" ],
       0,
-      "19cfb1ebd55625e4586a43f21421b71e"
+      "98f57d4fec39112051189fbbc233bb78"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__mk",
@@ -130,7 +118,19 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "e4e583cd1a47f9fb8aa8879318137e76"
+      "95d7b7f661d8f2f19955c2bc3e761c0a"
+    ],
+    [
+      "Model.AEAD.__proj__Mkinfo'__item__plain_pkg",
+      1,
+      0,
+      0,
+      [
+        "@query", "proj_equation_Model.AEAD.Mkinfo__min_len",
+        "projection_inverse_Model.AEAD.Mkinfo__min_len"
+      ],
+      0,
+      "34342d4ed1f46e074c4863c125b96fff"
     ],
     [
       "Model.AEAD.plain_as_bytes",
@@ -139,7 +139,7 @@
       0,
       [ "@query" ],
       0,
-      "bdf8c67f49b9143693a5d20e63a595b1"
+      "26c0cc31bd5bff98101ffd8cee0f3047"
     ],
     [
       "Model.AEAD.plain_repr",
@@ -148,7 +148,7 @@
       0,
       [ "@query", "equation_Model.AEAD.plain_as_bytes" ],
       0,
-      "16e2fd99c9163c527eea9e928da87bb0"
+      "7a1a38367bcb3ba72ea65b94386209e4"
     ],
     [
       "Model.AEAD.cipher",
@@ -176,7 +176,7 @@
         "typing_FStar.UInt32.v", "typing_Model.AEAD.tag_len"
       ],
       0,
-      "c15bee202826d8eaeb1a7fedfddea218"
+      "b8379a386832614a3d53f0af98afe857"
     ],
     [
       "Model.AEAD.ad",
@@ -188,7 +188,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "9054de14eeae5a5e957cee9c395ad232"
+      "8560fb505e910771a97f37ed82f40173"
     ],
     [
       "Model.AEAD.nonce",
@@ -209,7 +209,7 @@
         "typing_FStar.UInt8.t"
       ],
       0,
-      "c73b1cc0ace43eb03a5511822f2b18e1"
+      "97cf7fe9ff5a6f6712f8306f5995c94f"
     ],
     [
       "Model.AEAD.__proj__Entry__item__p",
@@ -225,7 +225,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "12070403741eacc1b3d3353ccfc3023f"
+      "d7ad197559e1da5ec15995b153fb1998"
     ],
     [
       "Model.AEAD.__proj__Entry__item__c",
@@ -237,7 +237,7 @@
         "projection_inverse_Model.AEAD.Entry_l"
       ],
       0,
-      "4e8ef3762e4e9e17f856709cd9a6d57a"
+      "9796666ff17f0450e46e0544a58a8f03"
     ],
     [
       "Model.AEAD.lemma_max_hash_len",
@@ -258,7 +258,7 @@
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "509f321e450984295fcfb5ed7345aac0"
+      "ff75664c8057af6a4668fef12fe2634e"
     ],
     [
       "Model.AEAD.traffic_secret",
@@ -275,7 +275,7 @@
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "3a84f2e67fee10a9f226ad3476edf7ee"
+      "5095fd98cda46e7ffeb0edca862f0dda"
     ],
     [
       "Model.AEAD.gen",
@@ -287,7 +287,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "76e625524dab8b6b096f882fae709643"
+      "4dc90795981ed7ce2863e3ef9feee349"
     ],
     [
       "Model.AEAD.coerce",
@@ -296,7 +296,7 @@
       0,
       [ "@query" ],
       0,
-      "9beaefb0a631c7123223a6ce0e891f0c"
+      "79be000d081dcf7fb1efaf11305c2879"
     ],
     [
       "Model.AEAD.quic_coerce",
@@ -402,7 +402,7 @@
         "typing_tok_Spec.Agile.Cipher.AES256@tok"
       ],
       0,
-      "5eddb54c687674e34682fde93c6a78de"
+      "2860ed877d1086722b284bb200ff21e6"
     ],
     [
       "Model.AEAD.encrypt",
@@ -515,7 +515,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e8d1e0c4894e8c594828dbb3fff45262"
+      "33a262cce7ebdd759fba7ad72ae4cb5c"
     ],
     [
       "Model.AEAD.decrypt",
@@ -639,7 +639,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "b812b1224f26d3a40ba7cc34e0318ba5"
+      "c47a52284d1cef0c248669bd7307229e"
     ]
   ]
 ]

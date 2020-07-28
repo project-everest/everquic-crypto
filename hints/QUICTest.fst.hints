@@ -35,7 +35,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "21039d8c6e0d46ef47f97f745bf09825"
+      "b5eb3b0e77b415cd18a81c686c0b185e"
     ],
     [
       "QUICTest._traffic_secret",
@@ -52,7 +52,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "f3b9ef3ad8381262072c669dc37829a0"
+      "c22b76294e7b269c2d89b6bf86a3ab4b"
     ],
     [
       "QUICTest.traffic_secret_length_correct",
@@ -61,7 +61,7 @@
       1,
       [ "@query" ],
       0,
-      "b051f358920ce214ce8159cec5d323a1"
+      "7cbc108a9442b96841d0a66b9abc1d36"
     ],
     [
       "QUICTest._plain",
@@ -78,7 +78,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "08c4b8ad267320e729256d57cf4c3348"
+      "469e75cfa9dd9d560f68375e8ef269b1"
     ],
     [
       "QUICTest.plain_length_correct",
@@ -87,7 +87,7 @@
       1,
       [ "@query" ],
       0,
-      "bf2ce8778792153848bda604573cb551"
+      "2d3b722a265a2d7f90d2429b6f67dbf9"
     ],
     [
       "QUICTest.is_success_body",
@@ -102,11 +102,6 @@
         "constructor_distinct_EverCrypt.Error.InvalidKey",
         "constructor_distinct_EverCrypt.Error.Success",
         "constructor_distinct_EverCrypt.Error.UnsupportedAlgorithm",
-        "constructor_distinct_Lib.IntTypes.U1",
-        "constructor_distinct_Lib.IntTypes.U128",
-        "constructor_distinct_Lib.IntTypes.U16",
-        "constructor_distinct_Lib.IntTypes.U32",
-        "constructor_distinct_Lib.IntTypes.U64",
         "constructor_distinct_Lib.IntTypes.U8",
         "disc_equation_EverCrypt.Error.AuthenticationFailure",
         "disc_equation_EverCrypt.Error.DecodeError",
@@ -128,6 +123,7 @@
         "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
         "fuel_guarded_inversion_EverCrypt.Error.error_code",
         "proj_equation_Spec.GaloisField.GF_t",
+        "projection_inverse_BoxBool_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_05e15190c946858f68c69156f585f95a",
         "refinement_interpretation_Tm_refine_365abba901205a01d0ef28ebf2198c47",
@@ -139,7 +135,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "d51337ea26dc026eb8515cbc7f54bfda"
+      "6a2ca48a3894f4d9a0ad3c4ebba889cc"
     ],
     [
       "QUICTest.is_success",
@@ -148,7 +144,7 @@
       1,
       [ "@query" ],
       0,
-      "e758e4cd4c43ce8fdb5dfd1151e8c04d"
+      "768cdfde068c9d93a35c588086f6982d"
     ],
     [
       "QUICTest.check_is_true_body",
@@ -170,7 +166,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "b5daeba9cd9587d906527b34e05690e3"
+      "e050a90b73c363fc1d80ea4521b74162"
     ],
     [
       "QUICTest.check_is_true",
@@ -179,7 +175,7 @@
       1,
       [ "@query" ],
       0,
-      "975115d27ac181bac1e71964dd2bb2a0"
+      "53564722cbcda72caf728c2fae1f6af5"
     ],
     [
       "QUICTest.is_equal",
@@ -230,7 +226,7 @@
         "typing_tok_Lib.IntTypes.PUB@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "7af35308f01626ac704767f286eb6398"
+      "4934bc551e03f2ad9f09abd962006376"
     ],
     [
       "QUICTest.used_in_not_unused_in_disjoint",
@@ -239,7 +235,7 @@
       1,
       [ "@query" ],
       0,
-      "148294bb22a2832f8dbda8853a9a5cc4"
+      "d71d40bc061e9a18dd485fa7c84a7831"
     ],
     [
       "QUICTest.test",
@@ -648,7 +644,7 @@
         "typing_tok_Spec.Hash.Definitions.SHA2_256@tok"
       ],
       0,
-      "45c28f7e308222a34f7d4ab7583c6d6c"
+      "98625b8e0f0a41aebf56186e6f4a95fd"
     ]
   ]
 ]
