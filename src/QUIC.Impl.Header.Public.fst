@@ -49,7 +49,7 @@ let validate_header_body_cases
 : Tot (LP.validator (dsnd (parse_header_body short_dcid_len k')))
 = match LP.coerce (LPB.bitsum'_key_type first_byte) k' with
   | (| Short, (| (), () |) |) ->
-    LP.validate_weaken (LP.strong_parser_kind 0 20 None) (LP.validate_flbytes (U32.v short_dcid_len) short_dcid_len) ()
+    LP.validate_weaken (LP.strong_parser_kind 0 20 None) (LP.validate_flbytes (U32.v short_dcid_len) (FStar.Int.Cast.uint32_to_uint64 short_dcid_len)) ()
   | (| Long, (| (), (| Initial, () |) |) |) ->
     validate_long_initial_body
   | (| Long, (| (), (| ZeroRTT, () |) |) |) ->
@@ -381,7 +381,6 @@ let read_header packet packet_len cid_len =
   assert_norm (
     let k = parse_header_kind cid_len in
     Some? k.LP.parser_kind_high /\
-    Some?.v k.LP.parser_kind_high <= U32.v LP.validator_max_length /\
     k.LP.parser_kind_subkind == Some LP.ParserStrong
   );
   begin

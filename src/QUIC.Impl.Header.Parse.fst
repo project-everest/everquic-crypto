@@ -207,10 +207,10 @@ let putative_pn_offset
   let input = LP.make_slice b b_len in
   assert (LP.bytes_of_slice_from h input 0ul `Seq.equal` B.as_seq h b);
   LP.valid_facts (Public.parse_header cid_len) h input 0ul;
-  let res = LP.validate_bounded_strong_prefix (Public.validate_header cid_len) input 0ul in
-  if res `U32.gt` LP.validator_max_length
+  let res = Public.validate_header cid_len input 0uL in
+  if LP.is_error res
   then None
-  else Some res
+  else Some (LP.uint64_to_uint32 res)
 
 #pop-options
 

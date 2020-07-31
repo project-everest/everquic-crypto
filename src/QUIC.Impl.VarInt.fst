@@ -19,6 +19,8 @@ module U8 = FStar.UInt8
 
 let validate_varint #rrel #rel sl pos =
   let h = HST.get () in
+  let pos0 = pos in
+  let pos = LL.uint64_to_uint32 pos in
   [@inline_let]
   let _ =
     assert_norm (pow2 8 == 256);
@@ -30,8 +32,8 @@ let validate_varint #rrel #rel sl pos =
     parse_varint_eq (LL.bytes_of_slice_from h sl pos);
     LL.valid_facts parse_u8 h sl pos
   in
-  let pos1 = LI.validate_u8 () sl pos in
-  if pos1 `U32.gt` LL.validator_max_length
+  let pos1 = LI.validate_u8 () sl pos0 in
+  if LL.is_error pos1
   then pos1
   else
     let b = LI.read_u8 sl pos in
@@ -40,14 +42,17 @@ let validate_varint #rrel #rel sl pos =
     let msb = Cast.uint8_to_uint64 (msb8) in
     if kd = 0uy
     then pos1
-    else if kd = 1uy
+    else
+      let pos1' = pos1 in
+      let pos1 = LL.uint64_to_uint32 pos1 in
+    if kd = 1uy
     then begin
       [@inline_let]
       let _ =
         LL.valid_facts parse_u8 h sl pos1
       in
-      let pos2 = LI.validate_u8 () sl pos1 in
-      if pos2 `U32.gt` LL.validator_max_length
+      let pos2 = LI.validate_u8 () sl pos1' in
+      if LL.is_error pos2
       then pos2
       else
         let lsb = LI.read_u8 sl pos1 in
@@ -61,8 +66,8 @@ let validate_varint #rrel #rel sl pos =
       let _ =
         LL.valid_facts (parse_bounded_integer 3) h sl pos1
       in
-      let pos2 = LL.validate_bounded_integer 3 sl pos1 in
-      if pos2 `U32.gt` LL.validator_max_length
+      let pos2 = LL.validate_bounded_integer 3 sl pos1' in
+      if LL.is_error pos2
       then pos2
       else
         let lsb = LL.read_bounded_integer 3 sl pos1 in
@@ -75,8 +80,8 @@ let validate_varint #rrel #rel sl pos =
       let _ =
         LL.valid_facts (parse_u32 `nondep_then` parse_bounded_integer 3) h sl pos1
       in
-      let pos2 = LC.validate_nondep_then (LI.validate_u32 ()) (LL.validate_bounded_integer 3) sl pos1 in
-      if pos2 `U32.gt` LL.validator_max_length
+      let pos2 = LC.validate_nondep_then (LI.validate_u32 ()) (LL.validate_bounded_integer 3) sl pos1' in
+      if LL.is_error pos2
       then pos2
       else
         let pos_hi = LC.accessor_fst LL.parse_u32 () (LL.parse_bounded_integer 3) sl pos1 in
