@@ -236,7 +236,7 @@ let _co (#i:AEAD.id) (#u:AEAD.info i{u.AEAD.min_len == 3}) (#l:AEAD.at_least u) 
   = assume false; c
 
 #restart-solver
-#push-options "--z3rlimit 30 --fuel 0"
+#push-options "--z3rlimit 64 --fuel 0"
 let encrypt #k w h #l p =
   let open Model.Helpers in
   let alg = (writer_ae_info w).AEAD.alg in
