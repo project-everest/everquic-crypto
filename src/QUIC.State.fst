@@ -230,7 +230,7 @@ let create_in_core i r dst initial_pn traffic_secret aead_state ctr_state =
 
 #restart-solver
 
-#push-options "--z3rlimit 256"
+#push-options "--z3rlimit 512"
 let create_in i r dst initial_pn traffic_secret =
   LowStar.ImmutableBuffer.recall Impl.label_key;
   LowStar.ImmutableBuffer.recall_contents Impl.label_key Spec.label_key;
