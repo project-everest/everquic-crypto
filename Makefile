@@ -49,8 +49,11 @@ verify: $(ALL_CHECKED_FILES)
 
 KRML=$(KREMLIN_HOME)/krml
 
-dist/Makefile.basic: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
-	$(KRML) $(KOPTS) -library EverCrypt,EverCrypt.* $^ -tmpdir dist -skip-compilation \
+obj/kremlin.rsp: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
+	for f in $^ ; do echo $$f ; done > $@
+
+dist/Makefile.basic: obj/kremlin.rsp
+	$(KRML) $(KOPTS) -library EverCrypt,EverCrypt.* @$^ -tmpdir dist -skip-compilation \
 	  -minimal \
 	  -header noheader.txt \
 	  -add-include '"kremlin/internal/target.h"' \
