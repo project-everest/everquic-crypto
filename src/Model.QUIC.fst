@@ -37,16 +37,11 @@ let extend (#l:pnl) (b:Spec.lbytes l) (l':pnl)
   if l' <= l then Seq.slice b 0 l'
   else Seq.append (Seq.create (l'-l) 0z) b
 
-private let lemma_logxor_lt (#n:pos) (a b:UInt.uint_t n) (k:nat{k <= n})
-  : Lemma (requires a < pow2 k /\ b < pow2 k)
-  (ensures a `UInt.logxor` b < pow2 k)
-  = admit()
-
 let pnenc (j:PNE.id) (l:pnl) (p:pne_plain j l) (c:PNE.pne_cipherpad)
   : (l':pnl & pne_plain j l') =
   let npn, bits = p in
   let pnm, bm = c in
-  lemma_logxor_lt #8 bits bm 5;
+  QUIC.UInt.lemma_logxor_lt #8 bits bm 5;
   let v = BF.get_bitfield #8 (bits `FStar.UInt.logxor` bm) 0 5 in
   BF.set_bitfield_bound bits 5 0 5 v;
   let bits' : PNE.bits = BF.set_bitfield bits 0 5 v in
