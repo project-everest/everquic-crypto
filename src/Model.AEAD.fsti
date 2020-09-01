@@ -155,7 +155,9 @@ let lemma_max_hash_len ha
   [SMTPat (Spec.Hash.Definitions.hash_length ha)]
   =
   assert_norm (pow2 61 < pow2 125);
-  assert_norm (pow2 61 - 1 > 64)
+  assert_norm (pow2 61 - 1 > 64);
+  assert_norm (pow2 64 > pow2 61);
+  assert_norm (pow2 128 > pow2 64)
 
 let traffic_secret ha =
   Spec.lbytes (Spec.Hash.Definitions.hash_length ha)
