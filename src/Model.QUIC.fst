@@ -210,6 +210,8 @@ let createReader rgn #k w =
 private let lemma_eq_add (a b c:nat) : Lemma (requires a == b - c)
   (ensures a + c == b) = ()
 
+#push-options "--z3rlimit 32 --fuel 0"
+
 let set_pne (h:Spec.header) (#ln:pnl) (pne:PNE.pne_cipher ln) (c1:Spec.bytes)
   : Pure Spec.packet
   (requires not (Spec.is_retry h) /\ ln == Lib.RawIntTypes.uint_to_nat (TSpec.pn_length h) /\
@@ -219,16 +221,16 @@ let set_pne (h:Spec.header) (#ln:pnl) (pne:PNE.pne_cipher ln) (c1:Spec.bytes)
   let pne, bits = pne in
   let r = TSpec.format_header h in
   let pno = TSpec.pn_offset h in
-  assume(pno < Seq.length r - ln);
+  assert(pno == Seq.length r - ln);
+  assert (Seq.length r <= Spec.header_len_bound);
+  assert (ln == Seq.length pne);
   let protected_bits = if Spec.MShort? h then 5 else 4 in
   let f' = BF.set_bitfield (U8.v (Seq.index r 0)) 0 protected_bits (BF.get_bitfield (U8.v (Seq.index r 0) `FStar.UInt.logxor` bits) 0 protected_bits) in
-  let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 pno `Seq.append` pne `Seq.append` c1) in
-  r
+  let r' = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 pno `Seq.append` Helpers.reveal pne `Seq.append` c1) in
+  assert (Seq.length r' == Seq.length r + Seq.length c1);
+  r'
 
-let _co (#i:AEAD.id) (#u:AEAD.info i{u.AEAD.min_len == 3}) (#l:AEAD.at_least u) (c:AEAD.cipher u l)
-  : Pure Spec.bytes
-  (requires True) (ensures fun b -> Seq.length b < pow2 32 - Spec.header_len_bound)
-  = assume false; c
+#pop-options
 
 #restart-solver
 #push-options "--z3rlimit 64 --fuel 0"
@@ -267,7 +269,7 @@ let encrypt #k w h #l p =
   PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h2 h3;
   assert(invariant w h3);
   if safe k then
-    set_pne h pnc (_co c1)
+    set_pne h pnc (Helpers.reveal #(Seq.length c1) c1)
   else
     let k1, k2 = writer_leak w in
     let plain = (writer_ae_info w).AEAD.plain_pkg.AEAD.repr (dfst k) l p in
