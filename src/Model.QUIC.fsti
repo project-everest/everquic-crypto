@@ -289,11 +289,11 @@ val encrypt
     wincrementable w h0 /\
     (if Spec.is_retry h then l = 0
     else (
-      (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (wctrT w h0 + 1))) == QUIC.Spec.Header.Base.packet_number h /\
+      (Lib.RawIntTypes.u64_from_UInt64 (UInt64.uint_to_t (wctrT w h0 + 1))) == QUIC.Spec.Header.Base.packet_number h /\ (
       Spec.has_payload_length h ==>
         Secret.v (Spec.payload_length h) == l
 	  + Spec.Agile.AEAD.tag_length (writer_ae_info w).AEAD.alg))
-  )
+  ))
   (ensures fun h0 c h1 ->
     let (|i,j|) = k in
     let aw = writer_aead_state w in

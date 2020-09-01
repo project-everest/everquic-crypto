@@ -111,12 +111,51 @@ let nonce_of_ctr #i (w:stream_writer i) (n:nat{n < pow2 62 /\ n>=w.offset})
   let pn = FStar.Endianness.n_to_be 12 n in
   QUIC.Spec.Lemmas.xor_inplace pn w.siv 0
 
+let nonce_of_ctr_injective
+  #i (w:stream_writer i)
+  (n1:nat{n1 < pow2 62 /\ n1>=w.offset})
+  (n2:nat{n2 < pow2 62 /\ n2>=w.offset})
+: Lemma
+  (requires (nonce_of_ctr w n1 == nonce_of_ctr w n2))
+  (ensures (n1 == n2))
+=
+  let _ = assert_norm(pow2 62 < pow2 (8 `op_Multiply` 12)) in
+  let pn1 = FStar.Endianness.n_to_be 12 n1 in
+  let pn2 = FStar.Endianness.n_to_be 12 n2 in
+  QUIC.Spec.Lemmas.xor_inplace_involutive pn1 w.siv 0;
+  QUIC.Spec.Lemmas.xor_inplace_involutive pn2 w.siv 0
+
+let nonce_of_ctr_injective'
+  #i (w:stream_writer i)
+  (n1:nat{n1 < pow2 62 /\ n1>=w.offset})
+  (n2:nat{n2 < pow2 62 /\ n2>=w.offset})
+: Lemma
+  (n1 <> n2 ==> nonce_of_ctr w n1 <> nonce_of_ctr w n2)
+=
+  Classical.move_requires (nonce_of_ctr_injective w n1) n2
+
+let fresh_nonces_from
+  (j: nat)
+  (#k:id)
+  (w:stream_writer k)
+  (h:mem)
+: GTot Type0
+=
+  (forall i. (i > j /\ safe k) ==>
+    AEAD.fresh_nonce w.ae (nonce_of_ctr w i) h)
+
+let fresh_nonces
+  (#k:id)
+  (w:stream_writer k)
+  (h:mem)
+: GTot Type0
+= fresh_nonces_from (HS.sel h w.ctr) w h
+
 let invariant #k w h =
-//  (forall i. (i >= HS.sel h w.ctr /\ safe k) ==>
-//    AEAD.fresh_nonce w.ae (nonce_of_ctr w i) h) /\
   AEAD.winvariant w.ae h /\
   PNE.invariant w.pne h /\
   h `HS.contains` w.ctr /\
+  fresh_nonces w h /\
   AEAD.wfootprint w.ae `B.loc_disjoint` (B.loc_mreference w.ctr) /\
   PNE.footprint w.pne `B.loc_disjoint` (B.loc_mreference w.ctr) /\
   PNE.footprint w.pne `B.loc_disjoint` AEAD.wfootprint w.ae
@@ -145,7 +184,8 @@ let rfootprint #k #w r = footprint w `B.loc_union` B.loc_mreference r.last
 
 let frame_invariant #k w h0 l h1 =
   AEAD.wframe_invariant l w.ae h0 h1;
-  PNE.frame_invariant w.pne l h0 h1
+  PNE.frame_invariant w.pne l h0 h1;
+  if safe k then AEAD.frame_log l w.ae h0 h1
 
 let rframe_invariant #k #w r h0 l h1 =
   AEAD.wframe_invariant l w.ae h0 h1;
@@ -241,6 +281,7 @@ let encrypt #k w h #l p =
   let ln = Lib.RawIntTypes.uint_to_nat (TSpec.pn_length h) in
   let iv = TSpec.iv_for_encrypt_decrypt alg (hide w.siv) h in
   let iv0 = Helpers.reveal #12 iv in
+  assert (iv0 == nonce_of_ctr w (wctrT w h0 + 1));
   let aad = TSpec.format_header h in
   let f = Seq.index aad 0 in
   let bits' = BF.get_bitfield (UInt8.v f) 0 5 in  
@@ -251,10 +292,15 @@ let encrypt #k w h #l p =
   let bits : PNE.length_bits ln = bits' in
   let pno = TSpec.pn_offset h in
   let rpn : Helpers.lbytes ln = Helpers.hide (Seq.slice aad pno (pno+ln)) in
-  assume(AEAD.is_safe (dfst k) ==> AEAD.fresh_nonce w.ae iv0 h0);
+  assert(AEAD.is_safe (dfst k) ==> AEAD.fresh_nonce w.ae iv0 h0);
   let c1 = AEAD.encrypt (dfst k) w.ae iv0 (Helpers.hide aad) l p in
   let h1 = get () in
   PNE.frame_invariant w.pne (AEAD.wfootprint w.ae) h0 h1;
+  if safe k then begin
+    Classical.forall_intro (AEAD.fresh_nonce_snoc w.ae h0 h1 iv0 (Helpers.hide aad) l p c1);
+    Classical.forall_intro (nonce_of_ctr_injective' w (wctrT w h0 + 1))
+  end;
+  assert (fresh_nonces_from (wctrT w h0 + 1) w h1);
   let sample : PNE.sample = Helpers.reveal #16 (Seq.slice c1 (4-ln) (20-ln)) in
   let npn = mk (dsnd k) ln rpn bits in
   // N.B. see paper for justification of this assumption
@@ -263,10 +309,14 @@ let encrypt #k w h #l p =
   let pne, bits = pnc in
   let h2 = get () in
   AEAD.wframe_invariant (PNE.footprint w.pne) w.ae h1 h2;
+  if safe k then AEAD.frame_log (PNE.footprint w.pne) w.ae h1 h2;
+  assert (fresh_nonces_from (wctrT w h0 + 1) w h2);
   w.ctr := !w.ctr + 1;
   let h3 = get() in
   AEAD.wframe_invariant (M.loc_mreference w.ctr) w.ae h2 h3;
   PNE.frame_invariant w.pne (M.loc_mreference w.ctr) h2 h3;
+  if safe k then AEAD.frame_log (M.loc_mreference w.ctr) w.ae h2 h3;
+  assert (fresh_nonces w h3);
   assert(invariant w h3);
   if safe k then
     set_pne h pnc (Helpers.reveal #(Seq.length c1) c1)

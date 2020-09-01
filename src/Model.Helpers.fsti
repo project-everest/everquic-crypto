@@ -5,6 +5,12 @@ let lbytes (l:nat) = b:Seq.seq Lib.IntTypes.uint8 { Seq.length b = l }
 let hide (b:Seq.seq UInt8.t) : lbytes (Seq.length b) =
   Seq.init (Seq.length b) (fun i -> Lib.RawIntTypes.u8_from_UInt8 (Seq.index b i))
 
+let hide_eq (b:Seq.seq UInt8.t) : Lemma
+  (ensures hide b == QUIC.Secret.Seq.seq_hide #Lib.IntTypes.U8 b)
+  [ SMTPat (QUIC.Secret.Seq.seq_hide #Lib.IntTypes.U8 b) ]
+= 
+  assert (hide b `Seq.equal` QUIC.Secret.Seq.seq_hide b)
+
 let reveal #l (b:lbytes l) : (QUIC.Spec.lbytes l) =
   Seq.init l (fun i -> Lib.RawIntTypes.u8_to_UInt8 (Seq.index b i)) 
 

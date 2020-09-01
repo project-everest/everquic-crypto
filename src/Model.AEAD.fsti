@@ -222,6 +222,18 @@ let fresh_nonce (#i:safe_id) (w:aead_writer i) (n:nonce) (h:mem)
   : GTot bool =
   None? (wentry_for_nonce w n h)
 
+let fresh_nonce_snoc
+  (#i:safe_id) (w:aead_writer i) (h h' :mem)
+  (n1: nonce)
+  (aad: ad (wgetinfo w))
+  (l: at_least (wgetinfo w))
+  (p: plain (wgetinfo w) l)
+  (c: cipher (wgetinfo w) l)
+  (n:nonce)
+: Lemma
+  ((fresh_nonce w n h /\ n1 <> n /\ wlog w h' == Seq.snoc (wlog w h) (Entry n1 aad p c)) ==> fresh_nonce w n h')
+= Seq.find_snoc (wlog w h) (Entry n1 aad p c) (nonce_filter #i w n)
+
 val encrypt
   (i: id)
   (w: aead_writer i)
