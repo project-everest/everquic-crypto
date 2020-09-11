@@ -812,18 +812,6 @@
       "efeb161a489d65293ad3638e4878e4ed"
     ],
     [
-      "Model.PNE.lemma_logxor_lt",
-      1,
-      0,
-      0,
-      [
-        "@MaxIFuel_assumption", "@query", "equation_Prims.pos",
-        "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5"
-      ],
-      0,
-      "9c26bdc70a32de366fcf0389dadd4060"
-    ],
-    [
       "Model.PNE.encrypt_spec",
       1,
       0,
