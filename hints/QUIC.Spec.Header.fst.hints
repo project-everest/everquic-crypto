@@ -88,7 +88,7 @@
         "typing_tok_Spec.Agile.Cipher.CHACHA20@tok"
       ],
       0,
-      "659bfd6d8f06e6423ba950b8e6d7e4bf"
+      "d009856b148993563291a785f4fda0dd"
     ],
     [
       "QUIC.Spec.Header.pn_sizemask'",
@@ -114,7 +114,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "9b92232a32e8badabca40d1a10ad0795"
+      "fc8e5d84a7dbe530c5a41a20d79cf8c4"
     ],
     [
       "QUIC.Spec.Header.pn_sizemask",
@@ -128,7 +128,7 @@
         "refinement_interpretation_Tm_refine_7acf795d50ec256996534a97e12bfa61"
       ],
       0,
-      "ecf93098d4e2b3e00f062759b360fd39"
+      "2d19799b211273a47558932960e74d03"
     ],
     [
       "QUIC.Spec.Header.pn_sizemask",
@@ -162,13 +162,12 @@
         "refinement_interpretation_Tm_refine_9863b9db72c89cc4d003104b51080e07",
         "refinement_interpretation_Tm_refine_a9e6184981784a7b16f6d4a7df0cf8ae",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
-        "typing_FStar.Seq.Base.length", "typing_Lib.IntTypes.minint",
-        "typing_QUIC.Spec.Header.pn_sizemask_", "typing_Spec.AES.gf8",
-        "typing_Spec.GaloisField.__proj__GF__item__t",
+        "typing_Lib.IntTypes.minint", "typing_QUIC.Spec.Header.pn_sizemask_",
+        "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t",
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "925cb1333d2a1fc18c8bee91d8b09d6c"
+      "f9b5b8e38a3007cd45ba2d2c70bea934"
     ],
     [
       "QUIC.Spec.Header.header_encrypt",
@@ -180,7 +179,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "66cbd3a52837f2b540c856541731f385"
+      "5ba6ed6c65539741ce9a67340b0871bc"
     ],
     [
       "QUIC.Spec.Header.header_encrypt",
@@ -192,7 +191,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "2992e8e0e7525502e60de4390f940c4a"
+      "215cd505faed0cae24311bd726d77aa0"
     ],
     [
       "QUIC.Spec.Header.header_encrypt",
@@ -278,7 +277,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "2a287f9057bbefd730646de9265fd24d"
+      "9a66c4590d4e1280ddbb7d508963a7cf"
     ],
     [
       "QUIC.Spec.Header.header_encrypt_post",
@@ -290,7 +289,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "115459d0457fbf010f2de2b77267280f"
+      "c6a687c00ad1962656274234255e1865"
     ],
     [
       "QUIC.Spec.Header.header_encrypt_post",
@@ -481,7 +480,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "3f770b523f7c8489bf459b17a37da6cf"
+      "4046faaeeddad789e4ef0fa5f63f26f7"
     ],
     [
       "QUIC.Spec.Header.header_encrypt_length",
@@ -493,7 +492,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "031132106111d273be368438075ae6f1"
+      "b817b44b94dfbdedaac0c5e0cf7ec292"
     ],
     [
       "QUIC.Spec.Header.header_encrypt_length",
@@ -505,7 +504,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "9b36fa79450165141130128f1a342a39"
+      "789fb68aeb367b6b48c8f8a81ed5c27c"
     ],
     [
       "QUIC.Spec.Header.header_encrypt_length",
@@ -530,7 +529,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "b37eb4aa94dbc337d139806dcc21c874"
+      "cca3435a18c3442180a257476e18e2c6"
     ],
     [
       "QUIC.Spec.Header.__proj__H_Success__item__h",
@@ -544,7 +543,7 @@
         "refinement_interpretation_Tm_refine_72ac4fe9fdddef08064367bbd1d11dde"
       ],
       0,
-      "453584acc8ecb47f755bc6683c47bad1"
+      "d8db98bfeb10385671d737e3d7c6be12"
     ],
     [
       "QUIC.Spec.Header.__proj__H_Success__item__cipher",
@@ -560,7 +559,7 @@
         "refinement_interpretation_Tm_refine_72ac4fe9fdddef08064367bbd1d11dde"
       ],
       0,
-      "f0a3ddc352923408526142919d284b04"
+      "4ab2d2b62bb10873b2aab6b2d2ea66f1"
     ],
     [
       "QUIC.Spec.Header.__proj__H_Success__item__rem",
@@ -574,7 +573,7 @@
         "refinement_interpretation_Tm_refine_72ac4fe9fdddef08064367bbd1d11dde"
       ],
       0,
-      "f951a3d3576dc7ea9f6b46d227463c51"
+      "d0211a5fdf510b2987fbc4c82ccdd26d"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_t",
@@ -586,7 +585,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "7a1a9d66c561d0ef2b1bc8b587a73cfa"
+      "c678caaf83063f5e094819fd6182e6c2"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_t",
@@ -598,7 +597,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "3099b0043b0e7d098d08f77ce145468b"
+      "34d48df33e1816fbecdbb2b6905ea006"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_t",
@@ -610,7 +609,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "b3e3eec349a3305a7d87d1a9a4523332"
+      "66ee6d00255d2779d7071f4ae083e997"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_t",
@@ -638,7 +637,7 @@
         "typing_FStar.UInt8.t"
       ],
       0,
-      "a0622b55cc206a197709d924a80f4da9"
+      "1b9a4eea1f70343a6a39414e36e5f2aa"
     ],
     [
       "QUIC.Spec.Header.__proj__Mkheader_decrypt_aux_t__item__is_retry",
@@ -651,7 +650,7 @@
         "projection_inverse_QUIC.Spec.Header.Mkheader_decrypt_aux_t_is_short"
       ],
       0,
-      "876d9a8cb28edb1e7297073f73e100f5"
+      "6baca47f00bfcbdf903f4ade445e5c81"
     ],
     [
       "QUIC.Spec.Header.__proj__Mkheader_decrypt_aux_t__item__pn_offset",
@@ -664,7 +663,7 @@
         "projection_inverse_QUIC.Spec.Header.Mkheader_decrypt_aux_t_is_retry"
       ],
       0,
-      "ccec4abb272734c0c519b1222e00e118"
+      "771b48c03112cebdfbf54b650fac0f3c"
     ],
     [
       "QUIC.Spec.Header.__proj__Mkheader_decrypt_aux_t__item__pn_len",
@@ -678,7 +677,7 @@
         "typing_QUIC.Spec.Header.__proj__Mkheader_decrypt_aux_t__item__pn_offset"
       ],
       0,
-      "5fcc1ebcedd02cbf21b697a828e07857"
+      "1945d5f90c6e9275eb6be3f7d375a3eb"
     ],
     [
       "QUIC.Spec.Header.__proj__Mkheader_decrypt_aux_t__item__pn_len",
@@ -703,7 +702,7 @@
         "refinement_interpretation_Tm_refine_eaa1665cba70b29a9d7d282467449989"
       ],
       0,
-      "3e3c8f9b90c696ac9ec67f794785a0a8"
+      "354b28cf6281ae194eaea10cbd63b626"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux",
@@ -715,7 +714,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "13e0e42f25a990bec8a89b947deb0103"
+      "f48378e2c0f10b6ee87ba7e01a0217d7"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux",
@@ -804,7 +803,7 @@
         "typing_tok_Lib.IntTypes.U8@tok", "unit_typing"
       ],
       0,
-      "3b3f45ba3cc5742ce28f4db5c07c3550"
+      "2431985b7fc43903880ddc53aa51ce3f"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_post",
@@ -816,7 +815,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "729694f5e236fc315a3ef51230888015"
+      "b3e45c54c11777c962cf3487ef455bc8"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_post",
@@ -967,7 +966,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "afba9e2513439df763b0bd1866909a66"
+      "19d33d2f31fa0164d0735d3bf6ca3cdd"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_post_parse",
@@ -979,7 +978,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "d1caab856d3677c3496741f11e60ccd4"
+      "66cf9903fc164e7cc6a926034d720807"
     ],
     [
       "QUIC.Spec.Header.header_decrypt_aux_post_parse",
@@ -1113,7 +1112,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "1040d45672eacc9d589be37343438d6a"
+      "9870991d20b7c365747ab6daf61e7ba3"
     ],
     [
       "QUIC.Spec.Header.max",
@@ -1136,7 +1135,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "9ce9415c641d00e0db831264588dd286"
+      "c297c901f61930fe4bb7af37a7ac05dd"
     ],
     [
       "QUIC.Spec.Header.min",
@@ -1159,7 +1158,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "43620c36ffe8ef079d7fafef8831ef79"
+      "2cf5d58c3d9e79946ca0d85006acb938"
     ],
     [
       "QUIC.Spec.Header.header_decrypt",
@@ -1195,7 +1194,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "5f5b7830b4f65e2ce8b382f8cb548086"
+      "1695296919759ab664cddd10b0435e35"
     ],
     [
       "QUIC.Spec.Header.header_decrypt",
@@ -1207,7 +1206,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "e91fac3a46a7c438ffed01f16c97f43c"
+      "dac6086b7e36e4e56ac29d18d803aec1"
     ],
     [
       "QUIC.Spec.Header.header_decrypt",
@@ -1337,7 +1336,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "134a597e6920375e88caf8679f33ec68"
+      "d38864b72476972f09d9e4d0de77de39"
     ],
     [
       "QUIC.Spec.Header.lemma_header_encryption_correct_aux",
@@ -1349,7 +1348,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "4e0297fdb3f52492eb083959a0d9ed04"
+      "2869859063d90427f4a0c185dfe3ce1f"
     ],
     [
       "QUIC.Spec.Header.lemma_header_encryption_correct_aux",
@@ -1535,7 +1534,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "240ddabed12813dfdd4227ff322367a1"
+      "601e92cc4248a4cdc50280e93f32c1ac"
     ],
     [
       "QUIC.Spec.Header.lemma_header_encryption_correct",
@@ -1573,7 +1572,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "420c54524cebe25eb5a4f13042e2e602"
+      "3ce144bb5c259e4ec52ea14b8834358c"
     ],
     [
       "QUIC.Spec.Header.lemma_header_encryption_correct",
@@ -1610,7 +1609,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "5240d3971af9274bd72287f8aaf3e612"
+      "1f5278cbd5e38ec47a980fc18c377e86"
     ],
     [
       "QUIC.Spec.Header.lemma_header_encryption_correct",
@@ -1736,7 +1735,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e325752a48ba25baa55ec91d9802b17c"
+      "885354b50efdd00162fea2c291641c17"
     ]
   ]
 ]

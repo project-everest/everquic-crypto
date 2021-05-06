@@ -147,7 +147,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "614d38d19250ea9432aaf05a74a6edfd"
+      "5345dbe118f8b8162ea32c08083a6628"
     ],
     [
       "QUIC.TotSpec.parse32_varint'_correct",
@@ -278,7 +278,7 @@
         "typing_Tm_abs_f564ae99a8b08dff14def8f013d7759c"
       ],
       0,
-      "9b00b7b4ca0edf80d7bdb71f06434be0"
+      "fd9f86dec765c6113651665646cbbab5"
     ],
     [
       "QUIC.TotSpec.parse32_varint",
@@ -287,7 +287,7 @@
       1,
       [ "@query" ],
       0,
-      "d6ad4ecb0e4709752636e9d7e4a5d59f"
+      "93344452e5f257b95bebaddff9b7954e"
     ],
     [
       "QUIC.TotSpec.parse32_varint",
@@ -306,7 +306,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "c6cc6830d40a5a8b0be5d44fd00997b1"
+      "37a0f71ac4d202928fdee7ec9399a9d3"
     ],
     [
       "QUIC.TotSpec.parse32_bounded_varint",
@@ -389,7 +389,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "1499bc463cdce382acab924b09113271"
+      "9593e656e1a8d7f2b3956d917883ad7e"
     ],
     [
       "QUIC.TotSpec.serialize32_varint_payload",
@@ -438,7 +438,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "3175e875eb5eb97588f6717f0d6dea8a"
+      "bd4f9fda8047659443cb6d3ad2c11f3a"
     ],
     [
       "QUIC.TotSpec.serialize32_varint",
@@ -616,7 +616,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "4623646b1024264c68c8e1187126b11c"
+      "84075fff52c7c1b9824b1da2a7e1395e"
     ],
     [
       "QUIC.TotSpec.serialize32_varint",
@@ -635,7 +635,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "e476e13515c24177b3dc023c8f625f04"
+      "2fcfaa2b16572c24294f880c9151ab33"
     ],
     [
       "QUIC.TotSpec.serialize32_bounded_varint",
@@ -720,7 +720,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "152e030a80cf44814fb6c7015fffa250"
+      "fd8fdb4ef603b65a8311d0d9a7e100ec"
     ],
     [
       "QUIC.TotSpec.synth_packet_number'",
@@ -734,7 +734,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "1f253bf6e9e985f2f7957dcd007db057"
+      "86487476521a661e6254a94ae24f5558"
     ],
     [
       "QUIC.TotSpec.synth_packet_number'",
@@ -823,7 +823,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "caf83fdd884b26626f644bfd84237f6c"
+      "6803c0699bf0cfd2652ffe504eaa89cf"
     ],
     [
       "QUIC.TotSpec.parse32_reduced_pn",
@@ -882,7 +882,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "ed932f2323c6f35a87f693ae882c8316"
+      "7d3591111d140c6cc6ccd3e6616e10f7"
     ],
     [
       "QUIC.TotSpec.parse32_packet_number",
@@ -897,7 +897,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "597d270607bf4d1b45fbbf9546695b0b"
+      "30accb625ee9b719e210b3c1f807d9f6"
     ],
     [
       "QUIC.TotSpec.serialize32_reduced_pn",
@@ -957,7 +957,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "665d751ac0f3511d4e992f522300b003"
+      "93a3eb0e5b10511a60ceff57a3b43bd3"
     ],
     [
       "QUIC.TotSpec.synth_packet_number_recip'",
@@ -1038,7 +1038,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "52a9dd397957a3b2942db599c7dc7b67"
+      "281323e6d47b67ca6b8d8530900d6eb5"
     ],
     [
       "QUIC.TotSpec.serialize32_packet_number",
@@ -1072,7 +1072,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "1f31a4aa68081d47d4fcb60e98bd3443"
+      "dfe6f28968c308a26bfd369ed97bd60f"
     ],
     [
       "QUIC.TotSpec.parse32_common_long",
@@ -1094,7 +1094,7 @@
         "refinement_interpretation_Tm_refine_79780233e567b4a9c09b9410edebc7c8"
       ],
       0,
-      "ac98ea1c3df58f08868ef700a1ea077a"
+      "f595d16207815b05d558b57817e2bda6"
     ],
     [
       "QUIC.TotSpec.parse32_payload_and_pn_length",
@@ -1122,7 +1122,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "12cbba18ff225bc458f98cf459cb2dfe"
+      "202d27a22eecf8fa9ed704b00dd995d9"
     ],
     [
       "QUIC.TotSpec.parse32_long_zero_rtt_body",
@@ -1157,7 +1157,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e43cd41cd842656d52bff791452df8e9"
+      "dfc71b0cb928f0e512eb09514a860b37"
     ],
     [
       "QUIC.TotSpec.parse32_long_handshake_body",
@@ -1192,7 +1192,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "da286603d62394ba9f0aa78ad629f5b2"
+      "418efc9d56ab7c134acfc9e68af4f475"
     ],
     [
       "QUIC.TotSpec.parse32_long_initial_body",
@@ -1248,7 +1248,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "6993c2a15e5fcd73764242c8a3e30d2e"
+      "c319270948eaa852d145f1cd04ab85d4"
     ],
     [
       "QUIC.TotSpec.parse32_long_retry_body",
@@ -1270,7 +1270,7 @@
         "refinement_interpretation_Tm_refine_79780233e567b4a9c09b9410edebc7c8"
       ],
       0,
-      "e999d3536f8d8ccaf703053556349db3"
+      "dfcc88cb1160d989c757e72d45ac933f"
     ],
     [
       "QUIC.TotSpec.parse32_header_body",
@@ -1394,16 +1394,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "cfbe1e20a04625d2ecf6bbc72b305739"
-    ],
-    [
-      "QUIC.TotSpec.parse32_public_header",
-      1,
-      2,
-      1,
-      [ "@query" ],
-      0,
-      "7056d818860f0817fd70fab94477cb01"
+      "91a634e5376888e6cbb3b73593f45559"
     ],
     [
       "QUIC.TotSpec.serialize32_common_long",
@@ -1458,7 +1449,7 @@
         "typing_LowParse.Spec.Base.some_v"
       ],
       0,
-      "679b2fb44175e8e1f7787e3bbac78660"
+      "d8b1ae2c8ef9479ae572f533a261232c"
     ],
     [
       "QUIC.TotSpec.serialize32_payload_and_pn_length",
@@ -1487,7 +1478,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "7743753f25eb4f8e7f6bb1922028a5d5"
+      "04414be412ef0177284966bc46b80baa"
     ],
     [
       "QUIC.TotSpec.serialize32_long_zero_rtt_body",
@@ -1561,7 +1552,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "d39066630d7482dea45ab2a1d35be287"
+      "04e4551fe1142ba8f73ff2d59ef5414d"
     ],
     [
       "QUIC.TotSpec.serialize32_long_handshake_body",
@@ -1635,7 +1626,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "54ff7b09662c22bee7c40177378a498b"
+      "e90569d95c1a4281cbd45239bb9abcdc"
     ],
     [
       "QUIC.TotSpec.serialize32_long_initial_body",
@@ -1723,7 +1714,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "411812e4aa207d8fae68891fce7b3bf9"
+      "9fa80344a91d9f47dfde4d750090989e"
     ],
     [
       "QUIC.TotSpec.serialize32_long_retry_body",
@@ -1792,7 +1783,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "39c78537f98a5256aed2e0fec369320c"
+      "c4d617d482018aaff28fd614ded30497"
     ],
     [
       "QUIC.TotSpec.serialize32_header_body",
@@ -1919,7 +1910,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "b0d19d74f177a8d6956a04037cb67120"
+      "0b1c2d36963ffa60a12a95dc02be74b2"
     ],
     [
       "QUIC.TotSpec.serialize32_public_header",
@@ -1959,7 +1950,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e9854f1c83d6c02f24b9068cdec1ac05"
+      "3345f55afa7c1d0b8f392cafaae236a6"
     ],
     [
       "QUIC.TotSpec.lp_parse32_header",
@@ -2060,7 +2051,7 @@
         "unit_typing"
       ],
       0,
-      "bfa449996614d1e5d0a5b8127ef43205"
+      "ed01c40d12a3b08267bb474199f04157"
     ],
     [
       "QUIC.TotSpec.mk_short_protected_bits",
@@ -2150,7 +2141,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "51a1cf644e8384879a0025d722cf9b37"
+      "dc0fdc99fda7e63302addf5eaa4a7e2b"
     ],
     [
       "QUIC.TotSpec.mk_long_protected_bits",
@@ -2262,7 +2253,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "0a3b6cc76205f90eacea82d642c9b52b"
+      "bb909b72c5322ed1cb4cbc6917c0ab54"
     ],
     [
       "QUIC.TotSpec.synth_header_recip",
@@ -2377,7 +2368,7 @@
         "typing_QUIC.TotSpec.mk_short_protected_bits"
       ],
       0,
-      "079c350632faca99d054e08e5f0bfb81"
+      "991e3a832734c5e81921bce1d4757fbf"
     ],
     [
       "QUIC.TotSpec.serialize32_header",
@@ -2595,7 +2586,7 @@
         "typing_tok_QUIC.Spec.Header.Public.Long@tok", "unit_typing"
       ],
       0,
-      "eb0c2648ac98c52d44102902e7f6ac58"
+      "3bdcf8b563288d023cd63a56728de595"
     ],
     [
       "QUIC.TotSpec.parse_header",
@@ -2697,7 +2688,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "fc65b34df9453cb62c5240ba065a773a"
+      "39fcc92002462ae3318a418f391ee23c"
     ],
     [
       "QUIC.TotSpec.last_packet_number",
@@ -2784,7 +2775,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "980d51a23017f8db4db1bf95b5f3d92f"
+      "4c2b35790924da3db0910e391dec7ae1"
     ],
     [
       "QUIC.TotSpec.format_header",
@@ -2847,7 +2838,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "7a80538135a3bc64faee7b287a85a97f"
+      "a2f1042a1010b7b6b6a183c63e108b3c"
     ],
     [
       "QUIC.TotSpec.seq_reveal'",
@@ -2864,7 +2855,7 @@
         "typing_Spec.AES.gf8"
       ],
       0,
-      "19f680dd0b39e19681f5a8cfb28ceb30"
+      "77e7573c4cdee3d8dbd683a318ab35a2"
     ],
     [
       "QUIC.TotSpec.seq_reveal'",
@@ -2931,7 +2922,7 @@
         "well-founded-ordering-on-nat"
       ],
       0,
-      "ebda1da3b38daeae6ebb32b22d20c354"
+      "eb65b5e4c3475f618ba783f1082effd0"
     ],
     [
       "QUIC.TotSpec.seq_reveal",
@@ -2986,7 +2977,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "d631fa0fb44c1469cfd0529e8f897c3c"
+      "5a8912d4736e3c7251c6921c718b87ec"
     ],
     [
       "QUIC.TotSpec.block_of_sample",
@@ -3090,7 +3081,7 @@
         "typing_tok_Spec.Agile.Cipher.CHACHA20@tok"
       ],
       0,
-      "79d99886b60d852e36f54617439db9cf"
+      "3fd4f9f84324724c875618481224084e"
     ],
     [
       "QUIC.TotSpec.pn_offset",
@@ -3208,7 +3199,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "c9394053dc54b9334911226e74bf3a8c"
+      "f7a1db7a88932f72c882d779d5721bc2"
     ],
     [
       "QUIC.TotSpec.header_encrypt",
@@ -3220,7 +3211,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "6cd7b1392133362a7bdc2389ad41082f"
+      "ede2a6b7f6a4465bdd1856fcd076689b"
     ],
     [
       "QUIC.TotSpec.header_encrypt",
@@ -3316,7 +3307,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "f1dd390c4571e0b7a3fc0455949fd679"
+      "0c251ca68b4431c3b5307ad37c87250e"
     ],
     [
       "QUIC.TotSpec.putative_pn_offset",
@@ -3373,7 +3364,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "a6e206c6e598bf1e165c2c88fe085a77"
+      "34c35cc3f8c439a3b0363fd609920a8f"
     ],
     [
       "QUIC.TotSpec.header_decrypt_aux",
@@ -3385,7 +3376,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "ec906b4b6d8a1722e09d8c274abedcd3"
+      "33c94278dee2deed47bf373445f4802e"
     ],
     [
       "QUIC.TotSpec.header_decrypt_aux",
@@ -3493,7 +3484,7 @@
         "typing_tok_Lib.IntTypes.U8@tok", "unit_typing"
       ],
       0,
-      "f60dcf4c98be2b40a72120f3b158be3e"
+      "a6eb31520debfb51b599c86c1bdd2533"
     ],
     [
       "QUIC.TotSpec.header_decrypt",
@@ -3505,7 +3496,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "f01929563923dfd781bf3baad17f1473"
+      "067f426d2bfdd9dd040f4d84225cd908"
     ],
     [
       "QUIC.TotSpec.header_decrypt",
@@ -3604,7 +3595,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "ba6a4ea62bda92bc23d69c1195075ecc"
+      "b24ec1202393e419b356a77ef308e75f"
     ],
     [
       "QUIC.TotSpec.iv_for_encrypt_decrypt",
@@ -3669,7 +3660,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "c7f4307c3c80a00aafc74e93656c4334"
+      "f4a9be9ae81db58afb66592104ae9c3a"
     ],
     [
       "QUIC.TotSpec.payload_encrypt",
@@ -3773,7 +3764,7 @@
         "typing_tok_Spec.Agile.AEAD.CHACHA20_POLY1305@tok"
       ],
       0,
-      "087aba2e749128174a1c43ac7cf92ff5"
+      "d1159f68ba29bd510f9f6bf9595568bb"
     ],
     [
       "QUIC.TotSpec.encrypt",
@@ -3785,7 +3776,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "bc004bbb839ec3d74f29a57d1e78e27b"
+      "c624ba28728e21db3f378a3afd1df100"
     ],
     [
       "QUIC.TotSpec.encrypt",
@@ -3797,7 +3788,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "0eb0ca6c99a752f5ceec671e9c6b4ec1"
+      "1c8a1133f4a8e87f26bd6f87b365a387"
     ],
     [
       "QUIC.TotSpec.encrypt",
@@ -3829,7 +3820,7 @@
         "typing_QUIC.Spec.payload_encrypt"
       ],
       0,
-      "4cd193b5d375093c790c307ef7cebfa1"
+      "9297eb47f6e03059b49eec37563628a2"
     ],
     [
       "QUIC.TotSpec.payload_decrypt",
@@ -3929,7 +3920,7 @@
         "typing_tok_Spec.Agile.AEAD.CHACHA20_POLY1305@tok"
       ],
       0,
-      "b471f7ec698b5a8f62b3a92dbb1b5e0a"
+      "903d1eb94283cdb82a0a66215b861c62"
     ],
     [
       "QUIC.TotSpec.decrypt",
@@ -3941,7 +3932,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "ee38ae655630ddb007506444128f8c75"
+      "7183aac962598546f11aec26c5c8a478"
     ],
     [
       "QUIC.TotSpec.decrypt",
@@ -3953,7 +3944,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "f97b1bd83e2f4715c61635e1ee3c8a60"
+      "bc3294b838e9cbaa804bfd90aac60ae5"
     ],
     [
       "QUIC.TotSpec.decrypt",
@@ -4019,7 +4010,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "dbcce0e3b5855ef9f17872cee8e96d98"
+      "f8bb51ef0a7155ab696972dddc518666"
     ]
   ]
 ]

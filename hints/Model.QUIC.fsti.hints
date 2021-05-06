@@ -38,7 +38,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "59b5b135b5fd7a8881e6bf2a74ea7641"
+      "c9eabfec6bad529a6c6514d5aa95007a"
     ],
     [
       "Model.QUIC.rpn_of_nat",
@@ -75,7 +75,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "da676921f661884066a4a0d39b5f4485"
+      "bd0f70a3e84f7735dc5a5b9b1bbe4503"
     ],
     [
       "Model.QUIC.writer_pne_info",
@@ -87,7 +87,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "9be5918da9e2ee454a454c11af878d1f"
+      "0880480d6890d453f9ea335885f8ae87"
     ],
     [
       "Model.QUIC.reader_pne_info",
@@ -99,7 +99,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "d939929baa1ffdeb698db81918690e77"
+      "e473e6a7d2b37786f56abd8dbe82cad6"
     ],
     [
       "Model.QUIC.writer_leak",
@@ -127,7 +127,7 @@
         "typing_Model.QUIC.writer_aead_state"
       ],
       0,
-      "c9b6a8c2e004f4cc28e219082b305e23"
+      "75e598aa4aa730b18793cce6ff20047d"
     ],
     [
       "Model.QUIC.wctr",
@@ -142,7 +142,7 @@
         "refinement_interpretation_Tm_refine_b0993097ba4d9e165a386cc6389af5d0"
       ],
       0,
-      "b1848aedbf60fdb2a9b45b8edeb6c2c3"
+      "66ca45d757aa1cfa3751e6ead45706d7"
     ],
     [
       "Model.QUIC.expected_pn",
@@ -154,7 +154,7 @@
         "refinement_interpretation_Tm_refine_f068b6f8adbf4a2a1ca442573ca62b58"
       ],
       0,
-      "0c620807ab3cebde256d5c9f188e4a1d"
+      "250a0351cf9d657bfe264e953bb20a40"
     ],
     [
       "Model.QUIC.frame_invariant",
@@ -167,7 +167,7 @@
         "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c"
       ],
       0,
-      "b4eb0088f40e66a5f6e4ff8d64286f94"
+      "febae464531dc5992d6b437feee81bfb"
     ],
     [
       "Model.QUIC.rframe_invariant",
@@ -180,7 +180,7 @@
         "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c"
       ],
       0,
-      "c945a89851ff1c120e505eec237a7c0b"
+      "c57fdd5d00b0214d1e4624a50bc8e8d9"
     ],
     [
       "Model.QUIC.wframe_log",
@@ -192,7 +192,7 @@
         "refinement_interpretation_Tm_refine_88b355d85c266e7860b637537d18569b"
       ],
       0,
-      "0df000a6fb32c35ddda14bc21813d163"
+      "ce8ecc0f697bb44a4473122a4431d5ef"
     ],
     [
       "Model.QUIC.rframe_log",
@@ -209,7 +209,7 @@
         "typing_Model.QUIC.writer_aead_state"
       ],
       0,
-      "3239f6ae82ddf04e36112aa1e306e4da"
+      "28e458c6c31e2c0c663d82dd9aecddfc"
     ],
     [
       "Model.QUIC.wframe_pnlog",
@@ -221,7 +221,7 @@
         "refinement_interpretation_Tm_refine_ad50a889d9ca1839f24390cd4976f89b"
       ],
       0,
-      "be8ac674009bfbc27c9e1a40259158d5"
+      "92e1d2b24ad5a8ee688f85db506ca7a5"
     ],
     [
       "Model.QUIC.rframe_pnlog",
@@ -233,7 +233,7 @@
         "refinement_interpretation_Tm_refine_ad50a889d9ca1839f24390cd4976f89b"
       ],
       0,
-      "893d50be497f180b67f7c990783ba7e5"
+      "8d03d19d816fe451b78e0d3e5955953e"
     ],
     [
       "Model.QUIC.create",
@@ -263,7 +263,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4f0a5c6dccd3d6c0c8ae7cbeec3d4c9b"
+      "3eae42989b0a447331e5f297e653a0eb"
     ],
     [
       "Model.QUIC.coerce",
@@ -344,7 +344,6 @@
         "fuel_guarded_inversion_Prims.dtuple2",
         "fuel_guarded_inversion_Prims.list",
         "fuel_guarded_inversion_Spec.Agile.Cipher.cipher_alg",
-        "fuel_guarded_inversion_Spec.Hash.Definitions.hash_alg",
         "function_token_typing_Mem.subq", "int_inversion",
         "lemma_FStar.UInt.pow2_values", "lemma_Model.PNE.lemma_max_hash_len",
         "primitive_Prims.op_Addition", "primitive_Prims.op_Multiply",
@@ -389,7 +388,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "c75879b9c8487af2060fb9750b60f148"
+      "4b051d22b84f8f4bdcbedc7533c881de"
     ],
     [
       "Model.QUIC.createReader",
@@ -398,7 +397,7 @@
       1,
       [ "@query" ],
       0,
-      "1edce24ab2431e061de137df6713e5a8"
+      "90de1d7fb331bb51a344aac76da5798c"
     ],
     [
       "Model.QUIC.uu___188",
@@ -407,7 +406,7 @@
       1,
       [ "@query" ],
       0,
-      "36c0bdfa56ded86da1343dcc5d3745c7"
+      "3d3f58ba8a0f8f37e5dd36beb49eaecb"
     ],
     [
       "Model.QUIC.uu___189",
@@ -416,7 +415,7 @@
       1,
       [ "@query" ],
       0,
-      "5671864f50710a201f2aa09653cac89b"
+      "17a3a79a7fbad3ad12376ce5e95a123a"
     ],
     [
       "Model.QUIC.set_pn_long",
@@ -434,7 +433,7 @@
         "refinement_interpretation_Tm_refine_a14f51755160fee1ad6aabfd768c35e2"
       ],
       0,
-      "89e6f0606158fdda1e6d37a23d9e2fa2"
+      "a5b4bd1599fd05cf7a4b73c0968d8a4d"
     ],
     [
       "Model.QUIC.set_pn",
@@ -496,7 +495,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e9fcb5b3fad935214863d9f93828ac51"
+      "e0f4128917d3ce5850fb37325e7388b1"
     ],
     [
       "Model.QUIC.encrypt",
@@ -587,6 +586,7 @@
         "projection_inverse_Prims.Mkdtuple2__1",
         "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_28e5dd0d6984ba3c55557621b6613fa0",
+        "refinement_interpretation_Tm_refine_2f7eee9b2270fa28c75445a71f3e0057",
         "refinement_interpretation_Tm_refine_4e5553b0e6d656ce3df6de6baa93692f",
         "refinement_interpretation_Tm_refine_51cadc3a2398a70dfd1dc2e32d65a998",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
@@ -604,7 +604,6 @@
         "refinement_interpretation_Tm_refine_cac8aa68b54068bf033c8d3d335357f8",
         "refinement_interpretation_Tm_refine_d8d83307254a8900dd20598654272e42",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
-        "refinement_interpretation_Tm_refine_e5aaf433f758e9cf5e11b4f20004fb8e",
         "refinement_interpretation_Tm_refine_f0740ab22c378cbbae0eee7347862733",
         "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain",
@@ -623,7 +622,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "4c2059835c88f57bf65aa2bccad57335"
+      "5290812e5182017a4d39d07d2cef39e7"
     ],
     [
       "Model.QUIC.model_result",
@@ -636,7 +635,7 @@
         "typing_Model.QUIC.reader_ae_info"
       ],
       0,
-      "ab9944c3deed38c3a85a0c0c1b31270b"
+      "b5820be7befbf503eef25bd197ae75bb"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__h",
@@ -650,7 +649,7 @@
         "refinement_interpretation_Tm_refine_32a0283ea750a50e70decf4089b5ff86"
       ],
       0,
-      "d7546bb7835c0358e5721fb1d3a309e3"
+      "3b4b761f5fa834a45f73e097c78e2395"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__l",
@@ -664,7 +663,7 @@
         "refinement_interpretation_Tm_refine_32a0283ea750a50e70decf4089b5ff86"
       ],
       0,
-      "4d0e62013d0a276d3bc98579769c1530"
+      "af3da71e9cfeb1f835aa458ebe5bc733"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__p",
@@ -677,7 +676,7 @@
         "typing_Model.QUIC.reader_ae_info"
       ],
       0,
-      "eb49c345d0ffa0d26848c0ec95e0e009"
+      "56d481f250dceba2dbd8a05b962e85c2"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__p",
@@ -702,7 +701,7 @@
         "typing_Model.QUIC.reader_ae_info"
       ],
       0,
-      "aae0a7e1d58ca6a4e6e7e7528bba0474"
+      "3554240118f733fdcf019393713d8017"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__remainder",
@@ -716,7 +715,7 @@
         "refinement_interpretation_Tm_refine_32a0283ea750a50e70decf4089b5ff86"
       ],
       0,
-      "7113e8280cf82f8a3502d1b3ca07b6cc"
+      "15b62cfc3a50830643f3430ca92169df"
     ],
     [
       "Model.QUIC.get_sample",
@@ -764,7 +763,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "6dadd8a56d95f02fe01314b4288eb3f0"
+      "367323eddf020e6b602492a9be43c784"
     ],
     [
       "Model.QUIC.decrypt",
@@ -889,7 +888,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "396fc978d2ef3e85ab61aa038ca1d0f1"
+      "c9acc2579b1e7f3b46671cd345582eb7"
     ]
   ]
 ]

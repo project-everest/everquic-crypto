@@ -31,7 +31,7 @@
         "typing_Mem.quic_region"
       ],
       0,
-      "a6dffbbf1f1dbe2d6dae07bceffacba3"
+      "7e17c7d20361407370e20a73b7df394c"
     ],
     [
       "Model.AEAD.plain_pkg",
@@ -40,7 +40,7 @@
       0,
       [ "@query" ],
       0,
-      "b9d7a02ea6e4cc22e55e26f1db58f069"
+      "690e81b1763a7b10809e546ec3d68617"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__as_bytes",
@@ -49,7 +49,7 @@
       0,
       [ "@query" ],
       0,
-      "2e7530bab095c40e557d8ae376de1e77"
+      "0498696f31e6fe307d1791fc2c0c91a1"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__as_bytes",
@@ -64,7 +64,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "cd926edee9bf86720d0380d689f2fcde"
+      "3a3d8c1c747318f84e74ee74654f6338"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__repr",
@@ -73,7 +73,7 @@
       0,
       [ "@query" ],
       0,
-      "e388dc27ce65e91cf50380f99e842be7"
+      "6462c428f1c2dbcd280d24006b8eb6d1"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__repr",
@@ -91,7 +91,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "1bde8a1374efa8880c75c03ca66b966a"
+      "60b9ff3ad76f56a73f807248fa5411fb"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__mk",
@@ -100,7 +100,7 @@
       0,
       [ "@query" ],
       0,
-      "98f57d4fec39112051189fbbc233bb78"
+      "ee6c573e24cab7222da52e79f109b61b"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__mk",
@@ -118,7 +118,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "95d7b7f661d8f2f19955c2bc3e761c0a"
+      "d19f5e4f2e2cfc34a8d1223d8e257fed"
     ],
     [
       "Model.AEAD.__proj__Mkinfo'__item__plain_pkg",
@@ -130,7 +130,7 @@
         "projection_inverse_Model.AEAD.Mkinfo__min_len"
       ],
       0,
-      "34342d4ed1f46e074c4863c125b96fff"
+      "4e9467704b6f8412a2943ca43cccc76a"
     ],
     [
       "Model.AEAD.plain_as_bytes",
@@ -139,7 +139,7 @@
       0,
       [ "@query" ],
       0,
-      "26c0cc31bd5bff98101ffd8cee0f3047"
+      "87a5376bb62a32078fa9523518685b4e"
     ],
     [
       "Model.AEAD.plain_repr",
@@ -148,7 +148,7 @@
       0,
       [ "@query", "equation_Model.AEAD.plain_as_bytes" ],
       0,
-      "7a1a38367bcb3ba72ea65b94386209e4"
+      "fdef022dbfbe9a47520c797d3618897b"
     ],
     [
       "Model.AEAD.cipher",
@@ -176,7 +176,7 @@
         "typing_FStar.UInt32.v", "typing_Model.AEAD.tag_len"
       ],
       0,
-      "b8379a386832614a3d53f0af98afe857"
+      "958897c1c36b0f99f314aa502f9656d8"
     ],
     [
       "Model.AEAD.ad",
@@ -188,7 +188,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "8560fb505e910771a97f37ed82f40173"
+      "8b247bfb294f6414f523a3084b8695f7"
     ],
     [
       "Model.AEAD.nonce",
@@ -209,7 +209,7 @@
         "typing_FStar.UInt8.t"
       ],
       0,
-      "97cf7fe9ff5a6f6712f8306f5995c94f"
+      "954525efa8b0ea1993ae768c898ca33b"
     ],
     [
       "Model.AEAD.__proj__Entry__item__p",
@@ -225,7 +225,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "d7ad197559e1da5ec15995b153fb1998"
+      "39f950369eae1dcb31fb04f7b524708a"
     ],
     [
       "Model.AEAD.__proj__Entry__item__c",
@@ -237,7 +237,7 @@
         "projection_inverse_Model.AEAD.Entry_l"
       ],
       0,
-      "9796666ff17f0450e46e0544a58a8f03"
+      "5e262cd1994ed12da56b4b0c89ce155f"
     ],
     [
       "Model.AEAD.lemma_max_hash_len",
@@ -258,7 +258,7 @@
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "ff75664c8057af6a4668fef12fe2634e"
+      "e9f8b53246a6d6465aa748df97975552"
     ],
     [
       "Model.AEAD.traffic_secret",
@@ -275,7 +275,7 @@
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "5095fd98cda46e7ffeb0edca862f0dda"
+      "3c6fdefe481cfb783eabe48cdea9e483"
     ],
     [
       "Model.AEAD.gen",
@@ -287,7 +287,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "4dc90795981ed7ce2863e3ef9feee349"
+      "afa7849136151fb30702694e02307278"
     ],
     [
       "Model.AEAD.coerce",
@@ -296,7 +296,7 @@
       0,
       [ "@query" ],
       0,
-      "79be000d081dcf7fb1efaf11305c2879"
+      "33df8a71405f9a9d50bfd7f76d54ab1e"
     ],
     [
       "Model.AEAD.quic_coerce",
@@ -325,7 +325,6 @@
         "constructor_distinct_Spec.Agile.Cipher.AES128",
         "constructor_distinct_Spec.Agile.Cipher.AES256",
         "constructor_distinct_Spec.Agile.Cipher.CHACHA20",
-        "constructor_distinct_Tm_unit",
         "equality_tok_FStar.Integers.W16@tok",
         "equality_tok_FStar.Integers.W32@tok",
         "equality_tok_FStar.Integers.W8@tok",
@@ -346,8 +345,7 @@
         "equation_Model.Indexing.ha",
         "equation_Model.Indexing.is_supported_aead",
         "equation_Model.Indexing.is_supported_hash", "equation_Prims.nat",
-        "equation_Prims.pos", "equation_Prims.squash",
-        "equation_QUIC.Spec.Base.lbytes",
+        "equation_Prims.squash", "equation_QUIC.Spec.Base.lbytes",
         "equation_QUIC.Spec.Crypto.keysized",
         "equation_QUIC.Spec.Crypto.supported_hash", "equation_Spec.AES.gf8",
         "equation_Spec.AES.irred", "equation_Spec.AES.key_size",
@@ -361,7 +359,6 @@
         "equation_Spec.Hash.Definitions.block_length",
         "equation_Spec.Hash.Definitions.block_word_length",
         "equation_Spec.Hash.Definitions.hash_length",
-        "equation_Spec.Hash.Definitions.max_input_length",
         "equation_Spec.Hash.Definitions.word_length",
         "fuel_guarded_inversion_Spec.Agile.AEAD.alg",
         "function_token_typing_Spec.Agile.AEAD.uu___2", "int_inversion",
@@ -379,7 +376,6 @@
         "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_51cadc3a2398a70dfd1dc2e32d65a998",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
-        "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
         "refinement_interpretation_Tm_refine_8735ec84cea50366b5e7faa01ec2ed3b",
         "refinement_interpretation_Tm_refine_90a1661541e4f009452ab107b47b5955",
         "refinement_interpretation_Tm_refine_982fb3d3fec67274e50be352a80fb36e",
@@ -397,12 +393,34 @@
         "typing_Spec.Agile.AEAD.key_length",
         "typing_Spec.Agile.Cipher.key_length",
         "typing_Spec.GaloisField.__proj__GF__item__t",
-        "typing_Spec.Hash.Definitions.max_input_length",
         "typing_tok_Lib.IntTypes.U32@tok",
         "typing_tok_Spec.Agile.Cipher.AES256@tok"
       ],
       0,
-      "2860ed877d1086722b284bb200ff21e6"
+      "62a687f2dd633e2ed95027c26236b05d"
+    ],
+    [
+      "Model.AEAD.fresh_nonce_snoc",
+      1,
+      0,
+      0,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "disc_equation_FStar.Pervasives.Native.None",
+        "disc_equation_FStar.Pervasives.Native.Some",
+        "equation_Model.AEAD.fresh_nonce", "equation_Model.AEAD.nonce",
+        "equation_Model.AEAD.nonce_filter", "equation_Model.AEAD.safe_id",
+        "equation_Model.AEAD.wentry_for_nonce",
+        "kinding_Model.AEAD.entry@tok",
+        "lemma_FStar.Pervasives.invertOption", "primitive_Prims.op_Equality",
+        "proj_equation_Model.AEAD.Entry_n",
+        "projection_inverse_BoxBool_proj_0",
+        "projection_inverse_Model.AEAD.Entry_n",
+        "refinement_interpretation_Tm_refine_175ba2992eebd9a88e4e0c5565f92827",
+        "typing_Model.AEAD.wentry_for_nonce", "typing_Model.AEAD.wgetinfo"
+      ],
+      0,
+      "26ded49bf82ee7c8c50b40ab884a1ff8"
     ],
     [
       "Model.AEAD.encrypt",
@@ -515,7 +533,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "33a262cce7ebdd759fba7ad72ae4cb5c"
+      "6e156eded9419deb2b3e21fed5dc8101"
     ],
     [
       "Model.AEAD.decrypt",
@@ -639,7 +657,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "c47a52284d1cef0c248669bd7307229e"
+      "40729e5d8e0560b9bc6f3cfacc859dc4"
     ]
   ]
 ]
