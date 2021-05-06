@@ -3,7 +3,7 @@ LIBRARY libeverquic
 EXPORTS
   LowParse_BitFields_get_bitfield_gen8
   LowParse_BitFields_set_bitfield_gen8
-  LowParse_Low_Base_is_error
+  LowParse_Low_ErrorCode_is_error
   Spec_Agile_Cipher_key_length
   Spec_Agile_AEAD_cipher_alg_of_supported_alg
   EverQuic___proj__Mkindex__item__hash_alg

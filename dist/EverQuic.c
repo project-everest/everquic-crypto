@@ -67,10 +67,10 @@ static uint64_t validate_varint(LowParse_Slice_slice sl, uint64_t pos)
   uint32_t pos1 = (uint32_t)pos;
   uint64_t pos11;
   if ((uint64_t)sl.len - pos0 < (uint64_t)1U)
-    pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+    pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
   else
     pos11 = pos0 + (uint64_t)1U;
-  if (LowParse_Low_Base_is_error(pos11))
+  if (LowParse_Low_ErrorCode_is_error(pos11))
     return pos11;
   else
   {
@@ -88,10 +88,10 @@ static uint64_t validate_varint(LowParse_Slice_slice sl, uint64_t pos)
       {
         uint64_t pos2;
         if ((uint64_t)sl.len - pos1_ < (uint64_t)1U)
-          pos2 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+          pos2 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
         else
           pos2 = pos1_ + (uint64_t)1U;
-        if (LowParse_Low_Base_is_error(pos2))
+        if (LowParse_Low_ErrorCode_is_error(pos2))
           return pos2;
         else
         {
@@ -100,17 +100,17 @@ static uint64_t validate_varint(LowParse_Slice_slice sl, uint64_t pos)
           if ((uint64_t)64U <= z)
             return pos2;
           else
-            return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+            return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
         }
       }
       else if (kd == (uint8_t)2U)
       {
         uint64_t pos2;
         if ((uint64_t)sl.len - pos1_ < (uint64_t)3U)
-          pos2 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+          pos2 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
         else
           pos2 = pos1_ + (uint64_t)3U;
-        if (LowParse_Low_Base_is_error(pos2))
+        if (LowParse_Low_ErrorCode_is_error(pos2))
           return pos2;
         else
         {
@@ -122,24 +122,24 @@ static uint64_t validate_varint(LowParse_Slice_slice sl, uint64_t pos)
           if ((uint64_t)16384U <= z)
             return pos2;
           else
-            return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+            return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
         }
       }
       else
       {
         uint64_t pos13;
         if ((uint64_t)sl.len - pos1_ < (uint64_t)4U)
-          pos13 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+          pos13 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
         else
           pos13 = pos1_ + (uint64_t)4U;
         uint64_t pos2;
-        if (LowParse_Low_Base_is_error(pos13))
+        if (LowParse_Low_ErrorCode_is_error(pos13))
           pos2 = pos13;
         else if ((uint64_t)sl.len - pos13 < (uint64_t)3U)
-          pos2 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+          pos2 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
         else
           pos2 = pos13 + (uint64_t)3U;
-        if (LowParse_Low_Base_is_error(pos2))
+        if (LowParse_Low_ErrorCode_is_error(pos2))
           return pos2;
         else
         {
@@ -156,7 +156,7 @@ static uint64_t validate_varint(LowParse_Slice_slice sl, uint64_t pos)
           if ((uint64_t)1073741824U <= z)
             return pos2;
           else
-            return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+            return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
         }
       }
     }
@@ -294,13 +294,13 @@ static uint64_t
 validate_bounded_varint(uint32_t min, uint32_t max, LowParse_Slice_slice input, uint64_t pos)
 {
   uint64_t res = validate_varint(input, pos);
-  if (LowParse_Low_Base_is_error(res))
+  if (LowParse_Low_ErrorCode_is_error(res))
     return res;
   else
   {
     uint64_t va = read_varint(input, (uint32_t)pos);
     if (!((uint64_t)min <= va && va <= (uint64_t)max))
-      return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+      return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
     else
       return res;
   }
@@ -431,11 +431,11 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
 {
   uint64_t res0;
   if ((uint64_t)sl.len - pos < (uint64_t)1U)
-    res0 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+    res0 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
   else
     res0 = pos + (uint64_t)1U;
   uint64_t pos1;
-  if (LowParse_Low_Base_is_error(res0))
+  if (LowParse_Low_ErrorCode_is_error(res0))
     pos1 = res0;
   else
   {
@@ -473,11 +473,11 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
     else
       ite = false;
     if (!ite)
-      pos1 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+      pos1 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
     else
       pos1 = res0;
   }
-  if (LowParse_Low_Base_is_error(pos1))
+  if (LowParse_Low_ErrorCode_is_error(pos1))
     return pos1;
   else
   {
@@ -493,21 +493,21 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
         {
           uint64_t pos110;
           if ((uint64_t)sl.len - pos1 < (uint64_t)4U)
-            pos110 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+            pos110 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
           else
             pos110 = pos1 + (uint64_t)4U;
           uint64_t pos11;
-          if (LowParse_Low_Base_is_error(pos110))
+          if (LowParse_Low_ErrorCode_is_error(pos110))
             pos11 = pos110;
           else
           {
             uint64_t res0;
             if ((uint64_t)sl.len - pos110 < (uint64_t)1U)
-              res0 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+              res0 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
             else
               res0 = pos110 + (uint64_t)1U;
             uint64_t pos12;
-            if (LowParse_Low_Base_is_error(res0))
+            if (LowParse_Low_ErrorCode_is_error(res0))
               pos12 = res0;
             else
             {
@@ -515,31 +515,31 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
               uint32_t va = (uint32_t)r;
               if (va <= (uint32_t)20U)
                 if ((uint64_t)sl.len - res0 < (uint64_t)va)
-                  pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                  pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                 else
                 {
                   uint64_t pos_ = (uint64_t)((uint32_t)res0 + va);
-                  if (LowParse_Low_Base_is_error(pos_))
-                    if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                      pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  if (LowParse_Low_ErrorCode_is_error(pos_))
+                    if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                      pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                     else
                       pos12 = pos_;
                   else
                     pos12 = pos_;
                 }
               else
-                pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
             }
-            if (LowParse_Low_Base_is_error(pos12))
+            if (LowParse_Low_ErrorCode_is_error(pos12))
               pos11 = pos12;
             else
             {
               uint64_t res;
               if ((uint64_t)sl.len - pos12 < (uint64_t)1U)
-                res = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                res = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
               else
                 res = pos12 + (uint64_t)1U;
-              if (LowParse_Low_Base_is_error(res))
+              if (LowParse_Low_ErrorCode_is_error(res))
                 pos11 = res;
               else
               {
@@ -547,61 +547,61 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
                 uint32_t va = (uint32_t)r;
                 if (va <= (uint32_t)20U)
                   if ((uint64_t)sl.len - res < (uint64_t)va)
-                    pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                    pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                   else
                   {
                     uint64_t pos_ = (uint64_t)((uint32_t)res + va);
-                    if (LowParse_Low_Base_is_error(pos_))
-                      if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                        pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                    if (LowParse_Low_ErrorCode_is_error(pos_))
+                      if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                        pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                       else
                         pos11 = pos_;
                     else
                       pos11 = pos_;
                   }
                 else
-                  pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
               }
             }
           }
-          if (LowParse_Low_Base_is_error(pos11))
+          if (LowParse_Low_ErrorCode_is_error(pos11))
             return pos11;
           else
           {
             uint64_t n = validate_bounded_varint((uint32_t)0U, (uint32_t)16383U, sl, pos11);
             uint64_t pos12;
-            if (LowParse_Low_Base_is_error(n))
+            if (LowParse_Low_ErrorCode_is_error(n))
               pos12 = n;
             else
             {
               uint64_t res = read_varint(sl, (uint32_t)pos11);
               uint32_t len = (uint32_t)res;
               if ((uint64_t)sl.len - n < (uint64_t)len)
-                pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
               else
               {
                 uint64_t pos_ = (uint64_t)((uint32_t)n + len);
-                if (LowParse_Low_Base_is_error(pos_))
-                  if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                    pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                if (LowParse_Low_ErrorCode_is_error(pos_))
+                  if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                    pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                   else
                     pos12 = pos_;
                 else
                   pos12 = pos_;
               }
             }
-            if (LowParse_Low_Base_is_error(pos12))
+            if (LowParse_Low_ErrorCode_is_error(pos12))
               return pos12;
             else
             {
               uint64_t res = validate_varint(sl, pos12);
-              if (LowParse_Low_Base_is_error(res))
+              if (LowParse_Low_ErrorCode_is_error(res))
                 return res;
               else
               {
                 uint64_t va = read_varint(sl, (uint32_t)pos12);
                 if (!(va >= (uint64_t)20U))
-                  return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                 else
                   return res;
               }
@@ -612,21 +612,21 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
         {
           uint64_t pos110;
           if ((uint64_t)sl.len - pos1 < (uint64_t)4U)
-            pos110 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+            pos110 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
           else
             pos110 = pos1 + (uint64_t)4U;
           uint64_t pos11;
-          if (LowParse_Low_Base_is_error(pos110))
+          if (LowParse_Low_ErrorCode_is_error(pos110))
             pos11 = pos110;
           else
           {
             uint64_t res0;
             if ((uint64_t)sl.len - pos110 < (uint64_t)1U)
-              res0 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+              res0 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
             else
               res0 = pos110 + (uint64_t)1U;
             uint64_t pos12;
-            if (LowParse_Low_Base_is_error(res0))
+            if (LowParse_Low_ErrorCode_is_error(res0))
               pos12 = res0;
             else
             {
@@ -634,31 +634,31 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
               uint32_t va = (uint32_t)r;
               if (va <= (uint32_t)20U)
                 if ((uint64_t)sl.len - res0 < (uint64_t)va)
-                  pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                  pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                 else
                 {
                   uint64_t pos_ = (uint64_t)((uint32_t)res0 + va);
-                  if (LowParse_Low_Base_is_error(pos_))
-                    if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                      pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  if (LowParse_Low_ErrorCode_is_error(pos_))
+                    if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                      pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                     else
                       pos12 = pos_;
                   else
                     pos12 = pos_;
                 }
               else
-                pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
             }
-            if (LowParse_Low_Base_is_error(pos12))
+            if (LowParse_Low_ErrorCode_is_error(pos12))
               pos11 = pos12;
             else
             {
               uint64_t res;
               if ((uint64_t)sl.len - pos12 < (uint64_t)1U)
-                res = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                res = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
               else
                 res = pos12 + (uint64_t)1U;
-              if (LowParse_Low_Base_is_error(res))
+              if (LowParse_Low_ErrorCode_is_error(res))
                 pos11 = res;
               else
               {
@@ -666,35 +666,35 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
                 uint32_t va = (uint32_t)r;
                 if (va <= (uint32_t)20U)
                   if ((uint64_t)sl.len - res < (uint64_t)va)
-                    pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                    pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                   else
                   {
                     uint64_t pos_ = (uint64_t)((uint32_t)res + va);
-                    if (LowParse_Low_Base_is_error(pos_))
-                      if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                        pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                    if (LowParse_Low_ErrorCode_is_error(pos_))
+                      if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                        pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                       else
                         pos11 = pos_;
                     else
                       pos11 = pos_;
                   }
                 else
-                  pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
               }
             }
           }
-          if (LowParse_Low_Base_is_error(pos11))
+          if (LowParse_Low_ErrorCode_is_error(pos11))
             return pos11;
           else
           {
             uint64_t res = validate_varint(sl, pos11);
-            if (LowParse_Low_Base_is_error(res))
+            if (LowParse_Low_ErrorCode_is_error(res))
               return res;
             else
             {
               uint64_t va = read_varint(sl, (uint32_t)pos11);
               if (!(va >= (uint64_t)20U))
-                return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
               else
                 return res;
             }
@@ -704,21 +704,21 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
         {
           uint64_t pos110;
           if ((uint64_t)sl.len - pos1 < (uint64_t)4U)
-            pos110 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+            pos110 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
           else
             pos110 = pos1 + (uint64_t)4U;
           uint64_t pos11;
-          if (LowParse_Low_Base_is_error(pos110))
+          if (LowParse_Low_ErrorCode_is_error(pos110))
             pos11 = pos110;
           else
           {
             uint64_t res0;
             if ((uint64_t)sl.len - pos110 < (uint64_t)1U)
-              res0 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+              res0 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
             else
               res0 = pos110 + (uint64_t)1U;
             uint64_t pos12;
-            if (LowParse_Low_Base_is_error(res0))
+            if (LowParse_Low_ErrorCode_is_error(res0))
               pos12 = res0;
             else
             {
@@ -726,31 +726,31 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
               uint32_t va = (uint32_t)r;
               if (va <= (uint32_t)20U)
                 if ((uint64_t)sl.len - res0 < (uint64_t)va)
-                  pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                  pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                 else
                 {
                   uint64_t pos_ = (uint64_t)((uint32_t)res0 + va);
-                  if (LowParse_Low_Base_is_error(pos_))
-                    if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                      pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  if (LowParse_Low_ErrorCode_is_error(pos_))
+                    if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                      pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                     else
                       pos12 = pos_;
                   else
                     pos12 = pos_;
                 }
               else
-                pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
             }
-            if (LowParse_Low_Base_is_error(pos12))
+            if (LowParse_Low_ErrorCode_is_error(pos12))
               pos11 = pos12;
             else
             {
               uint64_t res;
               if ((uint64_t)sl.len - pos12 < (uint64_t)1U)
-                res = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                res = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
               else
                 res = pos12 + (uint64_t)1U;
-              if (LowParse_Low_Base_is_error(res))
+              if (LowParse_Low_ErrorCode_is_error(res))
                 pos11 = res;
               else
               {
@@ -758,35 +758,35 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
                 uint32_t va = (uint32_t)r;
                 if (va <= (uint32_t)20U)
                   if ((uint64_t)sl.len - res < (uint64_t)va)
-                    pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                    pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                   else
                   {
                     uint64_t pos_ = (uint64_t)((uint32_t)res + va);
-                    if (LowParse_Low_Base_is_error(pos_))
-                      if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                        pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                    if (LowParse_Low_ErrorCode_is_error(pos_))
+                      if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                        pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                       else
                         pos11 = pos_;
                     else
                       pos11 = pos_;
                   }
                 else
-                  pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
               }
             }
           }
-          if (LowParse_Low_Base_is_error(pos11))
+          if (LowParse_Low_ErrorCode_is_error(pos11))
             return pos11;
           else
           {
             uint64_t res = validate_varint(sl, pos11);
-            if (LowParse_Low_Base_is_error(res))
+            if (LowParse_Low_ErrorCode_is_error(res))
               return res;
             else
             {
               uint64_t va = read_varint(sl, (uint32_t)pos11);
               if (!(va >= (uint64_t)20U))
-                return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
               else
                 return res;
             }
@@ -796,21 +796,21 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
         {
           uint64_t pos110;
           if ((uint64_t)sl.len - pos1 < (uint64_t)4U)
-            pos110 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+            pos110 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
           else
             pos110 = pos1 + (uint64_t)4U;
           uint64_t pos11;
-          if (LowParse_Low_Base_is_error(pos110))
+          if (LowParse_Low_ErrorCode_is_error(pos110))
             pos11 = pos110;
           else
           {
             uint64_t res0;
             if ((uint64_t)sl.len - pos110 < (uint64_t)1U)
-              res0 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+              res0 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
             else
               res0 = pos110 + (uint64_t)1U;
             uint64_t pos12;
-            if (LowParse_Low_Base_is_error(res0))
+            if (LowParse_Low_ErrorCode_is_error(res0))
               pos12 = res0;
             else
             {
@@ -818,31 +818,31 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
               uint32_t va = (uint32_t)r;
               if (va <= (uint32_t)20U)
                 if ((uint64_t)sl.len - res0 < (uint64_t)va)
-                  pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                  pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                 else
                 {
                   uint64_t pos_ = (uint64_t)((uint32_t)res0 + va);
-                  if (LowParse_Low_Base_is_error(pos_))
-                    if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                      pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  if (LowParse_Low_ErrorCode_is_error(pos_))
+                    if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                      pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                     else
                       pos12 = pos_;
                   else
                     pos12 = pos_;
                 }
               else
-                pos12 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                pos12 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
             }
-            if (LowParse_Low_Base_is_error(pos12))
+            if (LowParse_Low_ErrorCode_is_error(pos12))
               pos11 = pos12;
             else
             {
               uint64_t res;
               if ((uint64_t)sl.len - pos12 < (uint64_t)1U)
-                res = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                res = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
               else
                 res = pos12 + (uint64_t)1U;
-              if (LowParse_Low_Base_is_error(res))
+              if (LowParse_Low_ErrorCode_is_error(res))
                 pos11 = res;
               else
               {
@@ -850,33 +850,33 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
                 uint32_t va = (uint32_t)r;
                 if (va <= (uint32_t)20U)
                   if ((uint64_t)sl.len - res < (uint64_t)va)
-                    pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                    pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                   else
                   {
                     uint64_t pos_ = (uint64_t)((uint32_t)res + va);
-                    if (LowParse_Low_Base_is_error(pos_))
-                      if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                        pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                    if (LowParse_Low_ErrorCode_is_error(pos_))
+                      if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                        pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                       else
                         pos11 = pos_;
                     else
                       pos11 = pos_;
                   }
                 else
-                  pos11 = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  pos11 = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
               }
             }
           }
-          if (LowParse_Low_Base_is_error(pos11))
+          if (LowParse_Low_ErrorCode_is_error(pos11))
             return pos11;
           else
           {
             uint64_t res;
             if ((uint64_t)sl.len - pos11 < (uint64_t)1U)
-              res = LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+              res = LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
             else
               res = pos11 + (uint64_t)1U;
-            if (LowParse_Low_Base_is_error(res))
+            if (LowParse_Low_ErrorCode_is_error(res))
               return res;
             else
             {
@@ -884,42 +884,42 @@ static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl
               uint32_t va = (uint32_t)r;
               if (va <= (uint32_t)20U)
                 if ((uint64_t)sl.len - res < (uint64_t)va)
-                  return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+                  return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
                 else
                 {
                   uint64_t pos_ = (uint64_t)((uint32_t)res + va);
-                  if (LowParse_Low_Base_is_error(pos_))
-                    if (pos_ == LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
-                      return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                  if (LowParse_Low_ErrorCode_is_error(pos_))
+                    if (pos_ == LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA)
+                      return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
                     else
                       return pos_;
                   else
                     return pos_;
                 }
               else
-                return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+                return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
             }
           }
         }
         else
-          return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+          return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
       }
       else
-        return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+        return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
     }
     else if (xr == (uint8_t)0U)
     {
       uint8_t xr1 = x & (uint8_t)64U;
       if (xr1 == (uint8_t)64U)
         if ((uint64_t)sl.len - pos1 < (uint64_t)short_dcid_len)
-          return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
+          return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_NOT_ENOUGH_DATA;
         else
           return pos1 + (uint64_t)short_dcid_len;
       else
-        return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+        return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
     }
     else
-      return LOWPARSE_LOW_BASE_VALIDATOR_ERROR_GENERIC;
+      return LOWPARSE_LOW_ERRORCODE_VALIDATOR_ERROR_GENERIC;
   }
 }
 
@@ -1255,10 +1255,6 @@ typedef struct list__uint8_t_s
   list__uint8_t *tl;
 }
 list__uint8_t;
-
-#define MkSeq 0
-
-typedef uint8_t bytes_tags;
 
 typedef list__uint8_t *bytes;
 
@@ -1813,7 +1809,7 @@ static option__uint32_t putative_pn_offset(uint32_t cid_len, uint8_t *b, uint32_
 {
   LowParse_Slice_slice input = { .base = b, .len = b_len };
   uint64_t res = validate_header(cid_len, input, (uint64_t)0U);
-  if (LowParse_Low_Base_is_error(res))
+  if (LowParse_Low_ErrorCode_is_error(res))
     return ((option__uint32_t){ .tag = None });
   else
     return ((option__uint32_t){ .tag = Some, .v = (uint32_t)res });
@@ -2424,11 +2420,9 @@ static void iv_for_encrypt_decrypt(uint8_t *siv, uint8_t *dst, uint64_t pn)
 
 static EverCrypt_Error_error_code
 payload_encrypt(
-  Spec_Agile_AEAD_alg a,
   EverCrypt_AEAD_state_s *s,
   uint8_t *siv,
   uint8_t *dst,
-  uint32_t pn_len,
   uint64_t pn,
   uint32_t header_len,
   uint8_t *plain,
@@ -2487,7 +2481,7 @@ encrypt(
     uint32_t pn_len = EverQuic_pn_length(h);
     uint8_t *bs = dst;
     EverCrypt_Error_error_code
-    res = payload_encrypt(a, aead, siv, bs, pn_len, pn, header_len, plain, plain_len);
+    res = payload_encrypt(aead, siv, bs, pn, header_len, plain, plain_len);
     EverCrypt_Error_error_code res0 = res;
     switch (res0)
     {
@@ -2513,12 +2507,10 @@ encrypt(
 
 static EverCrypt_Error_error_code
 payload_decrypt(
-  Spec_Agile_AEAD_alg a,
   EverCrypt_AEAD_state_s *s,
   uint8_t *siv,
   uint8_t *dst,
   uint32_t hlen,
-  uint32_t pn_len,
   uint64_t pn,
   uint32_t cipher_and_tag_len
 )
@@ -2570,8 +2562,7 @@ decrypt(
       uint32_t pn_len = EverQuic_pn_length(h);
       uint32_t plain_len = cipher_and_tag_len - (uint32_t)16U;
       uint8_t *bs = dst;
-      EverCrypt_Error_error_code
-      res = payload_decrypt(a, aead, siv, bs, hlen, pn_len, pn, cipher_and_tag_len);
+      EverCrypt_Error_error_code res = payload_decrypt(aead, siv, bs, hlen, pn, cipher_and_tag_len);
       EverCrypt_Error_error_code res0 = res;
       EverQuic_result
       r =
@@ -2890,108 +2881,6 @@ EverQuic_initial_secrets(
     (uint32_t)32U);
 }
 
-static bool
-__eq__EverCrypt_Error_error_code(EverCrypt_Error_error_code y, EverCrypt_Error_error_code x)
-{
-  switch (x)
-  {
-    case EverCrypt_Error_Success:
-      {
-        switch (y)
-        {
-          case EverCrypt_Error_Success:
-            {
-              return true;
-            }
-          default:
-            {
-              return false;
-            }
-        }
-        break;
-      }
-    case EverCrypt_Error_UnsupportedAlgorithm:
-      {
-        switch (y)
-        {
-          case EverCrypt_Error_UnsupportedAlgorithm:
-            {
-              return true;
-            }
-          default:
-            {
-              return false;
-            }
-        }
-        break;
-      }
-    case EverCrypt_Error_InvalidKey:
-      {
-        switch (y)
-        {
-          case EverCrypt_Error_InvalidKey:
-            {
-              return true;
-            }
-          default:
-            {
-              return false;
-            }
-        }
-        break;
-      }
-    case EverCrypt_Error_AuthenticationFailure:
-      {
-        switch (y)
-        {
-          case EverCrypt_Error_AuthenticationFailure:
-            {
-              return true;
-            }
-          default:
-            {
-              return false;
-            }
-        }
-        break;
-      }
-    case EverCrypt_Error_InvalidIVLength:
-      {
-        switch (y)
-        {
-          case EverCrypt_Error_InvalidIVLength:
-            {
-              return true;
-            }
-          default:
-            {
-              return false;
-            }
-        }
-        break;
-      }
-    case EverCrypt_Error_DecodeError:
-      {
-        switch (y)
-        {
-          case EverCrypt_Error_DecodeError:
-            {
-              return true;
-            }
-          default:
-            {
-              return false;
-            }
-        }
-        break;
-      }
-    default:
-      {
-        return false;
-      }
-  }
-}
-
 EverCrypt_Error_error_code
 EverQuic_decrypt(
   EverQuic_state_s *s,
@@ -3021,7 +2910,7 @@ EverQuic_decrypt(
       dst,
       last_pn,
       (uint32_t)cid_len);
-  if (__eq__EverCrypt_Error_error_code(res, EverCrypt_Error_Success))
+  if (res == EverCrypt_Error_Success)
   {
     EverQuic_result r = dst[0U];
     uint64_t pn = r.pn;

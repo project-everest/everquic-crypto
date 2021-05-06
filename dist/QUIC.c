@@ -12,10 +12,6 @@ static EverQuic_index iid(EverQuic_index i)
   return i;
 }
 
-#define Raise 0
-
-typedef uint8_t raise_tags;
-
 typedef EverQuic_state_s *raise;
 
 static EverQuic_state_s *istate(EverQuic_index i, EverQuic_state_s *s)
