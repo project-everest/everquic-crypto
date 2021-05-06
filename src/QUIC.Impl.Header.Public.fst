@@ -59,18 +59,28 @@ let validate_header_body_cases
   | (| Long, (| (), (| Retry, () |) |) |) ->
     validate_long_retry_body
 
+
+(* TODO: move to something like LowParse.Spec.Tac.BitSum *)
+module LT = LowParse.TacLib
+noextract
+let pp_bitsum_norm_tac () : LT.Tac unit =
+  LT.norm [primops; iota; zeta; delta_attr [`%LPB.filter_bitsum'_t_attr]];
+  LT.trefl ()
+
+[@@ (LT.postprocess_with pp_bitsum_norm_tac) ]
 inline_for_extraction
 noextract
 let filter_first_byte
 : (LPB.filter_bitsum'_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%LPB.filter_bitsum'_t_attr]]
+=
   (LPB.mk_filter_bitsum'_t' first_byte)
 
+[@@ (LT.postprocess_with pp_bitsum_norm_tac) ]
 inline_for_extraction
 noextract
 let mk_validate_header_body_cases
 : LPB.validate_bitsum_cases_t first_byte
-= norm [primops; iota; zeta; delta_attr [`%LPB.filter_bitsum'_t_attr]]
+=
   (LPB.mk_validate_bitsum_cases_t' first_byte)
 
 let validate_header
@@ -88,11 +98,12 @@ let validate_header
     (validate_header_body_cases short_dcid_len)
     (mk_validate_header_body_cases)
 
+[@@ (LT.postprocess_with pp_bitsum_norm_tac) ]
 inline_for_extraction
 noextract
 let destr_first_byte
 : (LPB.destr_bitsum'_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%LPB.filter_bitsum'_t_attr]]
+=
   (LPB.mk_destr_bitsum'_t first_byte)
 
 
@@ -412,11 +423,12 @@ let read_header packet packet_len cid_len =
 
 #pop-options
 
+[@@ (LT.postprocess_with pp_bitsum_norm_tac) ]
 inline_for_extraction
 noextract
 let synth_first_byte
 : (LPB.synth_bitsum'_recip_t first_byte)
-= norm [primops; iota; zeta; delta_attr [`%LPB.filter_bitsum'_t_attr]]
+=
   (LPB.mk_synth_bitsum'_recip first_byte)
 
 module LW = LowParse.Low.Writers.Instances
