@@ -41,10 +41,10 @@ function fetch_qd() {
 function fetch_and_make_qd() {
     fetch_qd
 
-    # Default build target is all (quackyducky lowparse), unless specified otherwise
+    # Default build target is quackyducky lowparse, unless specified otherwise
     local target
     if [[ $1 == "" ]]; then
-        target="all"
+        target="quackyducky lowparse"
     else
         target="$1"
     fi
