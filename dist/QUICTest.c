@@ -2,6 +2,8 @@
 
 #include "QUICTest.h"
 
+#include "internal/LowStar.h"
+
 EverQuic_index
 QUICTest_idx =
   { .hash_alg = Spec_Hash_Definitions_SHA2_256, .aead_alg = Spec_Agile_AEAD_CHACHA20_POLY1305 };

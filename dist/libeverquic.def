@@ -6,16 +6,7 @@ EXPORTS
   LowParse_Low_ErrorCode_is_error
   Spec_Agile_Cipher_key_length
   Spec_Agile_AEAD_cipher_alg_of_supported_alg
-  EverQuic___proj__Mkindex__item__hash_alg
-  EverQuic___proj__Mkindex__item__aead_alg
   EverQuic_uu___is_State
-  EverQuic___proj__State__item__the_hash_alg
-  EverQuic___proj__State__item__the_aead_alg
-  EverQuic___proj__State__item__aead_state
-  EverQuic___proj__State__item__iv
-  EverQuic___proj__State__item__hp_key
-  EverQuic___proj__State__item__pn
-  EverQuic___proj__State__item__ctr_state
   EverQuic_aead_alg_of_state
   EverQuic_hash_alg_of_state
   EverQuic_last_packet_number_of_state
@@ -24,37 +15,11 @@ EXPORTS
   EverQuic_initial_secrets
   EverQuic_decrypt
   EverQuic_uu___is_BInitial
-  EverQuic___proj__BInitial__item__reserved_bits
-  EverQuic___proj__BInitial__item__payload_and_pn_length
-  EverQuic___proj__BInitial__item__packet_number_length
-  EverQuic___proj__BInitial__item__token
-  EverQuic___proj__BInitial__item__token_length
   EverQuic_uu___is_BZeroRTT
-  EverQuic___proj__BZeroRTT__item__reserved_bits
-  EverQuic___proj__BZeroRTT__item__payload_and_pn_length
-  EverQuic___proj__BZeroRTT__item__packet_number_length
   EverQuic_uu___is_BHandshake
-  EverQuic___proj__BHandshake__item__reserved_bits
-  EverQuic___proj__BHandshake__item__payload_and_pn_length
-  EverQuic___proj__BHandshake__item__packet_number_length
   EverQuic_uu___is_BRetry
-  EverQuic___proj__BRetry__item__unused
-  EverQuic___proj__BRetry__item__odcid
-  EverQuic___proj__BRetry__item__odcil
   EverQuic_uu___is_BLong
-  EverQuic___proj__BLong__item__version
-  EverQuic___proj__BLong__item__dcid
-  EverQuic___proj__BLong__item__dcil
-  EverQuic___proj__BLong__item__scid
-  EverQuic___proj__BLong__item__scil
-  EverQuic___proj__BLong__item__spec
   EverQuic_uu___is_BShort
-  EverQuic___proj__BShort__item__reserved_bits
-  EverQuic___proj__BShort__item__spin
-  EverQuic___proj__BShort__item__phase
-  EverQuic___proj__BShort__item__cid
-  EverQuic___proj__BShort__item__cid_len
-  EverQuic___proj__BShort__item__packet_number_length
   EverQuic_dcid_len
   EverQuic_is_retry
   EverQuic_pn_length
@@ -63,11 +28,6 @@ EXPORTS
   EverQuic_payload_length
   EverQuic_public_header_len
   EverQuic_header_len
-  EverQuic___proj__Mkresult__item__pn
-  EverQuic___proj__Mkresult__item__header
-  EverQuic___proj__Mkresult__item__header_len
-  EverQuic___proj__Mkresult__item__plain_len
-  EverQuic___proj__Mkresult__item__total_len
   QUICTest_is_success_body
   QUICTest_check_is_true_body
   QUICTest_test

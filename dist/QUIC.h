@@ -10,8 +10,8 @@
 #include <string.h>
 
 
-#include "EverQuic.h"
 #include "EverQuic_EverCrypt.h"
+#include "EverQuic.h"
 
 typedef Prims_int QUIC_nat62;
 

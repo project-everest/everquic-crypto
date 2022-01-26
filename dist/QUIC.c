@@ -2,6 +2,8 @@
 
 #include "QUIC.h"
 
+#include "internal/EverQuic_EverCrypt.h"
+
 Prims_int QUIC_cipher_keysize(Spec_Agile_AEAD_alg a)
 {
   return Spec_Agile_Cipher_key_length(Spec_Agile_AEAD_cipher_alg_of_supported_alg(a));

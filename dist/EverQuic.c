@@ -2,6 +2,10 @@
 
 #include "EverQuic.h"
 
+#include "internal/LowStar.h"
+#include "internal/LowParse.h"
+#include "internal/EverQuic_EverCrypt.h"
+
 static uint64_t min64(uint64_t x, uint64_t y)
 {
   uint64_t cond = (uint64_t)1U & ~FStar_UInt64_gte_mask(x, y);
@@ -934,7 +938,7 @@ typedef struct long_header_specifics_s
 {
   long_header_specifics_tags tag;
   union {
-    struct 
+    struct
     {
       uint64_t payload_and_pn_length;
       uint8_t *token;
@@ -943,7 +947,7 @@ typedef struct long_header_specifics_s
     case_PInitial;
     uint64_t case_PZeroRTT;
     uint64_t case_PHandshake;
-    struct 
+    struct
     {
       uint8_t *odcid;
       uint32_t odcil;
@@ -971,7 +975,7 @@ typedef struct header_s
 {
   header_tags tag;
   union {
-    struct 
+    struct
     {
       uint8_t protected_bits;
       uint32_t version;
@@ -982,7 +986,7 @@ typedef struct header_s
       long_header_specifics spec;
     }
     case_PLong;
-    struct 
+    struct
     {
       uint8_t protected_bits;
       bool spin;
@@ -2584,17 +2588,6 @@ decrypt(
   }
 }
 
-Spec_Hash_Definitions_hash_alg
-EverQuic___proj__Mkindex__item__hash_alg(EverQuic_index projectee)
-{
-  return projectee.hash_alg;
-}
-
-Spec_Agile_AEAD_alg EverQuic___proj__Mkindex__item__aead_alg(EverQuic_index projectee)
-{
-  return projectee.aead_alg;
-}
-
 static uint8_t key_len(Spec_Agile_AEAD_alg a)
 {
   switch (a)
@@ -2639,45 +2632,6 @@ EverQuic_state_s;
 bool EverQuic_uu___is_State(EverQuic_index i, EverQuic_state_s projectee)
 {
   return true;
-}
-
-Spec_Hash_Definitions_hash_alg
-EverQuic___proj__State__item__the_hash_alg(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.the_hash_alg;
-}
-
-Spec_Agile_AEAD_alg
-EverQuic___proj__State__item__the_aead_alg(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.the_aead_alg;
-}
-
-EverCrypt_AEAD_state_s
-*EverQuic___proj__State__item__aead_state(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.aead_state;
-}
-
-uint8_t *EverQuic___proj__State__item__iv(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.iv;
-}
-
-uint8_t *EverQuic___proj__State__item__hp_key(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.hp_key;
-}
-
-uint64_t *EverQuic___proj__State__item__pn(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.pn;
-}
-
-EverCrypt_CTR_state_s
-*EverQuic___proj__State__item__ctr_state(EverQuic_index i, EverQuic_state_s projectee)
-{
-  return projectee.ctr_state;
 }
 
 Spec_Agile_AEAD_alg EverQuic_aead_alg_of_state(EverQuic_state_s *s)
@@ -2928,135 +2882,12 @@ bool EverQuic_uu___is_BInitial(EverQuic_long_header_specifics projectee)
     return false;
 }
 
-uint8_t
-EverQuic___proj__BInitial__item__reserved_bits(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BInitial)
-    return projectee.case_BInitial.reserved_bits;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint64_t
-EverQuic___proj__BInitial__item__payload_and_pn_length(
-  EverQuic_long_header_specifics projectee
-)
-{
-  if (projectee.tag == EverQuic_BInitial)
-    return projectee.case_BInitial.payload_and_pn_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t
-EverQuic___proj__BInitial__item__packet_number_length(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BInitial)
-    return projectee.case_BInitial.packet_number_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint8_t *EverQuic___proj__BInitial__item__token(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BInitial)
-    return projectee.case_BInitial.token;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t
-EverQuic___proj__BInitial__item__token_length(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BInitial)
-    return projectee.case_BInitial.token_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
 bool EverQuic_uu___is_BZeroRTT(EverQuic_long_header_specifics projectee)
 {
   if (projectee.tag == EverQuic_BZeroRTT)
     return true;
   else
     return false;
-}
-
-uint8_t
-EverQuic___proj__BZeroRTT__item__reserved_bits(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BZeroRTT)
-    return projectee.case_BZeroRTT.reserved_bits;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint64_t
-EverQuic___proj__BZeroRTT__item__payload_and_pn_length(
-  EverQuic_long_header_specifics projectee
-)
-{
-  if (projectee.tag == EverQuic_BZeroRTT)
-    return projectee.case_BZeroRTT.payload_and_pn_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t
-EverQuic___proj__BZeroRTT__item__packet_number_length(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BZeroRTT)
-    return projectee.case_BZeroRTT.packet_number_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
 }
 
 bool EverQuic_uu___is_BHandshake(EverQuic_long_header_specifics projectee)
@@ -3067,103 +2898,12 @@ bool EverQuic_uu___is_BHandshake(EverQuic_long_header_specifics projectee)
     return false;
 }
 
-uint8_t
-EverQuic___proj__BHandshake__item__reserved_bits(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BHandshake)
-    return projectee.case_BHandshake.reserved_bits;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint64_t
-EverQuic___proj__BHandshake__item__payload_and_pn_length(
-  EverQuic_long_header_specifics projectee
-)
-{
-  if (projectee.tag == EverQuic_BHandshake)
-    return projectee.case_BHandshake.payload_and_pn_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t
-EverQuic___proj__BHandshake__item__packet_number_length(
-  EverQuic_long_header_specifics projectee
-)
-{
-  if (projectee.tag == EverQuic_BHandshake)
-    return projectee.case_BHandshake.packet_number_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
 bool EverQuic_uu___is_BRetry(EverQuic_long_header_specifics projectee)
 {
   if (projectee.tag == EverQuic_BRetry)
     return true;
   else
     return false;
-}
-
-uint8_t EverQuic___proj__BRetry__item__unused(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BRetry)
-    return projectee.case_BRetry.unused;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint8_t *EverQuic___proj__BRetry__item__odcid(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BRetry)
-    return projectee.case_BRetry.odcid;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t EverQuic___proj__BRetry__item__odcil(EverQuic_long_header_specifics projectee)
-{
-  if (projectee.tag == EverQuic_BRetry)
-    return projectee.case_BRetry.odcil;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
 }
 
 bool EverQuic_uu___is_BLong(EverQuic_header projectee)
@@ -3174,180 +2914,12 @@ bool EverQuic_uu___is_BLong(EverQuic_header projectee)
     return false;
 }
 
-uint32_t EverQuic___proj__BLong__item__version(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BLong)
-    return projectee.case_BLong.version;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint8_t *EverQuic___proj__BLong__item__dcid(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BLong)
-    return projectee.case_BLong.dcid;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t EverQuic___proj__BLong__item__dcil(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BLong)
-    return projectee.case_BLong.dcil;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint8_t *EverQuic___proj__BLong__item__scid(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BLong)
-    return projectee.case_BLong.scid;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t EverQuic___proj__BLong__item__scil(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BLong)
-    return projectee.case_BLong.scil;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-EverQuic_long_header_specifics EverQuic___proj__BLong__item__spec(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BLong)
-    return projectee.case_BLong.spec;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
 bool EverQuic_uu___is_BShort(EverQuic_header projectee)
 {
   if (projectee.tag == EverQuic_BShort)
     return true;
   else
     return false;
-}
-
-uint8_t EverQuic___proj__BShort__item__reserved_bits(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BShort)
-    return projectee.case_BShort.reserved_bits;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-bool EverQuic___proj__BShort__item__spin(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BShort)
-    return projectee.case_BShort.spin;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint8_t EverQuic___proj__BShort__item__phase(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BShort)
-    return projectee.case_BShort.phase;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint8_t *EverQuic___proj__BShort__item__cid(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BShort)
-    return projectee.case_BShort.cid;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t EverQuic___proj__BShort__item__cid_len(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BShort)
-    return projectee.case_BShort.cid_len;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
-}
-
-uint32_t EverQuic___proj__BShort__item__packet_number_length(EverQuic_header projectee)
-{
-  if (projectee.tag == EverQuic_BShort)
-    return projectee.case_BShort.packet_number_length;
-  else
-  {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
-      __FILE__,
-      __LINE__,
-      "unreachable (pattern matches are exhaustive in F*)");
-    KRML_HOST_EXIT(255U);
-  }
 }
 
 uint32_t EverQuic_dcid_len(EverQuic_header h)
@@ -3518,30 +3090,5 @@ uint32_t EverQuic_header_len(EverQuic_header h)
   else
     ite = EverQuic_pn_length(h);
   return EverQuic_public_header_len(h) + ite;
-}
-
-uint64_t EverQuic___proj__Mkresult__item__pn(EverQuic_result projectee)
-{
-  return projectee.pn;
-}
-
-EverQuic_header EverQuic___proj__Mkresult__item__header(EverQuic_result projectee)
-{
-  return projectee.header;
-}
-
-uint32_t EverQuic___proj__Mkresult__item__header_len(EverQuic_result projectee)
-{
-  return projectee.header_len;
-}
-
-uint32_t EverQuic___proj__Mkresult__item__plain_len(EverQuic_result projectee)
-{
-  return projectee.plain_len;
-}
-
-uint32_t EverQuic___proj__Mkresult__item__total_len(EverQuic_result projectee)
-{
-  return projectee.total_len;
 }
 

@@ -1,7 +1,7 @@
 
 
-#ifndef __LowParse_H
-#define __LowParse_H
+#ifndef __internal_LowParse_H
+#define __internal_LowParse_H
 #include "kremlin/internal/target.h"
 #include "kremlin/internal/types.h"
 #include "kremlin/lowstar_endianness.h"
@@ -30,5 +30,5 @@ typedef struct LowParse_Slice_slice_s
 LowParse_Slice_slice;
 
 
-#define __LowParse_H_DEFINED
+#define __internal_LowParse_H_DEFINED
 #endif

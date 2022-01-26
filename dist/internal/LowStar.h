@@ -1,7 +1,7 @@
 
 
-#ifndef __LowStar_H
-#define __LowStar_H
+#ifndef __internal_LowStar_H
+#define __internal_LowStar_H
 #include "kremlin/internal/target.h"
 #include "kremlin/internal/types.h"
 #include "kremlin/lowstar_endianness.h"
@@ -15,5 +15,5 @@
 extern void LowStar_Printf_print_string(Prims_string uu___);
 
 
-#define __LowStar_H_DEFINED
+#define __internal_LowStar_H_DEFINED
 #endif

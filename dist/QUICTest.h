@@ -10,10 +10,9 @@
 #include <string.h>
 
 
-#include "EverQuic.h"
 #include "EverQuic_Kremlib.h"
 #include "EverQuic_EverCrypt.h"
-#include "LowStar.h"
+#include "EverQuic.h"
 
 extern EverQuic_index QUICTest_idx;
 

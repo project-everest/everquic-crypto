@@ -2,4 +2,4 @@ USER_TARGET=libeverquic.a
 USER_CFLAGS=
 USER_C_FILES=
 ALL_C_FILES=LowParse.c EverQuic_EverCrypt.c EverQuic.c QUICTest.c QUIC.c
-ALL_H_FILES=LowParse.h EverQuic_Kremlib.h LowStar.h EverQuic_EverCrypt.h EverQuic.h QUICTest.h QUIC.h
+ALL_H_FILES=internal/LowParse.h EverQuic_Kremlib.h internal/LowStar.h EverQuic_EverCrypt.h internal/EverQuic_EverCrypt.h EverQuic.h QUICTest.h QUIC.h
