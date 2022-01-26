@@ -46,7 +46,7 @@
         "typing_QUIC.Spec.Header.Base.is_retry"
       ],
       0,
-      "fa91286c0865d8c1425954329d4cd8f3"
+      "c22f6b5e0045b53224850e4c01c0f3e8"
     ],
     [
       "QUIC.Impl.Header.Parse.header_len_correct",
@@ -55,7 +55,7 @@
       1,
       [ "@query" ],
       0,
-      "2f2472a2b6c9c21f33770e034fcf25c2"
+      "082f4b54ef438c298fb08e45e0f1aa55"
     ],
     [
       "QUIC.Impl.Header.Parse.write_header",
@@ -88,7 +88,7 @@
         "typing_QUIC.Impl.Header.Base.is_retry"
       ],
       0,
-      "0497ce9294d37a06b063378223abd66a"
+      "90e0eee91692c70acf5a9a5b5cd341df"
     ],
     [
       "QUIC.Impl.Header.Parse.putative_pn_offset",
@@ -102,7 +102,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "8acfc68776ee8bfea9302e54a2d4c882"
+      "e91adc50d5ab4a7780a281e54fc825db"
     ],
     [
       "QUIC.Impl.Header.Parse.read_header",
@@ -138,7 +138,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "b77e328660e6113fccd49c462ef5ef9b"
+      "9c1cb37fb2de8bfdf26bb1d25aaff2a9"
     ]
   ]
 ]

@@ -24,7 +24,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "827cb20240095852ec70b4724302b96a"
+      "a44f9f88af794afd6dcfb9732d150f00"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_five_cuts",
@@ -67,7 +67,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "e666b346f92e2935d5064df4acf81345"
+      "ecd142f2ba10e48775c9b82517b9cfb0"
     ],
     [
       "QUIC.Impl.Lemmas.hash_is_keysized_",
@@ -93,7 +93,7 @@
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "6f8c3a80d51a1137845d0c23a92add29"
+      "451d04a80bfe15046b1655dcc80b929e"
     ],
     [
       "QUIC.Impl.Lemmas.hash_is_keysized_",
@@ -143,7 +143,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "555672d502930a68b945f191f2a4ca49"
+      "7f362b936fc5e8e465023ffa9ee77cb2"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice",
@@ -169,7 +169,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4d9af84560d6afe96d1255c06b0c004c"
+      "0f837d3aa0c29c9df4f1b78026212bc2"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice",
@@ -210,7 +210,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "9bce2a52547e07c8284be630928574f3"
+      "e310eae9ea166c1eabed106fd00dc314"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice3",
@@ -237,7 +237,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "2ff19e0e6b92d16e5979805324ecdbaf"
+      "b6e96dbcd3209588134b5c8150ad3676"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice3",
@@ -277,7 +277,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "e76067d3c7d27752f359b53da72addb3"
+      "6c9037748c21bdfb7989343a10e06cca"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice0",
@@ -302,7 +302,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "685b338cb1dacdd604988f733cd32201"
+      "95912d3853f04ae7297f12b695ea5b7c"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice0",
@@ -314,7 +314,7 @@
         "lemma_FStar.Seq.Properties.slice_length"
       ],
       0,
-      "3d4db7a9c9564fd9de558c6d20535c4e"
+      "ea4bcec84c857daa4f83fda0c11d1b69"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice1",
@@ -341,7 +341,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "c091b44c58233e56fcf2382f6fd1dbd8"
+      "d1a363e93e3e3033673b3e4e53b60599"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice1",
@@ -381,7 +381,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "6c1196542005bb92bea46fad194eb57b"
+      "bc9174cd389734224377a791b8bbb0a3"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_upd",
@@ -402,7 +402,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "6447478154d7adf9cb991cfde0ed3b82"
+      "8ee8243c73bd2faed2903a1bf50395a9"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_upd",
@@ -473,7 +473,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "617a6c9f10b5959a20bf5bb3e0620a44"
+      "cf0c7bb081b5d3d10e136d9eef47d0ea"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_seq_map2",
@@ -497,7 +497,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "69ad839b8c9a073287f654decac9ba59"
+      "533502c22ef3d32768cf5702ec167459"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_seq_map2",
@@ -580,7 +580,7 @@
         "typing_tok_Lib.IntTypes.U8@tok", "well-founded-ordering-on-nat"
       ],
       0,
-      "25cb74e2bace23ea2297a7d5c088c2aa"
+      "4cf7d50d23e8bb8f88ed99a8b4a262dc"
     ],
     [
       "QUIC.Impl.Lemmas.and_inplace_commutative",
@@ -597,7 +597,7 @@
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
       ],
       0,
-      "85439c46fd3cd6d1cb88ce35acdd2d92"
+      "73bc24fd4d06af5cae6b46b30e8e91e7"
     ],
     [
       "QUIC.Impl.Lemmas.and_inplace_commutative",
@@ -614,7 +614,7 @@
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
       ],
       0,
-      "db87cd3fd4babed3b1043e2dbc86b45b"
+      "94e08ada17e36f72a9382d68b36d2ac7"
     ],
     [
       "QUIC.Impl.Lemmas.and_inplace_commutative",
@@ -673,7 +673,7 @@
         "typing_Spec.Loops.seq_map2", "well-founded-ordering-on-nat"
       ],
       0,
-      "6fed814b053dd4bd89fad9a3531c7393"
+      "60c083c7530237c8556df8792a5dcde6"
     ],
     [
       "QUIC.Impl.Lemmas.seq_map2_xor0",
@@ -696,7 +696,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "2d891949ef360d518f676e0f740a04e3"
+      "b6a89a4be30bb1d0bb4832982af6e3fd"
     ],
     [
       "QUIC.Impl.Lemmas.seq_map2_xor0",
@@ -826,7 +826,7 @@
         "typing_tok_Lib.IntTypes.U8@tok", "well-founded-ordering-on-nat"
       ],
       0,
-      "4d414a389a6f79dfddb74398d7449290"
+      "8e5ca3333307d3198edb40cbaca4ef44"
     ],
     [
       "QUIC.Impl.Lemmas.upd_op_inplace",
@@ -844,7 +844,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "ae33b0aed52599a247d2f0bcd37f849e"
+      "b28987c2af846e784343c3d857a5a20d"
     ],
     [
       "QUIC.Impl.Lemmas.upd_op_inplace",
@@ -889,7 +889,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "8c041d6d223dd7ff496b55f5dee27d71"
+      "508eee9515f32d5ba9ee44e2f3728878"
     ],
     [
       "QUIC.Impl.Lemmas.be_to_n_slice",
@@ -923,7 +923,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4dd6c75cbe531b87792b6e1da2dcbac4"
+      "626a44025f72d3808f4abe661795cbfb"
     ],
     [
       "QUIC.Impl.Lemmas.be_to_n_slice",
@@ -951,7 +951,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "7e8f53daf63b09602bba280e04fe5a64"
+      "15b52870b4229da52c47643059342f6c"
     ],
     [
       "QUIC.Impl.Lemmas.be_to_n_slice",
@@ -1023,7 +1023,7 @@
         "well-founded-ordering-on-nat"
       ],
       0,
-      "9cc90d8cea695b2b8075c553684b37b8"
+      "9abeeb6109fd33ac6ad60500ffd21565"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower",
@@ -1051,7 +1051,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "654b03dca59b4228f73c2413150ac003"
+      "445485d4485546ca03075be9d44efebb"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower",
@@ -1091,7 +1091,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "308fca10c3c02005de233b5dd06cecfd"
+      "2cc29829b62db4dd9fa86aad937019a4"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower'",
@@ -1118,7 +1118,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "f488696a39790e9353605d2ef7a7c848"
+      "ce02c26b7f544ffbb3c6b39e9b16b4de"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower'",
@@ -1173,7 +1173,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "77b9a95c1059c0a194f0d643b4b45b4e"
+      "4c38913cacd8374e0f549b7c8e37df0c"
     ],
     [
       "QUIC.Impl.Lemmas.op_inplace'",
@@ -1269,7 +1269,7 @@
         "typing_Spec.Loops.seq_map2", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "1c89b044c952bcacbb89a11e764bf9d4"
+      "91155a1ea39860f1218d18ed55112b16"
     ],
     [
       "QUIC.Impl.Lemmas.op_inplace",
@@ -1305,7 +1305,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "a34d350857597c2f4de59e58f116c9f9"
+      "a2ce2cb3329ae2b785b3d841ef2d6018"
     ],
     [
       "QUIC.Impl.Lemmas.op_inplace",
@@ -1314,19 +1314,12 @@
       0,
       [
         "@MaxIFuel_assumption", "@query",
-        "FStar.UInt32_pretyping_2ab3c8ba2d08b0172817fc70b5994868",
-        "equation_LowStar.Buffer.buffer",
-        "equation_LowStar.Buffer.trivial_preorder",
-        "equation_LowStar.Monotonic.Buffer.length", "equation_Prims.eqtype",
-        "lemma_FStar.Ghost.reveal_hide",
-        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
-        "refinement_interpretation_Tm_refine_425b70827a11ebda4789f13dced24c9a",
+        "equation_LowStar.Monotonic.Buffer.length",
         "refinement_interpretation_Tm_refine_62a7ae01856f74c081487870e1383e61",
-        "typing_FStar.UInt32.t", "typing_LowStar.Buffer.trivial_preorder",
-        "typing_LowStar.Monotonic.Buffer.len"
+        "refinement_interpretation_Tm_refine_724ac97124a552d932d020e46940583f"
       ],
       0,
-      "199a3a0f1581b9164e0c880939574ffe"
+      "05d34fe9c00ec78d73ca74aefd7c21f9"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace",
@@ -1335,7 +1328,7 @@
       0,
       [ "@query" ],
       0,
-      "d3d2bfbfadd9e57621b588777134de89"
+      "f10d1650d4b9f3cf44a8d3a227d8fe9b"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace_eq",
@@ -1364,7 +1357,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "7856266725e16660deb33bebaaeeacec"
+      "840e931ba57d044324a0a5445be221d0"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace_eq",
@@ -1436,7 +1429,7 @@
       0,
       [ "@query" ],
       0,
-      "62eeb69eecbd3d2c6643071806b330f4"
+      "cce6a56c6b98d2e2c576a34bca670881"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace_eq",

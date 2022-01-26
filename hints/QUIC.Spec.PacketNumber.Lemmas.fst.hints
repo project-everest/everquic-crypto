@@ -16,7 +16,7 @@
         "refinement_interpretation_Tm_refine_59a09d3c32ea205d2c3ab2f791e22038"
       ],
       0,
-      "55e5f8b1389262f6be1e3bd20d5bb478"
+      "e0211bd85c25ea68acfb4f65ee9a2e71"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound_aux",
@@ -38,7 +38,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "392144f49edf030f9773f3fabe8104a5"
+      "ad72bff9d4835b568755b305ec5aad42"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound",
@@ -68,7 +68,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "e735ca27e676c3cde72f9ab63036696f"
+      "bb929045b937a4b0527343fcb178de46"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -77,7 +77,7 @@
       1,
       [ "@query" ],
       0,
-      "c3483ff394ba5bde22ec544409135f5c"
+      "812da3dd995b767bca1e4319f3689f94"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -108,7 +108,7 @@
         "typing_Prims.pow2", "unit_inversion", "unit_typing"
       ],
       0,
-      "f9989106c700a5acc41f54d24a89e8ef"
+      "b726a6ae288ce3cf7757fb2595cb7482"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.replace_modulo",
@@ -203,7 +203,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "5e116cc500aeb6c5419a12da8ad4b0ba"
+      "d82c94b64b1ca28961978b9093c99676"
     ]
   ]
 ]

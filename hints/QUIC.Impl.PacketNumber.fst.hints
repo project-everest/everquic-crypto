@@ -41,7 +41,7 @@
         "typing_FStar.UInt8.v"
       ],
       0,
-      "61262c5ade41c505c7152a0822e0d7bf"
+      "8d7efee747f0e44f5df990f10d43a7ab"
     ],
     [
       "QUIC.Impl.PacketNumber.read_u32",
@@ -146,7 +146,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "754b1da370cb3c1c85660f2efbc6284e"
+      "878302aa37db6c706a171fa7adbe1550"
     ],
     [
       "QUIC.Impl.PacketNumber.read_bounded_integer",
@@ -265,7 +265,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "45bc21e4f9907d54c3e1aa674699d486"
+      "14deb341ad4cbcda77470ac78e9226d2"
     ],
     [
       "QUIC.Impl.PacketNumber.bound_npn",
@@ -347,7 +347,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "aa0de21e103a92daec2bc642aed2ddad"
+      "b4df31dac38aa756993095f3b9bf4f2c"
     ],
     [
       "QUIC.Impl.PacketNumber.secret_bounded_integer",
@@ -367,7 +367,7 @@
         "projection_inverse_BoxInt_proj_0"
       ],
       0,
-      "a868cccdf4ab35748a5f8680004ee967"
+      "78f2b847edc391d56835becd749cbded"
     ],
     [
       "QUIC.Impl.PacketNumber.expand_pn_aux",
@@ -381,7 +381,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "99e935281468301530269a89251ce77f"
+      "b511e9c5c70fabb99c773a0262670a15"
     ],
     [
       "QUIC.Impl.PacketNumber.expand_pn_aux",
@@ -520,7 +520,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "35e85facd622bca32bdfe062c53fe593"
+      "05a98b20149e7e0041b810ec91fd7970"
     ],
     [
       "QUIC.Impl.PacketNumber.expand_pn",
@@ -534,7 +534,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "109b666310d1e1cf995b34123fd945da"
+      "66aad627d64412e735816bd61243b6bc"
     ],
     [
       "QUIC.Impl.PacketNumber.expand_pn",
@@ -626,7 +626,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "87d6cb9f6c283ad9b5c3c2beab7af4c1"
+      "bc3ed419a67c85fbaa43c8a275d866a0"
     ],
     [
       "QUIC.Impl.PacketNumber.read_packet_number",
@@ -661,7 +661,7 @@
         "typing_QUIC.Spec.PacketNumber.Base.packet_number_t_"
       ],
       0,
-      "dba8962c6e360742779f9a6cf68a7e34"
+      "dfed9633220de3d51d5531b750056700"
     ],
     [
       "QUIC.Impl.PacketNumber.read_packet_number",
@@ -739,7 +739,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "59958a36ab0c97f772041623fbdb3280"
+      "bf776617b2a61ac1f36612bcf4777c0c"
     ],
     [
       "QUIC.Impl.PacketNumber.reduce_pn",
@@ -816,7 +816,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "fc08542397c479dbceedc85c94913534"
+      "481fbec81f1fc400af7d8dbab3346e8b"
     ],
     [
       "QUIC.Impl.PacketNumber.serialize_u32_spec",
@@ -883,7 +883,7 @@
         "typing_LowParse.Spec.Int.serialize_u32"
       ],
       0,
-      "86d6c01c62beb803adca49de290c5d55"
+      "eff0b3e5000c80215af7ae7c165b9891"
     ],
     [
       "QUIC.Impl.PacketNumber.write_u32",
@@ -1003,7 +1003,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "61fb863cb5e9ad100837434e177e0d15"
+      "9255ca50f84c8a5c944c36aa2ed6cc84"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_arg",
@@ -1031,7 +1031,7 @@
         "typing_FStar.UInt32.v"
       ],
       0,
-      "f3e207b2a9c6bd6654f3120a1fac5b44"
+      "d0c7713d12cf801e169f8ab9d175e78c"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_arg",
@@ -1087,7 +1087,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "6deb37b97bba24ea7c2bc69ac796fdce"
+      "4c00ba1aa2dad59dc8d74d25947d4ab3"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_aux",
@@ -1135,7 +1135,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "4956ad3d78849e4eff38b681014b3753"
+      "09431f4ee533e95e3c0b863b2cbcd573"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_aux",
@@ -1163,7 +1163,7 @@
         "typing_FStar.UInt32.v"
       ],
       0,
-      "de58fe7cd4e1f2f4ed3845029989bf7e"
+      "b8a1f6a3b14997469898c74709a294e4"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_aux",
@@ -1234,7 +1234,7 @@
         "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "7a8139d609f5a66c51fee5a027970706"
+      "51974b17ec78b5329891f34a437bc192"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield",
@@ -1248,7 +1248,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "638ca658d02c8874ef6d7248faffa89c"
+      "eb5cac640754a4a4a231192339225563"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield",
@@ -1319,7 +1319,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "4b2bc2f8baa627e1d6aafe9e98a84c47"
+      "716e6e99efa3310d15220a8b0b6ec9a5"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_left",
@@ -1333,7 +1333,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "ef6e2d80f81fbadf192d5f72956dc960"
+      "04738dc0c8463b16d5085f2c3860c3d1"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_left",
@@ -1380,7 +1380,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "7112807232f5188ae70b92b43803ae25"
+      "cd9a405e56a3196ccc49372406eb44a0"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_right",
@@ -1394,7 +1394,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "f2b086faee4fda1b54e53e3317fd2417"
+      "19a39ca2fb686e0f972ecd6666f8655d"
     ],
     [
       "QUIC.Impl.PacketNumber.set_left_bitfield_right",
@@ -1442,7 +1442,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "835bcc761f570785d279b2b85626ebd0"
+      "b9b0614524ff47d92ebc9ee90a52abc6"
     ],
     [
       "QUIC.Impl.PacketNumber.write_bounded_integer",
@@ -1456,7 +1456,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "bf2b9274fc3a3656b7cf30247d392545"
+      "9e17918b4814a05d1ac146c9a7b0052b"
     ],
     [
       "QUIC.Impl.PacketNumber.write_bounded_integer",
@@ -1574,7 +1574,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "dd5445c644790fb9a671432d66f930a2"
+      "0a89082a5ff19fe28cad66f200e52581"
     ],
     [
       "QUIC.Impl.PacketNumber.write_packet_number",
@@ -1613,7 +1613,7 @@
         "typing_LowStar.Monotonic.Buffer.len"
       ],
       0,
-      "54f690f76c1bcc7de88cbe52004cabbc"
+      "60f3bb12351d05d161e4d2043f2b2686"
     ],
     [
       "QUIC.Impl.PacketNumber.write_packet_number",
@@ -1699,7 +1699,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "7e22dafe385cb598e495be01562d3f96"
+      "bf287e82001b6849a150ac0910062867"
     ]
   ]
 ]

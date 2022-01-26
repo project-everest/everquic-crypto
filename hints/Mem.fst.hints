@@ -8,7 +8,7 @@
       0,
       [ "@query" ],
       0,
-      "9b87b4389b5d48f2f343681184ec7ced"
+      "0ef6fdf904ab2c60911f5700df112bc8"
     ],
     [
       "Mem.subrgn",
@@ -17,7 +17,7 @@
       0,
       [ "@query" ],
       0,
-      "54c13cb3f47732f344afbe62da50ae92"
+      "92d5dd9ab5dbcbc9c7a0566164372ca2"
     ],
     [
       "Mem.quic_region",
@@ -46,7 +46,7 @@
         "typing_FStar.Monotonic.HyperStack.get_tip"
       ],
       0,
-      "2fbb048c07980edd25fc2b6acd225944"
+      "fa12623e0ae8a241d94ff010bc76ba59"
     ],
     [
       "Mem.rlist_disjoint",
@@ -57,11 +57,12 @@
         "@MaxIFuel_assumption", "@query",
         "binder_x_f31d9b982cbbc9ffeff08e923e6bd44f_1",
         "disc_equation_Prims.Cons", "disc_equation_Prims.Nil",
-        "equality_tok_Prims.LexTop@tok", "equation_Mem.subq",
-        "fuel_guarded_inversion_Prims.list", "subterm_ordering_Prims.Cons"
+        "equation_Mem.subq", "equation_Prims.op_Equals_Equals_Equals",
+        "fuel_guarded_inversion_Prims.list",
+        "projection_inverse_BoxBool_proj_0", "subterm_ordering_Prims.Cons"
       ],
       0,
-      "89c588a73fb6bf275ddc7a89e66277a4"
+      "bc8475ba6e43521876e892f4877bdbdf"
     ],
     [
       "Mem.r_pairwise_disjoint",
@@ -76,7 +77,7 @@
         "fuel_guarded_inversion_Prims.list", "subterm_ordering_Prims.Cons"
       ],
       0,
-      "db8b66a70ace08d150b6a618e665cbf2"
+      "c7440da9c8ad3f011c54935964442d40"
     ],
     [
       "Mem.r_fresh",
@@ -91,7 +92,7 @@
         "subterm_ordering_Prims.Cons"
       ],
       0,
-      "711907a36c9b898802f4894714d97f30"
+      "78e844951e32019680cfe317a58901ea"
     ],
     [
       "Mem.fresh_back",
@@ -117,7 +118,7 @@
         "typing_FStar.Monotonic.HyperStack.get_hmap"
       ],
       0,
-      "b5b402cc76de04d34315ae1854b660f9"
+      "677c964788d66033272becc6e0589a34"
     ],
     [
       "Mem.r_fresh_back",
@@ -161,7 +162,7 @@
         "typing_FStar.Set.complement", "typing_FStar.Set.empty"
       ],
       0,
-      "c01bc3275e9d34abc1a3974956a9892b"
+      "a7b63e89d19772273b48fa05eea1ae9d"
     ],
     [
       "Mem.r_fresh_fwd",
@@ -210,7 +211,7 @@
         "typing_FStar.Set.mem"
       ],
       0,
-      "e84ff4f54c353c41c61b1dc67cc828ab"
+      "d72ac1d68300e7bcf6a9683a56572ff0"
     ],
     [
       "Mem.r_fresh_disjoint",
@@ -237,28 +238,33 @@
         "equation_FStar.Monotonic.HyperStack.is_wf_with_ctr_and_tip",
         "equation_FStar.Monotonic.HyperStack.mem", "equation_Mem.rgn",
         "equation_Mem.subq", "equation_Mem.subrgn",
+        "equation_Prims.op_Equals_Equals_Equals",
         "equation_with_fuel_Mem.r_fresh.fuel_instrumented",
         "equation_with_fuel_Mem.rlist_disjoint.fuel_instrumented",
         "fuel_guarded_inversion_Prims.list",
         "function_token_typing_FStar.Monotonic.Heap.heap", "l_and-interp",
         "lemma_FStar.Map.lemma_ContainsDom",
         "lemma_FStar.Monotonic.HyperHeap.lemma_extends_parent",
+        "projection_inverse_BoxBool_proj_0",
         "projection_inverse_Prims.Cons_a",
         "projection_inverse_Prims.Cons_hd",
         "projection_inverse_Prims.Cons_tl", "projection_inverse_Prims.Nil_a",
         "refinement_interpretation_Tm_refine_05e15190c946858f68c69156f585f95a",
         "refinement_interpretation_Tm_refine_1cc6c9f8558dddb337b6c1187115cd6a",
+        "refinement_interpretation_Tm_refine_365abba901205a01d0ef28ebf2198c47",
         "refinement_interpretation_Tm_refine_3692e5d4bc95faba478158d004f3f983",
         "refinement_interpretation_Tm_refine_5aee6c1d5e606045d3f22072ebbfd523",
         "refinement_interpretation_Tm_refine_6c5072d4c9562dd38fd2703ecfb013df",
         "subterm_ordering_Prims.Cons", "typing_FStar.Map.contains",
         "typing_FStar.Monotonic.HyperHeap.disjoint",
         "typing_FStar.Monotonic.HyperHeap.rid",
+        "typing_FStar.Monotonic.HyperHeap.rid_freeable",
+        "typing_FStar.Monotonic.HyperHeap.root",
         "typing_FStar.Monotonic.HyperStack.get_hmap",
         "typing_FStar.Monotonic.HyperStack.get_tip"
       ],
       0,
-      "c2251ddb19616a69d146f7f642d100db"
+      "c837c3e03419dc88a2ee94e87dbb97fb"
     ],
     [
       "Mem.r_fresh_forall",
@@ -281,7 +287,7 @@
         "typing_FStar.Monotonic.HyperHeap.root"
       ],
       0,
-      "77355abba24f7ae60c4f265247303f43"
+      "46c66cfb7eb020f18bc6fb76ec4a5e90"
     ],
     [
       "Mem.r_fresh_forall",
@@ -304,7 +310,7 @@
         "typing_FStar.Monotonic.HyperHeap.root"
       ],
       0,
-      "fd6267f95804555f562db007dcbfbd65"
+      "1d8b8416893d34aa3e4120c3c86ddc70"
     ],
     [
       "Mem.r_fresh_forall",
@@ -351,7 +357,7 @@
         "typing_FStar.Monotonic.HyperHeap.root"
       ],
       0,
-      "ae33349fa95c55ce4d3d2003df0db631"
+      "17ac608bfb86f238e7be0f941e019b87"
     ],
     [
       "Mem.r_disjoint_alloc",
@@ -443,7 +449,7 @@
         "typing_FStar.Set.union", "typing_Mem.quic_region"
       ],
       0,
-      "5c8defbabee59fde5ca48c11add69cea"
+      "fb05aa1dbf14a89c4776932fac86e1aa"
     ],
     [
       "Mem.top_regions",
@@ -452,7 +458,7 @@
       0,
       [ "@query" ],
       0,
-      "70652269d32fa462299a39cc737102d7"
+      "bbce0b67763c855abe8b5a146e9cf2d9"
     ],
     [
       "Mem.q_ae_region",
@@ -465,7 +471,7 @@
         "typing_Mem.top_regions"
       ],
       0,
-      "2ba3f2fc0eb4522ba03c6f8f5f65cce6"
+      "120bde759339f6e4c656454e3ecd15c3"
     ],
     [
       "Mem.q_pne_region",
@@ -478,7 +484,7 @@
         "typing_Mem.top_regions"
       ],
       0,
-      "b28f238f53744973ae8b2d63559a0b2c"
+      "2bd4822e6306519e610fd3ca1766e468"
     ],
     [
       "Mem.q_idx_region",
@@ -491,7 +497,7 @@
         "typing_Mem.top_regions"
       ],
       0,
-      "b613585180fad3f8a2e56237d448847a"
+      "737ee247ee0daf50dbe894d903148d99"
     ],
     [
       "Mem.top_regions_disjoint",
@@ -508,7 +514,7 @@
         "typing_Mem.top_regions"
       ],
       0,
-      "cc22b1f49133e891383296da86eed0d3"
+      "2c0e9ae64a52fb26af7f4cc6e98629e1"
     ],
     [
       "Mem.top_regions_disjoint",
@@ -567,7 +573,7 @@
         "typing_Mem.quic_region", "typing_Mem.top_regions"
       ],
       0,
-      "d0c0f77211a17b762f5b083612a03dc3"
+      "ade2e689296e500b3a8aaeee9745c39a"
     ],
     [
       "Mem.uu___115",
@@ -612,7 +618,7 @@
         "typing_Mem.q_pne_region", "typing_Mem.quic_region", "unit_typing"
       ],
       0,
-      "428f7b655c9cc6c6ff3569be5f9e946e"
+      "272b079228fcce3e9a1dfe690b71416d"
     ]
   ]
 ]
