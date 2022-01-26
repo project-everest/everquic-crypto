@@ -8,22 +8,19 @@ module Ghost = FStar.Ghost
 noextract
 val seq_hide
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
+  (x: seq (Secret.uint_t t Secret.PUB))
 : Tot (seq (Secret.uint_t t Secret.SEC))
 
 val seq_hide_length
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
+  (x: seq (Secret.uint_t t Secret.PUB))
 : Lemma
   (length (seq_hide x) == length x)
   [SMTPat (length (seq_hide x))]
 
 val seq_hide_index
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
+  (x: seq (Secret.uint_t t Secret.PUB))
   (i: nat)
 : Lemma
   (requires (i < length x))
@@ -33,8 +30,7 @@ val seq_hide_index
 
 let seq_hide_index'
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
+  (x: seq (Secret.uint_t t Secret.PUB))
   (i: nat)
 : Lemma
   (requires (i < length x))
@@ -43,13 +39,6 @@ let seq_hide_index'
   ))
   [SMTPat (index (seq_hide x) i)]
 = seq_hide_index x i
-
-let seq_hide_sec
-  (#t: Secret.inttype { Secret.unsigned t })
-  (x: seq (Secret.uint_t t Secret.SEC))
-: Lemma
-  (seq_hide x `equal` x)
-= ()
 
 val seq_reveal
   (#t: Secret.inttype { Secret.unsigned t })
@@ -125,21 +114,17 @@ let seq_reveal_inj
 
 let seq_hide_inj
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x1 x2: seq (Secret.uint_t t sec))
+  (x1 x2: seq (Secret.uint_t t Secret.PUB))
 : Lemma
   (requires (seq_hide x1 `equal` seq_hide x2))
   (ensures (x1 `equal` x2))
-= match sec with
-  | Secret.SEC -> seq_hide_sec #t x1; seq_hide_sec #t x2
-  | Secret.PUB -> seq_reveal_hide #t x1; seq_reveal_hide #t x2
+= seq_reveal_hide #t x1; seq_reveal_hide #t x2
 
 (* Properties *)
 
 let slice_seq_hide
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: seq (Secret.uint_t t sec))
+  (x: seq (Secret.uint_t t Secret.PUB))
   (from: nat)
   (to: nat { from <= to /\ to <= length x })
 : Lemma
@@ -160,9 +145,8 @@ let reveal_seq_slice
 
 let cons_seq_hide
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (a: Secret.uint_t t sec)
-  (x: seq (Secret.uint_t t sec))
+  (a: Secret.uint_t t Secret.PUB)
+  (x: seq (Secret.uint_t t Secret.PUB))
 : Lemma
   (cons (Secret.hide a) (seq_hide x) == seq_hide (cons a x))
 = assert (cons (Secret.hide a) (seq_hide x) `equal` seq_hide (cons a x))

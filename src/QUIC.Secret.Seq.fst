@@ -32,17 +32,17 @@ let rec seq_map_index
   else seq_map_index f (tail x) (i - 1)
 
 let seq_hide
-  #t #sec x
+  #t x
 = seq_map (Secret.cast t Secret.SEC) x
 
 let seq_hide_length
-  #t #sec x
+  #t x
 = ()
 
-#push-options "--z3rlimit 16"
+#push-options "--z3rlimit 32"
 
 let seq_hide_index
-  #t #seq x i
+  #t x i
 = ()
 
 #pop-options

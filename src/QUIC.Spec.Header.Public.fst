@@ -357,6 +357,8 @@ let serialize_header_eq
     (serialize_header_body short_dcid_len)
     h
 
+#push-options "--z3rlimit 64"
+
 let serialize_header_ext
   (short_dcid_len1 short_dcid_len2: short_dcid_len_t)
   (h: header)
@@ -369,6 +371,8 @@ let serialize_header_ext
 = serialize_header_eq short_dcid_len1 h;
   serialize_header_eq short_dcid_len2 h;
   ()
+
+#pop-options
 
 let serialize_header_is_short
   dl h
@@ -395,7 +399,8 @@ let first_byte_is_retry_correct
   (is_retry h <==> first_byte_is_retry (first_byte_of_header short_dcid_len h))
 = ()
 
-#push-options "--z3rlimit 256"
+#push-options "--z3rlimit 512"
+#restart-solver
 
 let serialize_header_is_retry
   dl h

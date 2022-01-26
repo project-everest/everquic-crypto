@@ -16,8 +16,7 @@ module Ghost = FStar.Ghost
 
 let seq_hide_eq
   (#t: Secret.inttype { Secret.unsigned t })
-  (#sec: Secret.secrecy_level)
-  (x: Seq.seq (Secret.uint_t t sec))
+  (x: Seq.seq (Secret.uint_t t Secret.PUB))
 : Lemma
   (Seq.seq_hide x `Seq.equal` x)
   [SMTPat (Seq.seq_hide x)]
