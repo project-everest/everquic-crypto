@@ -16,7 +16,7 @@
         "refinement_interpretation_Tm_refine_59a09d3c32ea205d2c3ab2f791e22038"
       ],
       0,
-      "e0211bd85c25ea68acfb4f65ee9a2e71"
+      "4a9b7ec8f296517fb8f699b5981bb6f0"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound_aux",
@@ -38,37 +38,35 @@
         "typing_Prims.pow2"
       ],
       0,
-      "ad72bff9d4835b568755b305ec5aad42"
+      "4ed0aa0411feb34b8d80e14a0f881fd8"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound",
       1,
-      2,
+      4,
       2,
       [
         "@MaxFuel_assumption", "@MaxIFuel_assumption",
         "@fuel_correspondence_Prims.pow2.fuel_instrumented",
         "@fuel_irrelevance_Prims.pow2.fuel_instrumented", "@query",
-        "b2t_def", "equation_Prims.l_and", "equation_Prims.nat",
-        "equation_Prims.pos", "equation_Prims.squash",
+        "equation_Prims.nat", "equation_Prims.pos",
         "equation_QUIC.Spec.PacketNumber.Lemmas.replace_modulo_",
         "equation_with_fuel_Prims.pow2.fuel_instrumented", "int_inversion",
-        "int_typing", "l_and-interp", "lemma_FStar.UInt.pow2_values",
-        "primitive_Prims.op_Addition", "primitive_Prims.op_LessThan",
+        "int_typing", "lemma_FStar.UInt.pow2_values",
+        "lemma_Lib.IntTypes.pow2_2", "lemma_Lib.IntTypes.pow2_3",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_Division",
         "primitive_Prims.op_Modulus", "primitive_Prims.op_Multiply",
-        "primitive_Prims.op_Subtraction",
-        "projection_inverse_BoxBool_proj_0",
-        "projection_inverse_BoxInt_proj_0",
+        "primitive_Prims.op_Subtraction", "projection_inverse_BoxInt_proj_0",
         "projection_inverse_FStar.Pervasives.Native.Mktuple2__1",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
         "refinement_interpretation_Tm_refine_f36143b908ccac6718f62f8c698a18cd",
+        "refinement_interpretation_Tm_refine_fa0e0513ac486b70414041150ef411e4",
         "token_correspondence_Prims.pow2.fuel_instrumented",
         "typing_Prims.pow2"
       ],
       0,
-      "bb929045b937a4b0527343fcb178de46"
+      "cbf9a0fa7d6b65b9b025f6fc4d5d073d"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -77,7 +75,7 @@
       1,
       [ "@query" ],
       0,
-      "812da3dd995b767bca1e4319f3689f94"
+      "39215370a17a3f070413c57fa5408775"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -108,7 +106,7 @@
         "typing_Prims.pow2", "unit_inversion", "unit_typing"
       ],
       0,
-      "b726a6ae288ce3cf7757fb2595cb7482"
+      "ae9d4aa66fa93e0cf38bc846baaf99b7"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.replace_modulo",
@@ -203,7 +201,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "d82c94b64b1ca28961978b9093c99676"
+      "58e6261d0883ed67768861c9f3aeb888"
     ]
   ]
 ]

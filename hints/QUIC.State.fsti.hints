@@ -14,7 +14,7 @@
         "haseqTm_refine_837aaa25c6967f53b930fd73a3026b51"
       ],
       0,
-      "702c495747c81cf2e74acaadd8abe5f3"
+      "7a01e36a1a3c277260d5ffe3725b7d9e"
     ],
     [
       "QUIC.State.loc_includes_union_l_footprint_s",
@@ -23,7 +23,7 @@
       1,
       [ "@query" ],
       0,
-      "3956bb39287492da1e4627c1f545362c"
+      "7e96dcdb0b1393e70d46ffd5bd5203d6"
     ],
     [
       "QUIC.State.hash_is_keysized",
@@ -79,7 +79,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "a19f81070714fe46be6a77bfbff9727a"
+      "3fa0fd5c92601817a3aa6d86a7875bdf"
     ],
     [
       "QUIC.State.invariant",
@@ -92,7 +92,7 @@
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e"
       ],
       0,
-      "22af0cb38d41e220fbfaaac1db91a730"
+      "12257087569f45ef682470a80a2b1dd9"
     ],
     [
       "QUIC.State.incrementable",
@@ -101,7 +101,7 @@
       1,
       [ "@query", "equation_QUIC.State.invariant" ],
       0,
-      "4612d17649a7bda39c0b26eee3240aaa"
+      "aa7557d664fa3ad3786da07bde58ebaa"
     ],
     [
       "QUIC.State.frame_invariant",
@@ -113,18 +113,18 @@
         "equation_LowStar.Buffer.buffer", "equation_LowStar.Buffer.pointer",
         "equation_LowStar.Buffer.trivial_preorder",
         "equation_LowStar.Monotonic.Buffer.get", "equation_Prims.eqtype",
-        "equation_Prims.l_and", "equation_Prims.nat",
-        "equation_Prims.squash", "equation_QUIC.State.footprint",
+        "equation_Prims.nat", "equation_QUIC.State.footprint",
         "equation_QUIC.State.invariant", "equation_QUIC.State.state",
+        "fuel_guarded_inversion_QUIC.State.index",
         "function_token_typing_Prims.int",
-        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2", "l_and-interp",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "lemma_LowStar.Monotonic.Buffer.loc_disjoint_includes_r",
         "lemma_LowStar.Monotonic.Buffer.loc_disjoint_sym_",
         "lemma_LowStar.Monotonic.Buffer.loc_disjoint_union_r_",
         "lemma_LowStar.Monotonic.Buffer.loc_includes_addresses_addresses_2",
         "lemma_LowStar.Monotonic.Buffer.loc_includes_addresses_buffer_",
         "lemma_LowStar.Monotonic.Buffer.modifies_buffer_elim",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_2f310bc6656dcad04f18417e577cdfd4",
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e",
         "refinement_kinding_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
@@ -137,7 +137,7 @@
         "typing_QUIC.State.footprint_s", "typing_QUIC.State.state_s"
       ],
       0,
-      "3bf058dac7526ce51b5dd3933813eec3"
+      "4d3436b0cc1ac93c575b86d023e39f0d"
     ],
     [
       "QUIC.State.last_packet_number_of_state",
@@ -149,7 +149,7 @@
         "refinement_interpretation_Tm_refine_4d3bfe1e044e83bc33bdc513e15731f8"
       ],
       0,
-      "a27b77e0d67dbaa1b7c6346b6ffd9c55"
+      "3cc539f34f73bd5e36872845a0442070"
     ],
     [
       "QUIC.State.create_in_st",
@@ -171,7 +171,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "0f9d82eae9759375b2ec2613742f3590"
+      "265722979dda5a8d6063af1ccd71221e"
     ],
     [
       "QUIC.State.derive_k",
@@ -245,7 +245,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "d13a2183faefaceec1f00e232e52d657"
+      "6e26515c763d2a17e4840b3216858bd5"
     ],
     [
       "QUIC.State.derive_iv",
@@ -547,7 +547,7 @@
         "typing_tok_Lib.IntTypes.U64@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "50c7d46877ab94ad5f7b4766c8688427"
+      "8058f467fd5d03f4127d5c83eea789c6"
     ],
     [
       "QUIC.State.initial_secrets",
@@ -556,7 +556,7 @@
       1,
       [ "@query" ],
       0,
-      "e453be62120205da30822ddbfb049a77"
+      "0fb2577ec97250197812c0e73cd34a25"
     ],
     [
       "QUIC.State.decrypt_post",
@@ -702,7 +702,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "cfe9777129087ef8a5b7bc631b0fc592"
+      "881af35115b609c6d0c4e538e54a3394"
     ],
     [
       "QUIC.State.decrypt",
@@ -746,7 +746,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "98a917f57c1514e848e0e58c100c25e8"
+      "b2ea092922f6d4424c394aaf82f199a1"
     ]
   ]
 ]

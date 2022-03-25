@@ -24,7 +24,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "736d4959b4767212997ae972573762cf"
+      "5fc9723c8f47113d2cc27fd0e3f2e476"
     ],
     [
       "QUIC.Impl.Lemmas.hash_is_keysized_",
@@ -58,7 +58,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "831320387234d4677daf580f8d2db88f"
+      "c9018508c053a8d8361f979ee86ed385"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice",
@@ -84,7 +84,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "ae744d418909a0151975931cfde55fec"
+      "2873dec524c82ef8a3e5f6ea26872318"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice3",
@@ -92,26 +92,25 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def", "bool_inversion",
-        "bool_typing", "constructor_distinct_Lib.IntTypes.U8",
+        "@MaxIFuel_assumption", "@query",
+        "constructor_distinct_Lib.IntTypes.U8",
         "equality_tok_Lib.IntTypes.U1@tok",
         "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.minint",
-        "equation_Lib.IntTypes.unsigned", "equation_Prims.l_and",
-        "equation_Prims.nat", "equation_Prims.squash",
+        "equation_Lib.IntTypes.unsigned", "equation_Prims.nat",
         "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
-        "equation_Spec.GaloisField.gf", "int_inversion", "l_and-interp",
+        "equation_Spec.GaloisField.gf", "int_inversion",
         "primitive_Prims.op_LessThanOrEqual",
         "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_0d7c22eb6d470d18a1952db79fac2b13",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "typing_FStar.Seq.Base.length", "typing_Spec.AES.gf8",
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "422b1e95243707b2fc14ab7594dc7dac"
+      "92560f826d325eaab37382a945dfe64c"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice0",
@@ -136,7 +135,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4a9917000e8d309f813ee45a94b3343b"
+      "e12a3c69e0c6a24f7fcd527d735ab9e8"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice1",
@@ -144,26 +143,25 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "@MaxIFuel_assumption", "@query",
         "constructor_distinct_Lib.IntTypes.U8",
         "equality_tok_Lib.IntTypes.U1@tok",
         "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.minint",
-        "equation_Lib.IntTypes.unsigned", "equation_Prims.l_and",
-        "equation_Prims.nat", "equation_Prims.squash",
+        "equation_Lib.IntTypes.unsigned", "equation_Prims.nat",
         "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
-        "equation_Spec.GaloisField.gf", "int_inversion", "l_and-interp",
+        "equation_Spec.GaloisField.gf", "int_inversion",
         "primitive_Prims.op_LessThanOrEqual",
         "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_0d7c22eb6d470d18a1952db79fac2b13",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "typing_FStar.Seq.Base.length", "typing_Spec.AES.gf8",
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "5722126add16a7076e706106deaf011e"
+      "e9df2e0b6fed67bdeb35002ea2460d5a"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_upd",
@@ -171,20 +169,16 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def", "equation_Prims.l_and",
-        "equation_Prims.nat", "equation_Prims.squash", "int_inversion",
-        "l_and-interp", "lemma_FStar.Seq.Base.lemma_len_upd",
-        "primitive_Prims.op_Addition", "primitive_Prims.op_LessThan",
-        "primitive_Prims.op_LessThanOrEqual",
-        "projection_inverse_BoxBool_proj_0",
-        "projection_inverse_BoxInt_proj_0",
+        "@MaxIFuel_assumption", "@query", "equation_Prims.nat",
+        "int_inversion", "lemma_FStar.Seq.Base.lemma_len_upd",
+        "primitive_Prims.op_Addition", "projection_inverse_BoxInt_proj_0",
         "refinement_interpretation_Tm_refine_2ca062977a42c36634b89c1c4f193f79",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_6b597aac8f2acf5f7b8feeca831579ed",
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "986512d8a09287bdd81e5a4e1e38b85e"
+      "07ff330487e01f5a2fcd18ebf6f5871f"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_seq_map2",
@@ -192,22 +186,28 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def", "bool_inversion",
-        "bool_typing", "equation_Prims.l_and", "equation_Prims.nat",
-        "equation_Prims.squash", "int_inversion", "l_and-interp",
-        "lemma_FStar.Seq.Base.lemma_len_slice",
-        "primitive_Prims.op_Addition", "primitive_Prims.op_Equality",
-        "primitive_Prims.op_LessThanOrEqual",
+        "@MaxIFuel_assumption", "@query",
+        "constructor_distinct_Lib.IntTypes.U8",
+        "equality_tok_Lib.IntTypes.U1@tok",
+        "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.unsigned",
+        "equation_Prims.nat", "equation_Spec.AES.gf8",
+        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
+        "int_inversion", "lemma_FStar.Seq.Base.lemma_len_slice",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_LessThanOrEqual",
         "primitive_Prims.op_Subtraction",
+        "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_81407705a0828c2c1b1976675443f647",
-        "typing_FStar.Seq.Base.length"
+        "refinement_interpretation_Tm_refine_c9885bcb50d3449e262949415ebac099",
+        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "typing_FStar.Seq.Base.length", "typing_Spec.AES.gf8",
+        "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "0f809d23f33596de9d5f97520e2065eb"
+      "9b711f1f8f9a3df5179c772d91d68d7f"
     ],
     [
       "QUIC.Impl.Lemmas.and_inplace_commutative",
@@ -224,7 +224,7 @@
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
       ],
       0,
-      "f3fa9774e00fc83331b0ce7cd799c0c7"
+      "ba82c46acaef253c6b1d4cc013a58560"
     ],
     [
       "QUIC.Impl.Lemmas.seq_map2_xor0",
@@ -232,22 +232,20 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def",
-        "equality_tok_Lib.IntTypes.U8@tok", "equation_Prims.eqtype",
-        "equation_Prims.nat", "equation_Prims.squash",
+        "@MaxIFuel_assumption", "@query", "equality_tok_Lib.IntTypes.U8@tok",
+        "equation_Prims.eqtype", "equation_Prims.nat",
         "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
         "equation_Spec.GaloisField.gf", "function_token_typing_Prims.int",
-        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2", "l_and-interp",
-        "primitive_Prims.op_Equality", "proj_equation_Spec.GaloisField.GF_t",
-        "projection_inverse_BoxBool_proj_0",
+        "haseqTm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_Spec.GaloisField.GF_t",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "refinement_interpretation_Tm_refine_f6ca2a73110ea3d0565b2088c312d7ea",
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "865b64b56fceb7607feafe5c8a45cd75"
+      "e01b7474bdef00f4eb81499265ef1ce2"
     ],
     [
       "QUIC.Impl.Lemmas.upd_op_inplace",
@@ -265,7 +263,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "3c765379a71a8cc2753b8bcc1054ef20"
+      "5a0666a3afbd119a9a412176fd026a0c"
     ],
     [
       "QUIC.Impl.Lemmas.be_to_n_slice",
@@ -299,7 +297,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "31113175839282c6bb2addb2f5df60c1"
+      "092286de96e61c1a8521e2b0c6c0792b"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower",
@@ -307,27 +305,25 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "@MaxIFuel_assumption", "@query",
         "constructor_distinct_Lib.IntTypes.U8",
         "equality_tok_Lib.IntTypes.U1@tok",
         "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.unsigned",
-        "equation_Prims.nat", "equation_Prims.squash",
-        "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
-        "equation_Spec.GaloisField.gf", "int_inversion", "l_and-interp",
-        "primitive_Prims.op_LessThan", "primitive_Prims.op_LessThanOrEqual",
+        "equation_Prims.nat", "equation_Spec.AES.gf8",
+        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
+        "int_inversion", "primitive_Prims.op_LessThanOrEqual",
         "primitive_Prims.op_Multiply", "primitive_Prims.op_Subtraction",
         "proj_equation_Spec.GaloisField.GF_t",
-        "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_142a1d8847b236d1c8dbbf9ec8a2d11f",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_c1e2bc48cc3488c2c8e577a235a0150e",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "1c8def8faa5f4eb01730aa79d5e0c3c1"
+      "ea661eae16a54dd357ac66e41a2773c7"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower'",
@@ -335,26 +331,23 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "@MaxIFuel_assumption", "@query",
         "constructor_distinct_Lib.IntTypes.U8",
         "equality_tok_Lib.IntTypes.U1@tok",
         "equality_tok_Lib.IntTypes.U8@tok", "equation_Prims.nat",
-        "equation_Prims.squash", "equation_Spec.AES.gf8",
-        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
-        "int_inversion", "l_and-interp", "primitive_Prims.op_LessThan",
-        "primitive_Prims.op_LessThanOrEqual", "primitive_Prims.op_Multiply",
-        "primitive_Prims.op_Subtraction",
+        "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
+        "equation_Spec.GaloisField.gf", "int_inversion",
+        "primitive_Prims.op_Multiply", "primitive_Prims.op_Subtraction",
         "proj_equation_Spec.GaloisField.GF_t",
-        "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
+        "refinement_interpretation_Tm_refine_142a1d8847b236d1c8dbbf9ec8a2d11f",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "a35addcf363c4f07937b12c08d667f5b"
+      "0199db94231faf550d5257506a85077c"
     ],
     [
       "QUIC.Impl.Lemmas.op_inplace",
@@ -390,7 +383,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "931a9ef0e2a60f86c622d095f0a90c1e"
+      "e6eade0d805f7f141850e4331d49029a"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace",
@@ -399,7 +392,7 @@
       1,
       [ "@query" ],
       0,
-      "702aa29f2d6fa22a50fce87d01dd569d"
+      "ebcc6aadf27b47bb333d42a79b013a25"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace_eq",
@@ -428,7 +421,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "bb691d2a653f96e2439ecc297aa29f4c"
+      "94155d249bfcad59f43f1bac23a9a0a0"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace",
@@ -437,7 +430,7 @@
       1,
       [ "@query" ],
       0,
-      "a59e63613619e8791422adb6706031d5"
+      "000ba33eabbb07cce7e768a17fca0ebe"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace_eq",

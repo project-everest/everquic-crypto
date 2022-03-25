@@ -38,7 +38,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "afcf750786fdf17dc1ed94ad8497f24f"
+      "d6c601ee2db9e199866ce9121e420efd"
     ],
     [
       "Model.QUIC.rpn_of_nat",
@@ -75,7 +75,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "3d8f29f951fadc2dea194e6d98288272"
+      "f8de09d2dc9a2ea306ac03b63c4d756d"
     ],
     [
       "Model.QUIC.writer_pne_info",
@@ -87,7 +87,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "4c91003a4cb120d8815b2ad4d0fad27f"
+      "f251a9886ac94e0cebf671ed13aa92a7"
     ],
     [
       "Model.QUIC.reader_pne_info",
@@ -99,7 +99,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "d736b65181eb0709a5f52b11ca021d43"
+      "9e98b36e5c5c4a8ca57685b62f57d9d3"
     ],
     [
       "Model.QUIC.writer_leak",
@@ -127,7 +127,7 @@
         "typing_Model.QUIC.writer_aead_state"
       ],
       0,
-      "dfe7f14d23a6b629b4e65769234e7630"
+      "77656afc45999b49450f5b706ec4e451"
     ],
     [
       "Model.QUIC.wctr",
@@ -142,7 +142,7 @@
         "refinement_interpretation_Tm_refine_b0993097ba4d9e165a386cc6389af5d0"
       ],
       0,
-      "787d704219be14146a4788b3eb16ae74"
+      "354116516a97b0a460f3c91853510e7f"
     ],
     [
       "Model.QUIC.expected_pn",
@@ -154,7 +154,7 @@
         "refinement_interpretation_Tm_refine_f068b6f8adbf4a2a1ca442573ca62b58"
       ],
       0,
-      "9c2f9744a8812d17ffe71e497c35a59a"
+      "dcfd9eaa6b059cbb97c1aa85ad3351f0"
     ],
     [
       "Model.QUIC.frame_invariant",
@@ -162,12 +162,11 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "equation_Prims.l_and",
-        "equation_Prims.squash", "l_and-interp",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c"
+        "@MaxIFuel_assumption", "@query",
+        "refinement_interpretation_Tm_refine_4d8c8583a114b08c6b5de8f674336259"
       ],
       0,
-      "afab3f490798893056cd2aeffbf8bc66"
+      "daaa733842989274502da38e757672df"
     ],
     [
       "Model.QUIC.rframe_invariant",
@@ -175,12 +174,11 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "equation_Prims.l_and",
-        "equation_Prims.squash", "l_and-interp",
-        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c"
+        "@MaxIFuel_assumption", "@query",
+        "refinement_interpretation_Tm_refine_eef51fb54eb2360a033fe0d784eaa878"
       ],
       0,
-      "70ecac08d88e8fa8b90cd6c3ab9e1abd"
+      "6d82d90a083abfafb3e499d3aee2abb5"
     ],
     [
       "Model.QUIC.wframe_log",
@@ -192,7 +190,7 @@
         "refinement_interpretation_Tm_refine_88b355d85c266e7860b637537d18569b"
       ],
       0,
-      "0af92ae33028dd0e3b97176c68c4fea7"
+      "22266134a2efe19b5b5205d87332b906"
     ],
     [
       "Model.QUIC.rframe_log",
@@ -209,7 +207,7 @@
         "typing_Model.QUIC.writer_aead_state"
       ],
       0,
-      "1e691aee6ef2cbf8830de31c5a7f06b5"
+      "08a27aeb2e990bd2ab933ddb5f639060"
     ],
     [
       "Model.QUIC.wframe_pnlog",
@@ -221,7 +219,7 @@
         "refinement_interpretation_Tm_refine_ad50a889d9ca1839f24390cd4976f89b"
       ],
       0,
-      "9bd5449e2616c2c9b1a4eaca02e43d0c"
+      "f573d75dd70e3fbfafc2cc2ed713f124"
     ],
     [
       "Model.QUIC.rframe_pnlog",
@@ -233,7 +231,7 @@
         "refinement_interpretation_Tm_refine_ad50a889d9ca1839f24390cd4976f89b"
       ],
       0,
-      "a8bb5899307eeb854118b1c6bd3a9f5c"
+      "055ed63f3f4638ecc1459586860a9f24"
     ],
     [
       "Model.QUIC.create",
@@ -263,7 +261,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "dfc32033cbcc5900e3c5d95d980ab30d"
+      "131f79af217d12c4fb34d198e3573dbe"
     ],
     [
       "Model.QUIC.coerce",
@@ -388,7 +386,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "fd46a69451dec080df053e7939613f9b"
+      "95a0d503bc39f2553b4c4fbce2f2d074"
     ],
     [
       "Model.QUIC.createReader",
@@ -397,7 +395,7 @@
       1,
       [ "@query" ],
       0,
-      "ca7571c6b9a7d586cb4ac11ea23689f7"
+      "7f794a5acf6a160f5db45bf9ea857fc0"
     ],
     [
       "Model.QUIC.uu___188",
@@ -406,7 +404,7 @@
       1,
       [ "@query" ],
       0,
-      "a1a80863da5323d7f44f8d403b3595c0"
+      "c5fc36157da85799a479a1bb510f85e2"
     ],
     [
       "Model.QUIC.uu___189",
@@ -415,7 +413,7 @@
       1,
       [ "@query" ],
       0,
-      "64884891f19fd5394ffd6da0a189ca68"
+      "b6b98bad1afa7ebcb597c46b2f33c295"
     ],
     [
       "Model.QUIC.set_pn_long",
@@ -433,7 +431,7 @@
         "refinement_interpretation_Tm_refine_a14f51755160fee1ad6aabfd768c35e2"
       ],
       0,
-      "df96ca1b74c14e9937391af5fbfd2536"
+      "c9ed728c4874cc9854b7b4899b0edd7a"
     ],
     [
       "Model.QUIC.set_pn",
@@ -635,7 +633,7 @@
         "typing_Model.QUIC.reader_ae_info"
       ],
       0,
-      "8b560c6f6e8b23cac70ed207959b3674"
+      "8d2cbccabf3f92e9d33d9956211e50d1"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__h",
@@ -649,7 +647,7 @@
         "refinement_interpretation_Tm_refine_32a0283ea750a50e70decf4089b5ff86"
       ],
       0,
-      "45ff136eca47dd2313f3810abf48a5a7"
+      "125b81284ff0be3824ad0260bdc12c26"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__l",
@@ -663,7 +661,7 @@
         "refinement_interpretation_Tm_refine_32a0283ea750a50e70decf4089b5ff86"
       ],
       0,
-      "f74017281af7fb22bd3f209121876462"
+      "c163f87c1da169fa242eb241383f86ea"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__p",
@@ -676,7 +674,7 @@
         "typing_Model.QUIC.reader_ae_info"
       ],
       0,
-      "2135e1fd814a1bd6dbf2cb52d55dcb03"
+      "515d8042793687ab7d69c6d72008e71b"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__p",
@@ -701,7 +699,7 @@
         "typing_Model.QUIC.reader_ae_info"
       ],
       0,
-      "9c47ef3d63b7cdbdd70488db55b8b933"
+      "2aa6f86bec70d7a5fd301d89abfef9bd"
     ],
     [
       "Model.QUIC.__proj__M_Success__item__remainder",
@@ -715,7 +713,7 @@
         "refinement_interpretation_Tm_refine_32a0283ea750a50e70decf4089b5ff86"
       ],
       0,
-      "c171e079420cd6bd8bbb8c767a589576"
+      "a68eca8485b89385ea3773a7d361241c"
     ],
     [
       "Model.QUIC.get_sample",
@@ -763,7 +761,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "ab41e7580e5b5f595e7b592e01908f65"
+      "2e5fecd97e75e0bad3a1cf11b4b77d72"
     ],
     [
       "Model.QUIC.decrypt",
@@ -888,7 +886,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "c9acc2579b1e7f3b46671cd345582eb7"
+      "b30b1e80d9b54e8931a2b45fc5ce8612"
     ]
   ]
 ]
