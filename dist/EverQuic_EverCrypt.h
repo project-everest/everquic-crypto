@@ -2,16 +2,16 @@
 
 #ifndef __EverQuic_EverCrypt_H
 #define __EverQuic_EverCrypt_H
+
+
+
+
 #include "kremlin/internal/target.h"
 #include "kremlin/internal/types.h"
 #include "kremlin/lowstar_endianness.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-
-
-
-
 #define Spec_Hash_Definitions_SHA2_224 0
 #define Spec_Hash_Definitions_SHA2_256 1
 #define Spec_Hash_Definitions_SHA2_384 2

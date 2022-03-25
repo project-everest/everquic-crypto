@@ -2,17 +2,17 @@
 
 #ifndef __QUIC_H
 #define __QUIC_H
+
+
+
+#include "EverQuic_EverCrypt.h"
+#include "EverQuic.h"
 #include "kremlin/internal/target.h"
 #include "kremlin/internal/types.h"
 #include "kremlin/lowstar_endianness.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-
-
-#include "EverQuic_EverCrypt.h"
-#include "EverQuic.h"
-
 typedef Prims_int QUIC_nat62;
 
 Prims_int QUIC_cipher_keysize(Spec_Agile_AEAD_alg a);

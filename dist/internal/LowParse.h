@@ -2,16 +2,16 @@
 
 #ifndef __internal_LowParse_H
 #define __internal_LowParse_H
+
+
+
+
 #include "kremlin/internal/target.h"
 #include "kremlin/internal/types.h"
 #include "kremlin/lowstar_endianness.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-
-
-
-
 uint8_t LowParse_BitFields_get_bitfield_gen8(uint8_t x, uint32_t lo, uint32_t hi);
 
 uint8_t LowParse_BitFields_set_bitfield_gen8(uint8_t x, uint32_t lo, uint32_t hi, uint8_t v);

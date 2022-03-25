@@ -2,16 +2,16 @@
 
 #ifndef __EverQuic_H
 #define __EverQuic_H
+
+
+
+#include "EverQuic_EverCrypt.h"
 #include "kremlin/internal/target.h"
 #include "kremlin/internal/types.h"
 #include "kremlin/lowstar_endianness.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-
-
-#include "EverQuic_EverCrypt.h"
-
 #define EverQuic_BInitial 0
 #define EverQuic_BZeroRTT 1
 #define EverQuic_BHandshake 2
