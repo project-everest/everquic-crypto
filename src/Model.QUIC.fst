@@ -250,7 +250,7 @@ let createReader rgn #k w =
 private let lemma_eq_add (a b c:nat) : Lemma (requires a == b - c)
   (ensures a + c == b) = ()
 
-#push-options "--z3rlimit 32 --fuel 0"
+#push-options "--z3rlimit 64 --fuel 0"
 
 let set_pne (h:Spec.header) (#ln:pnl) (pne:PNE.pne_cipher ln) (c1:Spec.bytes)
   : Pure Spec.packet
