@@ -19,27 +19,27 @@ function raise () {
     return $1
 }
 
-function fetch_qd() {
-    if [ ! -d qd ]; then
-        git clone https://github.com/project-everest/everparse qd
+function fetch_everparse() {
+    if [ ! -d everparse ]; then
+        git clone https://github.com/project-everest/everparse everparse
     fi
 
-    cd qd
+    cd everparse
     git fetch origin
-    local ref=$(jq -c -r '.RepoVersions["qd_version"]' "$rootPath/.docker/build/config.json" )
+    local ref=$(jq -c -r '.RepoVersions["everparse_version"]' "$rootPath/.docker/build/config.json" )
     if [[ $ref == "" || $ref == "null" ]]; then
-        echo "Unable to find RepoVersions.qd_version on $rootPath/.docker/build/config.json"
+        echo "Unable to find RepoVersions.everparse_version on $rootPath/.docker/build/config.json"
         return -1
     fi
 
     echo Switching to EverParse $ref
     git reset --hard $ref
     cd ..
-    export_home QD "$(pwd)/qd"
+    export_home EVERPARSE "$(pwd)/everparse"
 }
 
-function fetch_and_make_qd() {
-    fetch_qd
+function fetch_and_make_everparse() {
+    fetch_everparse
 
     # Default build target is quackyducky lowparse, unless specified otherwise
     local target
@@ -49,7 +49,7 @@ function fetch_and_make_qd() {
         target="$1"
     fi
 
-    OTHERFLAGS='--admit_smt_queries true' make -C qd -j $threads $target
+    OTHERFLAGS='--admit_smt_queries true' make -C everparse -j $threads $target
 }
 
 function exec_build() {
@@ -58,7 +58,7 @@ function exec_build() {
     local status_file="../status.txt"
     echo -n false >$status_file
 
-    fetch_and_make_qd &&
+    fetch_and_make_everparse &&
     make -j $threads -k &&
     { echo -n true >$status_file ; }
 
