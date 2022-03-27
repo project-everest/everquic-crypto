@@ -63,7 +63,7 @@
         "typing_QUIC.Spec.Header.Parse.format_header"
       ],
       0,
-      "cdc282188027da77909ddf453d12382a"
+      "3ee3b21ae8ced59e93dcb1f86c50639e"
     ],
     [
       "QUIC.Spec.Header.Parse.putative_pn_offset",
@@ -179,7 +179,7 @@
         "typing_FStar.Seq.Base.length", "typing_FStar.UInt8.t"
       ],
       0,
-      "d463b7a25c0f79d2ffd27033d2d68b7e"
+      "a97cfc992bf4a5c3e25a1486a12536cb"
     ],
     [
       "QUIC.Spec.Header.Parse.lemma_header_parsing_post",

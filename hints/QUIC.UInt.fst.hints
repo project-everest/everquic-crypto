@@ -27,7 +27,7 @@
         "typing_FStar.UInt.fits"
       ],
       0,
-      "903bcc2ae23573a283864f1f239ff270"
+      "3c1dfd562e47dfb92982061c2a1536d3"
     ],
     [
       "QUIC.UInt.to_vec_prefix",
@@ -89,7 +89,7 @@
         "typing_Prims.pow2", "well-founded-ordering-on-nat"
       ],
       0,
-      "9adb79cb7c232dcf244bbc678468258d"
+      "7cd8a55d235c3804e7edb1a2402bcd46"
     ],
     [
       "QUIC.UInt.to_vec_inc",
@@ -116,7 +116,7 @@
         "typing_FStar.UInt.fits"
       ],
       0,
-      "181fa32958b5d02624746af7bdc5325e"
+      "5ea826339dbb6badd6cbdb08f1952183"
     ],
     [
       "QUIC.UInt.to_vec_inc",
@@ -176,7 +176,7 @@
         "typing_Prims.pow2", "well-founded-ordering-on-nat"
       ],
       0,
-      "4514b511ebdb03c7260c2d6491730c4a"
+      "de223f079e9cfbf30c7598d760d9c791"
     ],
     [
       "QUIC.UInt.lemma_logxor_lt",

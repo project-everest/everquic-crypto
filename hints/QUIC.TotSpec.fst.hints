@@ -601,7 +601,7 @@
         "typing_Tm_abs_703ec00ee559b8dda939e8151f70de9d"
       ],
       0,
-      "4d09a2d72d9e2c052043077ceb0570d1"
+      "ac6f6c37320eb7e657ad4cf6fcd12c6e"
     ],
     [
       "QUIC.TotSpec.serialize32_varint",
@@ -1023,7 +1023,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "3b6ed9172e526b5815acb1cb1c9dfc86"
+      "6f3d384b401786de58bb141dcfaf711a"
     ],
     [
       "QUIC.TotSpec.serialize32_packet_number",
@@ -2576,7 +2576,7 @@
         "typing_tok_QUIC.Spec.Header.Public.Long@tok", "unit_typing"
       ],
       0,
-      "c0e46026a2700ef00ea7b7d7a7894df2"
+      "05b7cd0257834357fe2fe9a93c286a67"
     ],
     [
       "QUIC.TotSpec.parse_header",
@@ -2845,7 +2845,7 @@
         "typing_Spec.AES.gf8"
       ],
       0,
-      "6f0409c63eea29b6251456d8a6a63d62"
+      "366acd86729bd73c8f4b73b208ccb431"
     ],
     [
       "QUIC.TotSpec.seq_reveal'",
@@ -2912,7 +2912,7 @@
         "well-founded-ordering-on-nat"
       ],
       0,
-      "aea763bfb51b7263601c71699389e418"
+      "e6ccdc2f181bb4b7e082113aba77b614"
     ],
     [
       "QUIC.TotSpec.seq_reveal",
@@ -2963,7 +2963,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "5a8912d4736e3c7251c6921c718b87ec"
+      "dedbafd4696cbddf538052908af134e9"
     ],
     [
       "QUIC.TotSpec.block_of_sample",
