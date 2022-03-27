@@ -1237,7 +1237,7 @@ static uint8_t get_pb(header h)
     return h.case_PLong.protected_bits;
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -1578,7 +1578,7 @@ static uint32_t header_len(header h)
   }
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -1755,7 +1755,7 @@ static header p_header(EverQuic_header h)
     }
     else
     {
-      KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+      KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
         __FILE__,
         __LINE__,
         "unreachable (pattern matches are exhaustive in F*)");
@@ -1764,7 +1764,7 @@ static header p_header(EverQuic_header h)
   }
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -1965,7 +1965,7 @@ static EverQuic_header header_p(header h)
   }
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -2244,7 +2244,7 @@ header_decrypt_aux(
       }
       else
       {
-        KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+        KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
           __FILE__,
           __LINE__,
           "unreachable (pattern matches are exhaustive in F*)");
@@ -2401,7 +2401,7 @@ derive_secret(
       }
     default:
       {
-        KRML_HOST_EPRINTF("KreMLin incomplete match at %s:%d\n", __FILE__, __LINE__);
+        KRML_HOST_EPRINTF("KaRaMeL incomplete match at %s:%d\n", __FILE__, __LINE__);
         KRML_HOST_EXIT(253U);
       }
   }
@@ -2580,7 +2580,7 @@ decrypt(
   }
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -2606,7 +2606,7 @@ static uint8_t key_len(Spec_Agile_AEAD_alg a)
       }
     default:
       {
-        KRML_HOST_EPRINTF("KreMLin incomplete match at %s:%d\n", __FILE__, __LINE__);
+        KRML_HOST_EPRINTF("KaRaMeL incomplete match at %s:%d\n", __FILE__, __LINE__);
         KRML_HOST_EXIT(253U);
       }
   }
@@ -2734,7 +2734,7 @@ EverQuic_create_in(
             }
           default:
             {
-              KRML_HOST_EPRINTF("KreMLin incomplete match at %s:%d\n", __FILE__, __LINE__);
+              KRML_HOST_EPRINTF("KaRaMeL incomplete match at %s:%d\n", __FILE__, __LINE__);
               KRML_HOST_EXIT(253U);
             }
         }
@@ -2742,7 +2742,7 @@ EverQuic_create_in(
       }
     default:
       {
-        KRML_HOST_EPRINTF("KreMLin incomplete match at %s:%d\n", __FILE__, __LINE__);
+        KRML_HOST_EPRINTF("KaRaMeL incomplete match at %s:%d\n", __FILE__, __LINE__);
         KRML_HOST_EXIT(253U);
       }
   }
@@ -2930,7 +2930,7 @@ uint32_t EverQuic_dcid_len(EverQuic_header h)
     return h.case_BLong.dcil;
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -2970,7 +2970,7 @@ uint32_t EverQuic_pn_length(EverQuic_header h)
       return spec.case_BHandshake.packet_number_length;
     else
     {
-      KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+      KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
         __FILE__,
         __LINE__,
         "unreachable (pattern matches are exhaustive in F*)");
@@ -2979,7 +2979,7 @@ uint32_t EverQuic_pn_length(EverQuic_header h)
   }
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -3021,7 +3021,7 @@ uint64_t EverQuic_payload_and_pn_length(EverQuic_header h)
     return scrut.case_BHandshake.payload_and_pn_length;
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");
@@ -3074,7 +3074,7 @@ uint32_t EverQuic_public_header_len(EverQuic_header h)
   }
   else
   {
-    KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n",
+    KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n",
       __FILE__,
       __LINE__,
       "unreachable (pattern matches are exhaustive in F*)");

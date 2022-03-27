@@ -46,7 +46,7 @@ QUIC_decrypt(
   uint8_t uu___5
 )
 {
-  KRML_HOST_EPRINTF("KreMLin abort at %s:%d\n%s\n", __FILE__, __LINE__, "");
+  KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n", __FILE__, __LINE__, "");
   KRML_HOST_EXIT(255U);
 }
 
