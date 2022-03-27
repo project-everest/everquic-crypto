@@ -1,6 +1,6 @@
 EVERQUIC_HOME ?= $(realpath .)
 
-KREMLIN_HOME ?= $(EVERQUIC_HOME)/../kremlin
+KRML_HOME ?= $(EVERQUIC_HOME)/../karamel
 HACL_HOME ?= $(EVERQUIC_HOME)/../hacl-star
 QD_HOME ?= $(EVERQUIC_HOME)/../quackyducky
 
@@ -9,8 +9,8 @@ include $(HACL_HOME)/Makefile.include
 FSTAR_INCLUDE_PATH= \
 	$(EVERQUIC_HOME)/src \
 	$(EVERQUIC_HOME)/test \
-	$(KREMLIN_HOME)/kremlib \
-	$(KREMLIN_HOME)/kremlib/obj \
+	$(KRML_HOME)/krmllib \
+	$(KRML_HOME)/krmllib/obj \
 	$(QD_HOME)/src/lowparse \
 	$(ALL_HACL_DIRS)
 

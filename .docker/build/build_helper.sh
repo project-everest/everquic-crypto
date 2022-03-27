@@ -8,10 +8,10 @@ fstarVersion=$5
 
 export FSTAR_HOME=$(pwd)/FStar
 export HACL_HOME=$(pwd)/hacl-star
-# FIXME: The HACL* image should have been built on top of a KReMLin
-# image.  But currently this is not the case, so we reuse the KReMLin
+# FIXME: The HACL* image should have been built on top of a KaRaMeL
+# image.  But currently this is not the case, so we reuse the KaRaMeL
 # that was pulled within the HACL* image.
-export KREMLIN_HOME=$HACL_HOME/kremlin
+export KRML_HOME=$HACL_HOME/karamel
 
 # Add ssh identity
 eval $(ssh-agent)
