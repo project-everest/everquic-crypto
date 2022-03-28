@@ -10,8 +10,8 @@ EverQuic is implemented in F\* in `src/`, and extracted to C in
 `dist/EverQuic.c` and `dist/EverQuic.h`. Then, to build the
 EverQuic static library, `dist/libeverquic.a`:
 
-1. Clone KReMLin from https://github.com/FStarLang/kremlin and point
-   the `KREMLIN_HOME` environment variable to the KReMLin clone
+1. Clone KaRaMeL from https://github.com/FStarLang/karamel and point
+   the `KRML_HOME` environment variable to the KaRaMeL clone
    directory.
 
 2. In EverQuic, do `cd dist && make -f Makefile.basic`

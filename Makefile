@@ -38,27 +38,27 @@ clean: clean-dist
 	$(FSTAR) --hint_file hints/$(notdir $*).hints $(notdir $*) && touch -c $@
 
 %.krml:
-	$(FSTAR) --codegen Kremlin \
+	$(FSTAR) --codegen krml \
 	--extract_module $(basename $(notdir $(subst .checked,,$<))) \
 	$(notdir $(subst .checked,,$<))
 
 verify: $(ALL_CHECKED_FILES)
 
-# Kremlin
+# Karamel
 # -------
 
-KRML=$(KREMLIN_HOME)/krml
+KRML=$(KRML_HOME)/krml
 
-obj/kremlin.rsp: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
+obj/krml.rsp: $(filter-out %/prims.krml,$(ALL_KRML_FILES))
 	for f in $^ ; do echo $$f ; done > $@
 
-dist/Makefile.basic: obj/kremlin.rsp
+dist/Makefile.basic: obj/krml.rsp
 	$(KRML) $(KOPTS) -library EverCrypt,EverCrypt.* @$^ -tmpdir dist -skip-compilation \
 	  -minimal \
 	  -header noheader.txt \
-	  -add-include '"kremlin/internal/target.h"' \
-	  -add-include '"kremlin/internal/types.h"' \
-	  -add-include '"kremlin/lowstar_endianness.h"' \
+	  -add-include '"krml/internal/target.h"' \
+	  -add-include '"krml/internal/types.h"' \
+	  -add-include '"krml/lowstar_endianness.h"' \
 	  -add-include '<stdint.h>' \
 	  -add-include '<stdbool.h>' \
 	  -add-include '<string.h>' \
@@ -66,7 +66,7 @@ dist/Makefile.basic: obj/kremlin.rsp
 	  -o libeverquic.a \
 	  -bundle LowParse.* \
 	  -bundle LowStar.* \
-	  -bundle Prims,C.Failure,C,C.String,C.Loops,Spec.Loops,C.Endianness,FStar.*[rename=EverQuic_Kremlib] \
+	  -bundle Prims,C.Failure,C,C.String,C.Loops,Spec.Loops,C.Endianness,FStar.*[rename=EverQuic_Krmllib] \
 	  -bundle 'Meta.*,Hacl.*,Vale.*,Spec.*,Lib.*,EverCrypt,EverCrypt.*[rename=EverQuic_EverCrypt]' \
 	  -bundle Model.* \
 	  -bundle Mem \
@@ -80,10 +80,10 @@ dist/libeverquic.a: dist/Makefile.basic
 # Tests
 # -----
 
-CFLAGS+=-I$(realpath .)/dist -I$(realpath $(KREMLIN_HOME))/include -I$(realpath $(KREMLIN_HOME))/kremlib/dist/minimal
+CFLAGS+=-I$(realpath .)/dist -I$(realpath $(KRML_HOME))/include -I$(realpath $(KRML_HOME))/krmllib/dist/minimal
 export CFLAGS
 
 test/main.o: dist/Makefile.basic
 
-dist/test.exe: test/main.o dist/libeverquic.a $(HACL_HOME)/dist/gcc-compatible/libevercrypt.a $(KREMLIN_HOME)/kremlib/dist/generic/libkremlib.a
+dist/test.exe: test/main.o dist/libeverquic.a $(HACL_HOME)/dist/gcc-compatible/libevercrypt.a $(KRML_HOME)/krmllib/dist/generic/libkrmllib.a
 	$(CC) $^ -o $@

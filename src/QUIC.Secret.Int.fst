@@ -44,7 +44,7 @@ let lognot_one_bit = Aux.lognot_one_bit
 let get_bitfield
   #t #l x lo hi
 = BF.get_bitfield_eq_2 #(bits t) (v x) (U32.v lo) (U32.v hi);
-  // due to https://github.com/FStarLang/kremlin/issues/102 we need explicit intermediate operations here
+  // due to https://github.com/FStarLang/karamel/issues/102 we need explicit intermediate operations here
   let op1 = x `shift_left` (U32.uint_to_t (bits t) `U32.sub` hi) in
   let op2 = op1 `shift_right` (U32.uint_to_t (bits t) `U32.sub` hi `U32.add` lo) in
   op2
