@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 set -x
-git clone --branch taramana_krml_rename https://github.com/project-everest/everest.git
+git clone https://github.com/project-everest/everest.git
 old_pwd="$PWD"
 everest_home="$old_pwd/everest"
 cd "$everest_home"
