@@ -862,6 +862,8 @@ let header_decrypt_aux_post
     | _ -> False
   end
 
+#push-options "--z3rlimit 16"
+
 let header_decrypt_aux
   (a: ea)
   (s: CTR.state (SAEAD.cipher_alg_of_supported_alg a))
@@ -896,6 +898,8 @@ let header_decrypt_aux
         header_decrypt_aux_ct_secret_preserving_not_retry a s k cid_len isshort pn_offset dst;
         HD_Success_NotRetry
       end
+
+#pop-options
 
 let max_cipher_length64 : (x: Secret.uint64 { Secret.v x == max_cipher_length }) =
   Secret.mk_int (norm [delta; iota; zeta; primops] (pow2 32 - header_len_bound))
