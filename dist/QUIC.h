@@ -25,6 +25,12 @@ typedef uint64_t QUIC_u62;
 
 typedef EverQuic_index QUIC_index;
 
+typedef Prims_list__uint8_t *QUIC_traffic_secret;
+
+typedef EverQuic_state_s *QUIC_state;
+
+typedef void *QUIC_invariant;
+
 EverCrypt_Error_error_code
 QUIC_encrypt(
   EverQuic_index i,
@@ -35,6 +41,8 @@ QUIC_encrypt(
   uint8_t *plain,
   uint32_t plain_len
 );
+
+typedef void *QUIC_decrypt_post;
 
 EverCrypt_Error_error_code
 QUIC_decrypt(

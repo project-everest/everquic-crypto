@@ -113,6 +113,12 @@ typedef struct EverQuic_state_s_s EverQuic_state_s;
 
 bool EverQuic_uu___is_State(EverQuic_index i, EverQuic_state_s projectee);
 
+typedef EverQuic_state_s *EverQuic_state;
+
+typedef void *EverQuic_invariant_s;
+
+typedef void *EverQuic_invariant;
+
 Spec_Agile_AEAD_alg EverQuic_aead_alg_of_state(EverQuic_state_s *s);
 
 Spec_Hash_Definitions_hash_alg EverQuic_hash_alg_of_state(EverQuic_state_s *s);
@@ -144,6 +150,8 @@ EverQuic_initial_secrets(
   uint8_t *cid,
   uint32_t cid_len
 );
+
+typedef void *EverQuic_decrypt_post;
 
 EverCrypt_Error_error_code
 EverQuic_decrypt(
@@ -177,6 +185,8 @@ bool EverQuic_has_payload_length(EverQuic_header h);
 uint64_t EverQuic_payload_and_pn_length(EverQuic_header h);
 
 uint64_t EverQuic_payload_length(EverQuic_header h);
+
+typedef void *EverQuic_header_live;
 
 uint32_t EverQuic_public_header_len(EverQuic_header h);
 

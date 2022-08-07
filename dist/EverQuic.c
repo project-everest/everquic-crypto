@@ -1245,23 +1245,6 @@ static uint8_t get_pb(header h)
   }
 }
 
-typedef struct list__uint8_t_s list__uint8_t;
-
-#define Nil 0
-#define Cons 1
-
-typedef uint8_t list__uint8_t_tags;
-
-typedef struct list__uint8_t_s
-{
-  list__uint8_t_tags tag;
-  uint8_t hd;
-  list__uint8_t *tl;
-}
-list__uint8_t;
-
-typedef list__uint8_t *bytes;
-
 static uint32_t write_header(header h, uint8_t *out, uint32_t out_len)
 {
   uint8_t pb = get_pb(h);

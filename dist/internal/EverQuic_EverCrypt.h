@@ -23,6 +23,8 @@ Prims_int Spec_Agile_Cipher_key_length(Spec_Agile_Cipher_cipher_alg a);
 Spec_Agile_Cipher_cipher_alg
 Spec_Agile_AEAD_cipher_alg_of_supported_alg(Spec_Agile_AEAD_alg a);
 
+typedef struct EverCrypt_CTR_state_s_s EverCrypt_CTR_state_s;
+
 extern EverCrypt_Error_error_code
 EverCrypt_CTR_create_in(
   Spec_Agile_Cipher_cipher_alg a,
@@ -64,6 +66,8 @@ EverCrypt_HKDF_extract(
   uint8_t *ikm,
   uint32_t ikmlen
 );
+
+typedef struct EverCrypt_AEAD_state_s_s EverCrypt_AEAD_state_s;
 
 extern EverCrypt_Error_error_code
 EverCrypt_AEAD_create_in(Spec_Agile_AEAD_alg a, EverCrypt_AEAD_state_s **dst, uint8_t *k);

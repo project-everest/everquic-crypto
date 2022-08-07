@@ -4,6 +4,8 @@
 
 
 
+typedef Prims_list__uint8_t *bytes;
+
 static Prims_int size_key = (krml_checked_int_t)32;
 
 #define AES128 0
@@ -99,9 +101,15 @@ Spec_Agile_Cipher_cipher_alg Spec_Agile_AEAD_cipher_alg_of_supported_alg(Spec_Ag
   }
 }
 
+#define Hacl_CHACHA20 0
+#define Vale_AES128 1
+#define Vale_AES256 2
+
+typedef uint8_t impl;
+
 typedef struct EverCrypt_CTR_state_s_s
 {
-  Spec_Cipher_Expansion_impl i;
+  impl i;
   uint8_t *iv;
   uint32_t iv_len;
   uint8_t *xkey;
@@ -111,7 +119,7 @@ EverCrypt_CTR_state_s;
 
 typedef struct EverCrypt_AEAD_state_s_s
 {
-  Spec_Cipher_Expansion_impl impl;
+  impl impl;
   uint8_t *ek;
 }
 EverCrypt_AEAD_state_s;
