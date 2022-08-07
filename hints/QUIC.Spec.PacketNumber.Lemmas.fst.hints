@@ -16,7 +16,7 @@
         "refinement_interpretation_Tm_refine_59a09d3c32ea205d2c3ab2f791e22038"
       ],
       0,
-      "4a9b7ec8f296517fb8f699b5981bb6f0"
+      "df7a7592032f5678b0d8ec9795d70f52"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound_aux",
@@ -38,13 +38,13 @@
         "typing_Prims.pow2"
       ],
       0,
-      "4ed0aa0411feb34b8d80e14a0f881fd8"
+      "69be5abf8aa1a0b745a52380dea9ed2c"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound",
       1,
-      4,
       2,
+      1,
       [
         "@MaxFuel_assumption", "@MaxIFuel_assumption",
         "@fuel_correspondence_Prims.pow2.fuel_instrumented",
@@ -53,10 +53,9 @@
         "equation_QUIC.Spec.PacketNumber.Lemmas.replace_modulo_",
         "equation_with_fuel_Prims.pow2.fuel_instrumented", "int_inversion",
         "int_typing", "lemma_FStar.UInt.pow2_values",
-        "lemma_Lib.IntTypes.pow2_2", "lemma_Lib.IntTypes.pow2_3",
-        "primitive_Prims.op_Addition", "primitive_Prims.op_Division",
-        "primitive_Prims.op_Modulus", "primitive_Prims.op_Multiply",
-        "primitive_Prims.op_Subtraction", "projection_inverse_BoxInt_proj_0",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_Modulus",
+        "primitive_Prims.op_Multiply", "primitive_Prims.op_Subtraction",
+        "projection_inverse_BoxInt_proj_0",
         "projection_inverse_FStar.Pervasives.Native.Mktuple2__1",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
@@ -66,7 +65,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "cbf9a0fa7d6b65b9b025f6fc4d5d073d"
+      "2a6df79483b16825dd5da7fcc538c987"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -75,7 +74,7 @@
       1,
       [ "@query" ],
       0,
-      "39215370a17a3f070413c57fa5408775"
+      "98a939751c3336fe5ef3d196ac522219"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -106,7 +105,7 @@
         "typing_Prims.pow2", "unit_inversion", "unit_typing"
       ],
       0,
-      "ae9d4aa66fa93e0cf38bc846baaf99b7"
+      "89f4d59880c97cdbc587bd18aa987570"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.replace_modulo",
@@ -201,7 +200,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "58e6261d0883ed67768861c9f3aeb888"
+      "dd83244f744c03c3b28701fa0e9bc43e"
     ]
   ]
 ]

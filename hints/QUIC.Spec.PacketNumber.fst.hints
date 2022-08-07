@@ -19,7 +19,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "33258ce7bcd5931989d62579d5d5315e"
+      "4e91a54680f0c42967ab9637c6efbf82"
     ],
     [
       "QUIC.Spec.PacketNumber.in_window_self",
@@ -53,7 +53,7 @@
         "typing_QUIC.UInt62.bound"
       ],
       0,
-      "225b55e8fe5871fc9cc7e9bee10f30d0"
+      "56781a055c9a113b1d79eb98057d53aa"
     ],
     [
       "QUIC.Spec.PacketNumber.expand_pn'",
@@ -96,7 +96,7 @@
         "typing_QUIC.UInt62.bound"
       ],
       0,
-      "84ec8fedfefd1f7c457721b5b2a3410a"
+      "5568f7d61376db52cd84a4b7a35bd868"
     ],
     [
       "QUIC.Spec.PacketNumber.max",
@@ -108,7 +108,7 @@
         "primitive_Prims.op_GreaterThan", "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "6c0ca268a9f05d3de3d1cb7b7005d088"
+      "c5481c53a1e7a54918929679c9c32624"
     ],
     [
       "QUIC.Spec.PacketNumber.lemma_uniqueness_in_window",
@@ -146,7 +146,7 @@
         "unit_inversion", "unit_typing"
       ],
       0,
-      "82c86beb5a9fbdf8b94630281e3f64e4"
+      "e4094ea49ca0575779076a0726fcfe2c"
     ],
     [
       "QUIC.Spec.PacketNumber.lemma_parse_pn_correct",
@@ -175,7 +175,7 @@
         "refinement_interpretation_Tm_refine_d36d3ac9a08ed315d367c41e3d9a72f2"
       ],
       0,
-      "3bb3c2ffdbb0e51cc88b9ebef6133ef6"
+      "fcf92d7b4c339122b029c6cd739ffeb0"
     ],
     [
       "QUIC.Spec.PacketNumber.lemma_parse_pn_correct",
@@ -204,7 +204,7 @@
         "typing_QUIC.UInt62.bound"
       ],
       0,
-      "d3af62c3ac9670612ad4dc4079cbf383"
+      "a1da6706b955e74be5a8c99831cc077d"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number",
@@ -218,7 +218,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "8d7355b1d49bbfb6e1fd3d8618747af5"
+      "3a256670882e197e2a5320ca0479055b"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number",
@@ -289,7 +289,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "07889c4975366658ec18d4ba373bc5b4"
+      "795e5b0f57ad757c0798a584da84c7e9"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number_recip",
@@ -337,7 +337,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "0c52026c9d63d39e5c9a10ce2d1fe7d4"
+      "5c9090d7baa40c1f13e86ed8f2543152"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number_injective",
@@ -429,7 +429,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "66b52aea01f22430a9625d2df13a3d4a"
+      "431c5f8973a218aeb9d483bff3455e07"
     ],
     [
       "QUIC.Spec.PacketNumber.synth_packet_number_recip_inverse",
@@ -515,7 +515,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "3845172eeeec02a3d5dfea8b81838a5f"
+      "34ba3bc24e5e235c65de0d6302c064dc"
     ],
     [
       "QUIC.Spec.PacketNumber.parse_reduced_pn",
@@ -554,7 +554,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "ad4bd6b801b6b00ad1e19eafbdb9c86b"
+      "67933eda756d8bdbe953672e00fb31ca"
     ],
     [
       "QUIC.Spec.PacketNumber.parse_packet_number",
@@ -569,7 +569,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "1d7356192c0c53d8b5f6c20198cdf8ab"
+      "ee14a5a516fc4f0eade31e4a47758d1c"
     ],
     [
       "QUIC.Spec.PacketNumber.parse_packet_number_kind'",
@@ -583,7 +583,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "b457ea5878295529587a31dc62f39419"
+      "20bfa7743dffe2041d3cf56f968c6981"
     ],
     [
       "QUIC.Spec.PacketNumber.parse_packet_number_kind'_correct",
@@ -637,7 +637,7 @@
         "typing_Tm_abs_23972f4490cc296f825a6a698cc85f90", "unit_typing"
       ],
       0,
-      "4895807a0e815953431efa27e1d5fe05"
+      "1ed99fce5a73a18073795165092f7a08"
     ],
     [
       "QUIC.Spec.PacketNumber.serialize_reduced_pn",
@@ -676,7 +676,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "7114684c357e1b3ab431dcc716213cf1"
+      "db9f20dae7643b357ab2201d569a1b00"
     ],
     [
       "QUIC.Spec.PacketNumber.serialize_packet_number",
@@ -692,7 +692,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "03f2e5afa938c8d8ee9b780a5fbc7b9a"
+      "58b00a6b357c2c60a9c9656d01a13414"
     ],
     [
       "QUIC.Spec.PacketNumber.serialize_packet_number_ext",
@@ -721,7 +721,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "1e2957c773409b34973b125129ad598f"
+      "80347a4a97f5bd4ad336851e0ea66598"
     ],
     [
       "QUIC.Spec.PacketNumber.serialize_packet_number_ext",
@@ -742,7 +742,7 @@
         "refinement_interpretation_Tm_refine_1622082edcbeee4d7aa5d33c2647f14f"
       ],
       0,
-      "40023d820ec6323c0e432454ac5e771c"
+      "9a6895fb34a632491e48c5498c148dfd"
     ]
   ]
 ]

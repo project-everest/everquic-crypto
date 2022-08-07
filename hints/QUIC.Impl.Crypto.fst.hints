@@ -48,7 +48,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "a14f15826a1620928b10ebc0f53b6c3c"
+      "6e206f4978e107fff1c8bc6a8fb938ff"
     ],
     [
       "QUIC.Impl.Crypto.label_iv",
@@ -98,7 +98,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "3a5912bb3c735927fc5a1163805505fd"
+      "01f9465dba19d937cc251c29c90de5c4"
     ],
     [
       "QUIC.Impl.Crypto.label_hp",
@@ -146,7 +146,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "8daf7e6697501c2038b1818f8a0b4556"
+      "f22dd9ab12a751c47c6a9641e8ba08e1"
     ],
     [
       "QUIC.Impl.Crypto.prefix",
@@ -183,7 +183,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "1e0f8b2381b32b2855133f2494a1e333"
+      "951ce3ccdb22af1a9650835b6f66013a"
     ],
     [
       "QUIC.Impl.Crypto.derive_secret",
@@ -263,7 +263,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "d7a93fab2c0e413cff5cbbb2b79e358e"
+      "b771a25e246b33444e4c6c02e94108c2"
     ],
     [
       "QUIC.Impl.Crypto.derive_secret",
@@ -272,7 +272,7 @@
       1,
       [ "@query" ],
       0,
-      "d672caeb9522d653d1d0c9a323c0d5d4"
+      "4b07e6afff81e0b1b87d698edbd15d0e"
     ],
     [
       "QUIC.Impl.Crypto.derive_secret",
@@ -348,12 +348,15 @@
         "equation_QUIC.Spec.Crypto.prefix",
         "equation_QUIC.Spec.Crypto.prefix_l",
         "equation_QUIC.Spec.Crypto.supported_hash", "equation_Spec.AES.gf8",
-        "equation_Spec.AES.irred", "equation_Spec.Agile.HMAC.keysized",
-        "equation_Spec.GaloisField.gf",
+        "equation_Spec.AES.irred",
+        "equation_Spec.Agile.HKDF.expand_info_length_pred",
+        "equation_Spec.Agile.HKDF.expand_output_length_pred",
+        "equation_Spec.Agile.HMAC.keysized", "equation_Spec.GaloisField.gf",
         "equation_Spec.Hash.Definitions.block_length",
         "equation_Spec.Hash.Definitions.block_word_length",
         "equation_Spec.Hash.Definitions.hash_length",
         "equation_Spec.Hash.Definitions.hash_word_length",
+        "equation_Spec.Hash.Definitions.max_input_length",
         "equation_Spec.Hash.Definitions.word_length",
         "function_token_typing_FStar.Integers.uint_8",
         "function_token_typing_FStar.Monotonic.Heap.heap",
@@ -525,7 +528,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "5e628b6cf374c32cead3ca06d21d9da3"
+      "19876e3642c15c6753f8efee0c97be77"
     ]
   ]
 ]

@@ -28,7 +28,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "2e67eb01ef4b0656b556c321f6a96370"
+      "761880f2ceb9529c83e8cc4bbf4f5209"
     ],
     [
       "QUIC.Spec.Crypto.cipher_keysize",
@@ -40,7 +40,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "7b878a3fe261fd47443fc786f7e0f3d9"
+      "6f8f14f978c7c565c1111a0c52c154c3"
     ],
     [
       "QUIC.Spec.Crypto.max_plain_length",
@@ -77,7 +77,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "405a18db0c9fc06fd20ada66226c9015"
+      "eea802fadc5860a500443ad63c596dc2"
     ],
     [
       "QUIC.Spec.Crypto.max_cipher_length",
@@ -134,7 +134,7 @@
       1,
       [ "@query" ],
       0,
-      "fe9426e955aa449c7baf08d48a4634a8"
+      "3d3f634d57d4b02b5ca540f36e3fc431"
     ],
     [
       "QUIC.Spec.Crypto.prefix",
@@ -149,7 +149,7 @@
         "typing_QUIC.Spec.Crypto.prefix_l"
       ],
       0,
-      "3e31ecacf334d4b7dab8f14b23d60733"
+      "d951125874a842de4873fd1f95bdfc36"
     ],
     [
       "QUIC.Spec.Crypto.lemma_hash_lengths",
@@ -198,7 +198,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "9b462aba08018c23ebe64f35b1c01ffa"
+      "3b86ca5e635380079ce18d8f8804602d"
     ],
     [
       "QUIC.Spec.Crypto.label_key_l",
@@ -207,7 +207,7 @@
       1,
       [ "@query" ],
       0,
-      "1d27a0609ed08bf6c883fda15821f232"
+      "c65294a3c3fb3ded4f364256696e0611"
     ],
     [
       "QUIC.Spec.Crypto.label_key",
@@ -223,7 +223,7 @@
         "typing_QUIC.Spec.Crypto.label_key_l"
       ],
       0,
-      "f199b5b71c4a1019728519281c4a4ba5"
+      "14df3f156c3ead56c07579f0a69acb65"
     ],
     [
       "QUIC.Spec.Crypto.label_iv_l",
@@ -232,7 +232,7 @@
       1,
       [ "@query" ],
       0,
-      "9d93c7f7f773734a6919bf92476c1d3e"
+      "40747cbd30d8bddcdc357fc035dfa174"
     ],
     [
       "QUIC.Spec.Crypto.label_iv",
@@ -248,7 +248,7 @@
         "typing_QUIC.Spec.Crypto.label_iv_l"
       ],
       0,
-      "592653ee76a4841139128ed824d27a65"
+      "bbb3561492e0d432acf2b1012cc284f7"
     ],
     [
       "QUIC.Spec.Crypto.label_hp_l",
@@ -257,7 +257,7 @@
       1,
       [ "@query" ],
       0,
-      "4f72abf9c5804a167c664ae88830efac"
+      "f9deb6e64cd6c8ecacd0b2013e1a34fb"
     ],
     [
       "QUIC.Spec.Crypto.label_hp",
@@ -273,7 +273,7 @@
         "typing_QUIC.Spec.Crypto.label_hp_l"
       ],
       0,
-      "4a644abc6a58a8d7ba6d1feb7b9a0b70"
+      "1ea336f7a8dcc1703548f87b02cb575a"
     ],
     [
       "QUIC.Spec.Crypto.derive_secret",
@@ -317,15 +317,18 @@
         "equation_QUIC.Spec.Crypto.keysized",
         "equation_QUIC.Spec.Crypto.prefix",
         "equation_QUIC.Spec.Crypto.supported_hash", "equation_Spec.AES.gf8",
-        "equation_Spec.AES.irred", "equation_Spec.Agile.HKDF.lbytes",
+        "equation_Spec.AES.irred",
+        "equation_Spec.Agile.HKDF.expand_info_length_pred",
+        "equation_Spec.Agile.HKDF.expand_output_length_pred",
+        "equation_Spec.Agile.HKDF.lbytes",
         "equation_Spec.Agile.HMAC.keysized", "equation_Spec.GaloisField.gf",
         "equation_Spec.Hash.Definitions.block_length",
         "equation_Spec.Hash.Definitions.block_word_length",
         "equation_Spec.Hash.Definitions.bytes_hash",
         "equation_Spec.Hash.Definitions.hash_length",
         "equation_Spec.Hash.Definitions.hash_word_length",
+        "equation_Spec.Hash.Definitions.max_input_length",
         "equation_Spec.Hash.Definitions.word_length",
-        "fuel_guarded_inversion_Spec.Hash.Definitions.hash_alg",
         "function_token_typing_FStar.Integers.uint_8",
         "function_token_typing_Lib.IntTypes.byte_t", "int_inversion",
         "int_typing", "lemma_FStar.Seq.Base.lemma_create_len",
@@ -350,17 +353,18 @@
         "refinement_interpretation_Tm_refine_b3e3751c3894f166dfde09b500dd73a6",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
-        "typing_FStar.Seq.Base.append", "typing_FStar.Seq.Base.create",
-        "typing_FStar.Seq.Base.length", "typing_FStar.Seq.Base.op_At_Bar",
-        "typing_FStar.UInt.fits", "typing_FStar.UInt8.uint_to_t",
-        "typing_Lib.IntTypes.bits", "typing_Lib.IntTypes.maxint",
-        "typing_Lib.IntTypes.minint", "typing_QUIC.Spec.Crypto.prefix",
+        "typing_FStar.Seq.Base.create", "typing_FStar.Seq.Base.length",
+        "typing_FStar.Seq.Base.op_At_Bar", "typing_FStar.UInt.fits",
+        "typing_FStar.UInt8.uint_to_t", "typing_Lib.IntTypes.bits",
+        "typing_Lib.IntTypes.maxint", "typing_Lib.IntTypes.minint",
+        "typing_QUIC.Spec.Crypto.prefix",
         "typing_QUIC.Spec.Crypto.supported_hash", "typing_Spec.AES.gf8",
+        "typing_Spec.Agile.HKDF.expand_output_length_pred",
         "typing_Spec.GaloisField.__proj__GF__item__t",
-        "typing_tok_Lib.IntTypes.PUB@tok", "typing_tok_Lib.IntTypes.U8@tok"
+        "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "11e9f79ad483a430e234a1d1b49de1a7"
+      "c12b338fdc97a14e91bc3ba6ac322390"
     ]
   ]
 ]

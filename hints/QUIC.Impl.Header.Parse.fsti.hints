@@ -46,7 +46,7 @@
         "typing_QUIC.Spec.Header.Base.is_retry"
       ],
       0,
-      "260434f4a0de04a6b603cd19caaca794"
+      "5047ba09669d7b7d23e4b44ec9292bf5"
     ],
     [
       "QUIC.Impl.Header.Parse.header_len_correct",
@@ -55,7 +55,7 @@
       1,
       [ "@query" ],
       0,
-      "767aefa1ad712c3dbbbef760fdb88560"
+      "d1f7aa47a5f3cff7bd84c8838ca5fe20"
     ],
     [
       "QUIC.Impl.Header.Parse.write_header",
@@ -88,7 +88,7 @@
         "typing_QUIC.Impl.Header.Base.is_retry"
       ],
       0,
-      "322a22529a6bd92dc8f2271a07539bdf"
+      "04b493d1ad9a971722176321d8418090"
     ],
     [
       "QUIC.Impl.Header.Parse.putative_pn_offset",
@@ -102,7 +102,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "f7927541a8dea92c68371b54d273537a"
+      "c9866fb1f0df831385133f64b05408cf"
     ],
     [
       "QUIC.Impl.Header.Parse.read_header",
@@ -110,8 +110,8 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "b2t_def", "bool_inversion",
-        "bool_typing", "constructor_distinct_Lib.IntTypes.U64",
+        "@MaxIFuel_assumption", "@query", "b2t_def",
+        "constructor_distinct_Lib.IntTypes.U64",
         "disc_equation_FStar.Pervasives.Native.None",
         "disc_equation_FStar.Pervasives.Native.Some",
         "equality_tok_Lib.IntTypes.SEC@tok",
@@ -126,8 +126,8 @@
         "primitive_Prims.op_AmpAmp", "primitive_Prims.op_LessThanOrEqual",
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
-        "refinement_interpretation_Tm_refine_0370266e65f57b0db2cb68c990f523e2",
         "refinement_interpretation_Tm_refine_527d85e49cee936bcf8c285d50eeaa76",
+        "refinement_interpretation_Tm_refine_78f5e8a506254fe27e2444ae9b7bd7fb",
         "refinement_interpretation_Tm_refine_83845a86f2550cdf941eeb1d9b59602b",
         "refinement_interpretation_Tm_refine_bc091439e537dad49a811907a6d15e1b",
         "refinement_interpretation_Tm_refine_cac8aa68b54068bf033c8d3d335357f8",
@@ -138,7 +138,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "10716c83c60d48690a11ab76039a1103"
+      "bfc74b50aaf2d928be064e726769b3ed"
     ]
   ]
 ]

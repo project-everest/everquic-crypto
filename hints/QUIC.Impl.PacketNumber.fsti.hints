@@ -7,34 +7,14 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "bool_inversion", "bool_typing",
-        "constructor_distinct_Lib.IntTypes.PUB",
-        "constructor_distinct_Lib.IntTypes.U8",
+        "@MaxIFuel_assumption", "@query",
         "disc_equation_FStar.Pervasives.Native.None",
         "disc_equation_FStar.Pervasives.Native.Some",
-        "equality_tok_Lib.IntTypes.PUB@tok",
-        "equality_tok_Lib.IntTypes.U8@tok",
-        "equation_FStar.Monotonic.HyperHeap.hmap",
-        "equation_FStar.Monotonic.HyperStack.is_tip",
-        "equation_FStar.Monotonic.HyperStack.is_wf_with_ctr_and_tip",
-        "equation_FStar.Monotonic.HyperStack.mem",
-        "equation_Lib.IntTypes.int_t", "equation_Lib.IntTypes.pub_int_t",
-        "equation_Lib.IntTypes.unsigned", "equation_LowParse.Bytes.byte",
-        "equation_LowParse.Bytes.bytes",
-        "equation_QUIC.Spec.PacketNumber.Base.packet_number_t_",
-        "function_token_typing_FStar.Monotonic.Heap.heap",
-        "kinding_FStar.Pervasives.Native.tuple2@tok",
-        "lemma_FStar.Map.lemma_ContainsDom",
-        "lemma_FStar.Pervasives.invertOption",
-        "refinement_interpretation_Tm_refine_05e15190c946858f68c69156f585f95a",
-        "typing_FStar.Map.contains", "typing_FStar.Monotonic.HyperHeap.rid",
-        "typing_FStar.Monotonic.HyperStack.get_hmap",
-        "typing_FStar.Monotonic.HyperStack.get_tip",
-        "typing_LowParse.Spec.Base.consumed_length",
-        "typing_QUIC.Spec.PacketNumber.Base.packet_number_t_"
+        "fuel_guarded_inversion_FStar.Pervasives.Native.option",
+        "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "49f9f83f838b9abd0b3ca3424b057e93"
+      "fdbc17de7671c1d59e5c8643a407dee0"
     ],
     [
       "QUIC.Impl.PacketNumber.write_packet_number",
@@ -73,7 +53,7 @@
         "typing_LowStar.Monotonic.Buffer.len"
       ],
       0,
-      "47afe2d611b4c00f92544d3a0f425b78"
+      "69550db336987eb3cc0d3428f5244d68"
     ]
   ]
 ]
