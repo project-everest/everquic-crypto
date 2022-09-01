@@ -27,7 +27,7 @@
         "typing_FStar.UInt.fits"
       ],
       0,
-      "6b10d7078b7c4c3e6914828a1c51e44d"
+      "fd5eff3f5fedd9db3e38b57b3720e7ac"
     ],
     [
       "QUIC.UInt.to_vec_prefix",
@@ -89,7 +89,7 @@
         "typing_Prims.pow2", "well-founded-ordering-on-nat"
       ],
       0,
-      "fed9667ce11d2dbc066a9a41b482eb99"
+      "c3edb2dbc0b0082ff06a04c36bded27a"
     ],
     [
       "QUIC.UInt.to_vec_inc",
@@ -116,7 +116,7 @@
         "typing_FStar.UInt.fits"
       ],
       0,
-      "19945c0085a829aef97ac8c8eb34ce10"
+      "dbaecb8accdaf7495d947d9f453d6ba7"
     ],
     [
       "QUIC.UInt.to_vec_inc",
@@ -176,7 +176,7 @@
         "typing_Prims.pow2", "well-founded-ordering-on-nat"
       ],
       0,
-      "3f23fc4a5072976642520edb13ea85fa"
+      "9cb193eb600ead71826a13470887e6b8"
     ],
     [
       "QUIC.UInt.lemma_logxor_lt",
@@ -188,7 +188,7 @@
         "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5"
       ],
       0,
-      "a3c39a9601b6e3e61bff8a4deb7490de"
+      "b5d1a656cadcdb8e7b2cd1c961449a27"
     ],
     [
       "QUIC.UInt.lemma_logxor_lt",
@@ -246,7 +246,7 @@
         "unit_inversion", "unit_typing"
       ],
       0,
-      "d58f0538303465e3603f3071b65696e9"
+      "dea3df0ee5a37fbe1f97d217951ccb1c"
     ]
   ]
 ]

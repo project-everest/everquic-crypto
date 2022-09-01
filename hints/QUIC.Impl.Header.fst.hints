@@ -11,7 +11,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "82102a3e39e121c0d9e7589c87ffc7cb"
+      "d1037c717d691600eb2162599c4e43a4"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_pre",
@@ -65,7 +65,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "8e2202e933c3d3f1abcbd89c93b335ce"
+      "2ebfd13c33c8b561f1d6b6dc685b0cb5"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_post",
@@ -77,7 +77,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "d301b108802cf2a8cae5101d77cf32eb"
+      "0c6b86445a9cf46afd799f45644416dd"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_post",
@@ -158,7 +158,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "fc2d2c52c752bac8097ad756499dab8e"
+      "fc82c1c84911e41bba84fcf4d29cf012"
     ],
     [
       "QUIC.Impl.Header.block_len",
@@ -182,7 +182,7 @@
         "projection_inverse_FStar.Integers.Unsigned__0"
       ],
       0,
-      "190ce8d2fc16a9b6b02aade0cc9fdafa"
+      "7e7473cfa64d6ceaaad2c79b317aedf0"
     ],
     [
       "QUIC.Impl.Header.block_of_sample",
@@ -440,7 +440,7 @@
         "typing_tok_Spec.Agile.Cipher.CHACHA20@tok"
       ],
       0,
-      "1d60b1c8df0405f7f4d6d7aa323597de"
+      "59453c4987b4ad62645126733e16364a"
     ],
     [
       "QUIC.Impl.Header.pn_sizemask_ct",
@@ -466,7 +466,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "a1e1101c907b00858857b2674fc99f30"
+      "662bd8bb1b664e51e0e4685185039344"
     ],
     [
       "QUIC.Impl.Header.index_pn_sizemask_ct_right",
@@ -513,7 +513,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "e703fe82dcee788b0697090601ac100f"
+      "a9e12110e532a94d6a4a9a8bef6f48e7"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct",
@@ -525,7 +525,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "1ccf8c1043369176ca1fe6a542c1833c"
+      "a3533f4682863e38b833e910b85dcf16"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct",
@@ -612,7 +612,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "4322527bb23e80aca2d80c33cde3af94"
+      "3c90e67d629f1489ac4154e91956e948"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_correct",
@@ -624,7 +624,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "b2acc5983d51a69eee594b36361152c6"
+      "7b444c9a8039a0f53ac02923057af13b"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_correct",
@@ -746,7 +746,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "4f48c475e72552d6f6311960fc2bef41"
+      "4dce86370b5ff7ae2d31f170823692c1"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_secret_preserving_not_retry_spec",
@@ -758,7 +758,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "c41fb92ea07c46dd0bcedc0fa086b1c5"
+      "56f5c653f7da43f7dafe9f9464e4145c"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_secret_preserving_not_retry_spec",
@@ -859,7 +859,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "be32a936dcb3e765e367e0c6339aa5a2"
+      "14d8bc9b71dc32d91ad43fa7ee6d104f"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_secret_preserving_not_retry_spec_correct",
@@ -871,7 +871,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "fc7a33a10dba694044ae668425be5908"
+      "20ff71b80513958233325a9b48406ac4"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_secret_preserving_not_retry_spec_correct",
@@ -1043,7 +1043,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "7d93a31c19a7f85c813e563a4080b99d"
+      "cd59c03ce16b2c3e801807181f5505d7"
     ],
     [
       "QUIC.Impl.Header.pn_sizemask_ct_num",
@@ -1138,7 +1138,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "d7c508853c1e50d1a0ee4e5f2a3d1c6b"
+      "5131e17f0f2cd44217b35ea49fcf109d"
     ],
     [
       "QUIC.Impl.Header.pn_sizemask",
@@ -1212,7 +1212,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "b811805f6f9d10fb993589c392c84e61"
+      "354742c4036a4ec0dca6494ea7e7528e"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_secret_preserving_not_retry",
@@ -1224,7 +1224,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "1b72bfa20c53257f3a5875961eb342da"
+      "10bd45b48f33f27958e186f2fc451381"
     ],
     [
       "QUIC.Impl.Header.header_encrypt_ct_secret_preserving_not_retry",
@@ -1504,7 +1504,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "778cc677b2040c1b1c5517c0d2fb0d5f"
+      "0f5a536becc6e8178aad818c06464da0"
     ],
     [
       "QUIC.Impl.Header.header_encrypt",
@@ -1516,7 +1516,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "e69109f5a93712cccb9fe9bbcda9c2e8"
+      "2b812de768c2bd153b49fd8e00bbc6d1"
     ],
     [
       "QUIC.Impl.Header.header_encrypt",
@@ -1528,7 +1528,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "3fe29152aded2af793a7d52ac3a3b3f5"
+      "39a46ec516649532bfcb17a57bb5a051"
     ],
     [
       "QUIC.Impl.Header.header_encrypt",
@@ -1678,7 +1678,7 @@
         "unit_inversion", "unit_typing"
       ],
       0,
-      "af151474a39d03d31f4cde9d33259def"
+      "ebd8e57ca7a7f976eb018b707c5fde8b"
     ],
     [
       "QUIC.Impl.Header.__proj__H_Success__item__h",
@@ -1692,7 +1692,7 @@
         "refinement_interpretation_Tm_refine_b998e486546d5d9f05b1208ca4b4f5aa"
       ],
       0,
-      "50a2186cd60a45d37ef9714769038b5e"
+      "b77ba5149181881d3f6505d8f9e7e943"
     ],
     [
       "QUIC.Impl.Header.__proj__H_Success__item__pn",
@@ -1706,7 +1706,7 @@
         "refinement_interpretation_Tm_refine_b998e486546d5d9f05b1208ca4b4f5aa"
       ],
       0,
-      "94b1cd65e9bb9e4ef4e3a62197dbf71d"
+      "652cec3b4d1d61252e20823352f3896b"
     ],
     [
       "QUIC.Impl.Header.__proj__H_Success__item__cipher_length",
@@ -1720,7 +1720,7 @@
         "refinement_interpretation_Tm_refine_b998e486546d5d9f05b1208ca4b4f5aa"
       ],
       0,
-      "a8dbc7ada6bfb00146849bc3fd72e7b8"
+      "4b88ee9e43b987b1e61f10d4ec8d3b64"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_pre",
@@ -1732,7 +1732,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "c3a4226c851482f228b6de521e8e4663"
+      "86ad42c69f8f87b5d508a4ecdf7f4ec4"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_pre",
@@ -1757,7 +1757,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "207b1672fd23d34a5e49b0d577c21126"
+      "3c36fc38f08d17fe63fcca27a5388b0d"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_post",
@@ -1769,7 +1769,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "33250699f3e0e5801a22cc389a3ab873"
+      "f7d045a7a0d33b35b152b6b7ac03cafa"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_post",
@@ -1879,7 +1879,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "e357e4c233339d6158ac76f6d8136e3b"
+      "49b629da61404943012f42af46203d7e"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct",
@@ -1891,7 +1891,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "f5052a7b03270d90c9357841c8504df9"
+      "5248302c31673c87ed98005571a48859"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct",
@@ -1976,7 +1976,7 @@
         "unit_typing"
       ],
       0,
-      "5cc0e817709e3d5e9db546b5781aa474"
+      "e4ff4f4b9dfcbe56d08cb8dd456452ae"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_correct",
@@ -1988,7 +1988,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "6a23f392aff3a2784f59863ab479293e"
+      "4cdfbe2a9d7b3788dbde2c9d7cfabe7a"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_correct",
@@ -2139,7 +2139,7 @@
         "unit_inversion", "unit_typing"
       ],
       0,
-      "b9337c39507d7e3f848a00625cd51e21"
+      "f8d21be78801ad579d0902bf4b7d48cc"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry_spec",
@@ -2177,7 +2177,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "f6bbcc948d30d5a681dbe82d5fc2a892"
+      "69930f916ab59b5393d8583b4339b93b"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry_spec",
@@ -2270,7 +2270,7 @@
         "unit_typing"
       ],
       0,
-      "9c008ab4effe572fe4b84c141745e2ab"
+      "4085bba1414c51ce80a80265889910f3"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry_spec_correct",
@@ -2308,7 +2308,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "5c0c064002a8cc7b8481857ca1d7367d"
+      "ef32cae7698909938b8c5b53ea9e0f8e"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry_spec_correct",
@@ -2456,7 +2456,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "8553fe206d600b77eac4ef70f6e24050"
+      "abff9242a863ef434d221cfa317cd8a3"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry'",
@@ -2468,7 +2468,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "93fc261ab5530345470440a6d7a85bc8"
+      "d1cc850f3bf57df96cbca9c0af2fe1e3"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry'",
@@ -2768,7 +2768,7 @@
         "typing_tok_Lib.IntTypes.U32@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "20751f1efa49d16e590173e66b3c624a"
+      "42c188b6c56bcfe7962f1b98d9516c8e"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry",
@@ -2780,7 +2780,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "5e276c016094677d331c1feb95b6e021"
+      "36d39e05c5ecbaef4948f4b04c4208d4"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_ct_secret_preserving_not_retry",
@@ -2956,7 +2956,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "9c1319ce4b195ccae285169fda4fca5c"
+      "9c243bda0ae22f39450c12fe3813c6f3"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_pre",
@@ -2968,7 +2968,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "e0c6471ee30b3e879fdab73b67577009"
+      "158182ec23abc88decdca6491dec27fa"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_pre",
@@ -2993,7 +2993,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "96ddc0779ae91db63c1c21ff3b1f13c6"
+      "ffbec737e7852bf2ac72b776104a74fd"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_post",
@@ -3005,7 +3005,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "75d1a0f64906dd1a762826945b35fcdf"
+      "f3014b6cb47581bd20e060a5f2d13462"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux_post",
@@ -3075,7 +3075,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "5e9b17a92427eb7547807fe8e63ec88f"
+      "d7755243cc349662a37b7045b08d742a"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux",
@@ -3087,7 +3087,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "3c31680fc8eb67c9b92869fb6a802f79"
+      "c136fe49e1e6e54b68499a926d117434"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_aux",
@@ -3263,7 +3263,7 @@
         "typing_tok_QUIC.Impl.Header.HD_Success_Retry@tok"
       ],
       0,
-      "fc9061517c4108bea9043651fb5e67e1"
+      "9df1babe805b0c0f68ce5a39d7c28c04"
     ],
     [
       "QUIC.Impl.Header.max_cipher_length64",
@@ -3358,7 +3358,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "dcb29aa6d726ec39baceacacb912d35c"
+      "c1fa0e413bf78581fb86480f32e38dda"
     ],
     [
       "QUIC.Impl.Header.secret_min_correct",
@@ -3400,7 +3400,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "7d4efdc406d39c7affe8ae8aa55bca1a"
+      "c038437f9b231a47a2a37a83dde573ba"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_retry",
@@ -3412,7 +3412,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "7bfa53b57bcfdafc398de8e3092db80f"
+      "32b173538e73596c368740e01b548e9a"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_retry",
@@ -3628,6 +3628,7 @@
         "refinement_interpretation_Tm_refine_cfb1e053a2878b8fbd187297e44bc30d",
         "refinement_interpretation_Tm_refine_d83f8da8ef6c1cb9f71d1465c1bb1c55",
         "refinement_interpretation_Tm_refine_d8d83307254a8900dd20598654272e42",
+        "refinement_interpretation_Tm_refine_dd3c82cae5d6c8fffaa8796b0a3d60d5",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "refinement_interpretation_Tm_refine_df7141b051e9600374b6a7fbebd3eca8",
         "refinement_interpretation_Tm_refine_edccc421660c61e3591d98071500d795",
@@ -3676,7 +3677,7 @@
         "typing_tok_QUIC.Impl.Header.H_Failure@tok", "unit_inversion"
       ],
       0,
-      "79620ae3dcddef89d91cc588d0810978"
+      "e7e3fa6078dcbeef6225f48cd454c08f"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_not_retry",
@@ -3688,7 +3689,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "44ec7893205d2d3fdc070416e43f83c7"
+      "72c8047539a809d9c156998dfefd1dc9"
     ],
     [
       "QUIC.Impl.Header.header_decrypt_not_retry",
@@ -4055,7 +4056,7 @@
         "typing_tok_Spec.Agile.Cipher.AES128@tok"
       ],
       0,
-      "6272567c6824daad3bef084d4e8c4c6b"
+      "12167107115fe8c762584847fc1f983e"
     ],
     [
       "QUIC.Impl.Header.header_decrypt",
@@ -4067,7 +4068,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "61e1c8760cea1372647cebb88f5d2a26"
+      "1647321d51d0125cd04c787c5fa8c289"
     ],
     [
       "QUIC.Impl.Header.header_decrypt",
@@ -4079,7 +4080,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "897d3d19ca0309fd6a47c9633f3a20d8"
+      "d5d8f36ec0fb72e283a01b88bdca9a28"
     ],
     [
       "QUIC.Impl.Header.header_decrypt",
@@ -4215,7 +4216,7 @@
         "typing_tok_QUIC.Impl.Header.H_Failure@tok"
       ],
       0,
-      "2f29436fef396f52a80aed007b92afde"
+      "eeda5a471f70f9d020a01d6281d76289"
     ]
   ]
 ]
