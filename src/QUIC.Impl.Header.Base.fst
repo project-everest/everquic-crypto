@@ -215,7 +215,9 @@ module Cast = FStar.Int.Cast
 
 let public_header_len
   (h: header)
-: Tot U32.t
+: Pure U32.t
+  (requires True)
+  (ensures (fun y -> U32.v y <= header_len_bound))
 = match h with
   | BShort _ spin phase cid cid_len packet_number_length ->
     1ul `U32.add` cid_len
