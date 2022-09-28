@@ -74,6 +74,9 @@ let is_success_body (e: E.error_code) : HST.Stack bool
   | E.Success ->
     PF.print_string "success\n";
     true
+  | _ ->
+    PF.print_string "unknown error\n";
+    false
 
 inline_for_extraction
 noextract
