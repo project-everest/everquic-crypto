@@ -102,7 +102,7 @@ let derive_secret a dst dst_len secret label label_len =
     (B.loc_buffer dst)
     false
     (fun _ cont m ->
-      SHD.hash_length a + B.length info + 1 + SHD.block_length a <= SHD.max_input_length a /\
+      (SHD.hash_length a + B.length info + 1 + SHD.block_length a) `SHD.less_than_max_input_length` a /\
       B.as_seq m dst == SHKDF.expand a (B.as_seq h25 secret) (Seq.seq_hide #Secret.U8 (B.as_seq h25 info)) (U32.v dst_len32)
     )
     (fun _ bs ->

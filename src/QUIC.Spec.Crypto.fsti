@@ -30,8 +30,8 @@ let cipher_keysize (a:ea) =
 
 // Move from Hashing.Spec to Spec.Hash?
 let keysized (a:ha) (l:nat) =
-  l <= HD.max_input_length a /\ l + HD.block_length a < pow2 32
-let hashable (a:ha) (l:nat) = l <= HD.max_input_length a
+  l `HD.less_than_max_input_length` a /\ l + HD.block_length a < pow2 32
+let hashable (a:ha) (l:nat) = l `HD.less_than_max_input_length` a
 
 // AEAD plain and ciphertext. We want to guarantee that regardless
 // of the header size (max is 54), the neader + ciphertext + tag fits in a buffer

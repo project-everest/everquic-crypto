@@ -21,7 +21,8 @@ let prefix: lbytes 11 =
 #push-options "--z3rlimit 10"
 let lemma_hash_lengths (a:ha)
   : Lemma (HD.hash_length a <= 64 /\ HD.word_length a <= 8 /\
-    HD.block_length a <= 128 /\ HD.max_input_length a >= pow2 61 - 1)
+    HD.block_length a <= 128 /\
+    (if Some? (HD.max_input_length a) then Some?.v (HD.max_input_length a) >= pow2 61 - 1 else True))
   =
   assert_norm(pow2 61 < pow2 125)
 #pop-options

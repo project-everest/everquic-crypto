@@ -165,7 +165,10 @@ val create (j:id) (u:info j) : ST (pne_state u)
 
 let lemma_max_hash_len ha
   : Lemma (Spec.Hash.Definitions.hash_length ha <= 64 /\
-  Spec.Hash.Definitions.max_input_length ha >=  pow2 61 - 1 /\
+  (if Some? (Spec.Hash.Definitions.max_input_length ha) then
+    Some?.v (Spec.Hash.Definitions.max_input_length ha) >= pow2 61 - 1
+  else
+    True) /\
   pow2 61 - 1 > 64)
   [SMTPat (Spec.Hash.Definitions.hash_length ha)]
   =
