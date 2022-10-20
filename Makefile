@@ -62,12 +62,23 @@ dist/Makefile.basic: obj/krml.rsp
 	  -add-include '<stdint.h>' \
 	  -add-include '<stdbool.h>' \
 	  -add-include '<string.h>' \
+	  -library 'Vale.Stdcalls.*' \
+	  -no-prefix 'Vale.Stdcalls.*' \
+	  -static-header 'Vale.Inline.*' \
+	  -library 'Vale.Inline.X64.Fadd_inline' \
+	  -library 'Vale.Inline.X64.Fmul_inline' \
+	  -library 'Vale.Inline.X64.Fswap_inline' \
+	  -library 'Vale.Inline.X64.Fsqr_inline' \
+	  -no-prefix 'Vale.Inline.X64.Fadd_inline' \
+	  -no-prefix 'Vale.Inline.X64.Fmul_inline' \
+	  -no-prefix 'Vale.Inline.X64.Fswap_inline' \
+	  -no-prefix 'Vale.Inline.X64.Fsqr_inline' \
 	  -fparentheses \
 	  -o libeverquic.a \
 	  -bundle LowParse.* \
 	  -bundle LowStar.* \
 	  -bundle Prims,C.Failure,C,C.String,C.Loops,Spec.Loops,C.Endianness,FStar.*[rename=EverQuic_Krmllib] \
-	  -bundle 'Meta.*,Hacl.*,Vale.*,Spec.*,Lib.*,EverCrypt,EverCrypt.*[rename=EverQuic_EverCrypt]' \
+	  -bundle 'Meta.*,Hacl.*,Vale.*,Spec.*,Lib.*,EverCrypt,EverCrypt.*,NotEverCrypt.*[rename=EverQuic_EverCrypt]' \
 	  -bundle Model.* \
 	  -bundle Mem \
 	  -bundle 'QUIC.State+QUIC.Impl.Header.Base=QUIC.\*[rename=EverQuic,rename-prefix]'
