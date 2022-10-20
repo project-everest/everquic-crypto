@@ -5,7 +5,8 @@
 
 
 
-
+#include "LowStar.h"
+#include "EverQuic_Krmllib.h"
 #include "krml/internal/target.h"
 #include "krml/internal/types.h"
 #include "krml/lowstar_endianness.h"
@@ -20,6 +21,7 @@
 #define Spec_Hash_Definitions_MD5 5
 #define Spec_Hash_Definitions_Blake2S 6
 #define Spec_Hash_Definitions_Blake2B 7
+#define Spec_Hash_Definitions_SHA3_256 8
 
 typedef uint8_t Spec_Hash_Definitions_hash_alg;
 
@@ -54,6 +56,7 @@ typedef uint8_t Spec_Agile_AEAD_alg;
 #define EverCrypt_Error_AuthenticationFailure 3
 #define EverCrypt_Error_InvalidIVLength 4
 #define EverCrypt_Error_DecodeError 5
+#define EverCrypt_Error_MaximumLengthExceeded 6
 
 typedef uint8_t EverCrypt_Error_error_code;
 

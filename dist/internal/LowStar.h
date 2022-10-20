@@ -5,7 +5,7 @@
 
 
 
-
+#include "../LowStar.h"
 #include "krml/internal/target.h"
 #include "krml/internal/types.h"
 #include "krml/lowstar_endianness.h"
