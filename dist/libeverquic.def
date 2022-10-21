@@ -6,6 +6,9 @@ EXPORTS
   LowParse_Low_ErrorCode_is_error
   Spec_Agile_Cipher_key_length
   Spec_Agile_AEAD_cipher_alg_of_supported_alg
+  NotEverCrypt_CTR_create_in
+  NotEverCrypt_CTR_init
+  NotEverCrypt_CTR_update_block
   EverQuic_uu___is_State
   EverQuic_aead_alg_of_state
   EverQuic_hash_alg_of_state

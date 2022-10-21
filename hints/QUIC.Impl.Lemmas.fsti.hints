@@ -24,7 +24,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4e23214791c0a4c9f3b65031dd6802e5"
+      "029fb72f182a9d03eccbbc4cd6da6633"
     ],
     [
       "QUIC.Impl.Lemmas.hash_is_keysized_",
@@ -58,7 +58,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "9fa4077d73effd3732089bca76025323"
+      "79efb5e2c1303bbb647c2681d84fd493"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice",
@@ -84,7 +84,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "52ef2b301096ee64851804dc18101311"
+      "9634c741db2be8849f9ea392b59e7bc1"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice3",
@@ -110,7 +110,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "f99f0357b7c81d0e61741a2bf8180008"
+      "e85f68659e8a8803782dfcde12d84308"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice0",
@@ -135,7 +135,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "8d1fe8e63f3c12620f2703b9eb3181a6"
+      "d808037cb7c6b850543abc1ca62743ca"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice1",
@@ -161,7 +161,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "757872d73b51c7605bc35dff3d6567f2"
+      "e741bebc4c94a583422c79902c10bb96"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_upd",
@@ -178,7 +178,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "79444be4a21013b68db5d2b933abe0fe"
+      "b74033fe372ec9ec8b1997900ef2707c"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_seq_map2",
@@ -207,7 +207,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "8c174e7b175ec9c39790df4e399c0d9f"
+      "7a4036e8530427b7aeef960e324fffe6"
     ],
     [
       "QUIC.Impl.Lemmas.and_inplace_commutative",
@@ -224,7 +224,7 @@
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
       ],
       0,
-      "c21afac1b41a1c9d9b3a9621a1af39e4"
+      "f815fe9c5a7c0c4dd73396f61f88285e"
     ],
     [
       "QUIC.Impl.Lemmas.seq_map2_xor0",
@@ -245,7 +245,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "7410543eb9344e126f3a2b735ab2ba59"
+      "86b37fbdb7179ba914f218672d7fb422"
     ],
     [
       "QUIC.Impl.Lemmas.upd_op_inplace",
@@ -263,7 +263,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "aee5fefa76e198228a77f2144d7e2edc"
+      "75b3119fe80f469018b330ccc6882f26"
     ],
     [
       "QUIC.Impl.Lemmas.be_to_n_slice",
@@ -297,7 +297,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "9c9e896526a722c88de56d97ea6cced2"
+      "5b66b24f8425ee64f4177afda96f5e34"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower",
@@ -323,7 +323,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e6e563ab418e69f1cb6a0e2d0deadb30"
+      "585316eb315b2f0e8e06f2f86534d863"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower'",
@@ -347,7 +347,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "78745ce4ef61c611288a85d8bd7881ed"
+      "d81959033d8a3f26c7721075073f5d04"
     ],
     [
       "QUIC.Impl.Lemmas.op_inplace",
@@ -383,7 +383,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "66b2c80cad3e596d07eec89395bf3b15"
+      "41a3400008cea39be7ba4ec631c32f2c"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace",
@@ -392,7 +392,7 @@
       1,
       [ "@query" ],
       0,
-      "a4225620d7f7295f6f7e3e4a21c6b546"
+      "cf785fbc451e6b7f194bdcfaf5afac8f"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace_eq",
@@ -420,7 +420,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "7668c8394b547bb3b93f5ef8026c1f35"
+      "a1c78770e79ab37314fff969fd25a628"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace",
@@ -429,7 +429,7 @@
       1,
       [ "@query" ],
       0,
-      "ec69eda30d5b07d3cbaec61c2078ae86"
+      "7b90b5a3a5191e75caa56e7680846fca"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace_eq",

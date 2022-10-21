@@ -44,8 +44,8 @@ bool QUICTest_is_success_body(EverCrypt_Error_error_code e)
       }
     default:
       {
-        KRML_HOST_EPRINTF("KaRaMeL incomplete match at %s:%d\n", __FILE__, __LINE__);
-        KRML_HOST_EXIT(253U);
+        LowStar_Printf_print_string("unknown error\n");
+        return false;
       }
   }
 }

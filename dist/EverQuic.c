@@ -65,6 +65,127 @@ static uint32_t varint_len(uint64_t x)
     return (uint32_t)8U;
 }
 
+static uint32_t read_u32(uint8_t *b)
+{
+  uint8_t b3 = b[3U];
+  uint8_t b2 = b[2U];
+  uint8_t b1 = b[1U];
+  uint8_t b0 = b[0U];
+  return
+    (uint32_t)b3
+    +
+      (uint32_t)256U
+      * ((uint32_t)b2 + (uint32_t)256U * ((uint32_t)b1 + (uint32_t)256U * (uint32_t)b0));
+}
+
+static uint64_t bound_npn(uint32_t pn_len)
+{
+  uint64_t pn_len_1 = (uint64_t)(pn_len - (uint32_t)1U);
+  return
+    secrets_are_equal_64_2(pn_len_1,
+      (uint64_t)(uint32_t)0U)
+    * (uint64_t)256U
+    + secrets_are_equal_64_2(pn_len_1, (uint64_t)(uint32_t)1U) * (uint64_t)65536U
+    + secrets_are_equal_64_2(pn_len_1, (uint64_t)(uint32_t)2U) * (uint64_t)16777216U
+    + secrets_are_equal_64_2(pn_len_1, (uint64_t)(uint32_t)3U) * (uint64_t)4294967296U;
+}
+
+static uint64_t expand_pn(uint32_t pn_len, uint64_t last, uint32_t npn)
+{
+  uint64_t expected = last + (uint64_t)1U;
+  uint64_t bound = bound_npn(pn_len);
+  uint64_t bound_2 = bound >> (uint32_t)1U;
+  uint64_t candidate = expected - (expected & (bound - (uint64_t)1U)) + (uint64_t)npn;
+  uint64_t bound_2_le_expected = secret_is_le_64(bound_2, expected);
+  uint64_t
+  cond_1 =
+    bound_2_le_expected
+    * secret_is_le_64(candidate, bound_2_le_expected * expected - bound_2_le_expected * bound_2)
+    * secret_is_lt_64(candidate, (uint64_t)4611686018427387904U - bound);
+  uint64_t
+  cond_2 =
+    (cond_1 ^ (uint64_t)(uint8_t)1U)
+    * secret_is_lt_64(expected + bound_2, candidate)
+    * secret_is_le_64(bound, candidate);
+  return candidate + cond_1 * bound - cond_2 * bound;
+}
+
+static uint64_t read_packet_number(uint64_t last, uint32_t pn_len, uint8_t *b)
+{
+  uint32_t x = read_u32(b);
+  uint32_t pn_len_1 = pn_len - (uint32_t)1U;
+  uint32_t op10 = x << (uint32_t)0U;
+  uint32_t op11 = x << (uint32_t)0U;
+  uint32_t op1 = x << (uint32_t)0U;
+  uint32_t
+  npn =
+    secrets_are_equal_32_2(pn_len_1,
+      (uint32_t)0U)
+    * (op10 >> (uint32_t)24U)
+    + secrets_are_equal_32_2(pn_len_1, (uint32_t)1U) * (op11 >> (uint32_t)16U)
+    + secrets_are_equal_32_2(pn_len_1, (uint32_t)2U) * (op1 >> (uint32_t)8U)
+    + secrets_are_equal_32_2(pn_len_1, (uint32_t)3U) * x;
+  return expand_pn(pn_len, last, npn);
+}
+
+static uint32_t reduce_pn(uint32_t pn_len, uint64_t pn)
+{
+  uint64_t mask = bound_npn(pn_len) - (uint64_t)1U;
+  return (uint32_t)(pn & mask);
+}
+
+static void write_u32(uint32_t x, uint8_t *b)
+{
+  uint8_t *b_ = b;
+  b_[0U] = (uint8_t)(x >> (uint32_t)24U);
+  b_[1U] = (uint8_t)(x >> (uint32_t)16U);
+  b_[2U] = (uint8_t)(x >> (uint32_t)8U);
+  b_[3U] = (uint8_t)x;
+}
+
+static uint32_t set_left_bitfield(uint32_t pn_len, uint32_t before, uint32_t x)
+{
+  uint32_t op00 = (uint32_t)0xFFFFFFFFU;
+  uint32_t op1 = op00 >> (uint32_t)24U;
+  uint32_t op2 = op1 << (uint32_t)24U;
+  uint32_t op3 = op2 ^ (uint32_t)0xFFFFFFFFU;
+  uint32_t op4 = before & op3;
+  uint32_t op50 = (x & (uint32_t)255U) << (uint32_t)24U;
+  uint32_t op01 = (uint32_t)0xFFFFFFFFU;
+  uint32_t op10 = op01 >> (uint32_t)16U;
+  uint32_t op20 = op10 << (uint32_t)16U;
+  uint32_t op30 = op20 ^ (uint32_t)0xFFFFFFFFU;
+  uint32_t op40 = before & op30;
+  uint32_t op51 = (x & (uint32_t)65535U) << (uint32_t)16U;
+  uint32_t op0 = (uint32_t)0xFFFFFFFFU;
+  uint32_t op11 = op0 >> (uint32_t)8U;
+  uint32_t op21 = op11 << (uint32_t)8U;
+  uint32_t op31 = op21 ^ (uint32_t)0xFFFFFFFFU;
+  uint32_t op41 = before & op31;
+  uint32_t op5 = (x & (uint32_t)16777215U) << (uint32_t)8U;
+  return
+    secrets_are_equal_32_2(pn_len - (uint32_t)1U,
+      (uint32_t)0U)
+    * (op4 | op50)
+    + secrets_are_equal_32_2(pn_len - (uint32_t)1U, (uint32_t)1U) * (op40 | op51)
+    + secrets_are_equal_32_2(pn_len - (uint32_t)1U, (uint32_t)2U) * (op41 | op5)
+    + secrets_are_equal_32_2(pn_len - (uint32_t)1U, (uint32_t)3U) * x;
+}
+
+static void write_bounded_integer(uint32_t pn_len, uint32_t x, uint8_t *b)
+{
+  uint8_t *b_ = b;
+  uint32_t before = read_u32(b_);
+  uint32_t after = set_left_bitfield(pn_len, before, x);
+  write_u32(after, b_);
+}
+
+static void write_packet_number(uint32_t pn_len, uint64_t pn, uint8_t *b)
+{
+  uint32_t npn = reduce_pn(pn_len, pn);
+  write_bounded_integer(pn_len, npn, b);
+}
+
 static uint64_t validate_varint(LowParse_Slice_slice sl, uint64_t pos)
 {
   uint64_t pos0 = pos;
@@ -308,127 +429,6 @@ validate_bounded_varint(uint32_t min, uint32_t max, LowParse_Slice_slice input, 
     else
       return res;
   }
-}
-
-static uint32_t read_u32(uint8_t *b)
-{
-  uint8_t b3 = b[3U];
-  uint8_t b2 = b[2U];
-  uint8_t b1 = b[1U];
-  uint8_t b0 = b[0U];
-  return
-    (uint32_t)b3
-    +
-      (uint32_t)256U
-      * ((uint32_t)b2 + (uint32_t)256U * ((uint32_t)b1 + (uint32_t)256U * (uint32_t)b0));
-}
-
-static uint64_t bound_npn(uint32_t pn_len)
-{
-  uint64_t pn_len_1 = (uint64_t)(pn_len - (uint32_t)1U);
-  return
-    secrets_are_equal_64_2(pn_len_1,
-      (uint64_t)(uint32_t)0U)
-    * (uint64_t)256U
-    + secrets_are_equal_64_2(pn_len_1, (uint64_t)(uint32_t)1U) * (uint64_t)65536U
-    + secrets_are_equal_64_2(pn_len_1, (uint64_t)(uint32_t)2U) * (uint64_t)16777216U
-    + secrets_are_equal_64_2(pn_len_1, (uint64_t)(uint32_t)3U) * (uint64_t)4294967296U;
-}
-
-static uint64_t expand_pn(uint32_t pn_len, uint64_t last, uint32_t npn)
-{
-  uint64_t expected = last + (uint64_t)1U;
-  uint64_t bound = bound_npn(pn_len);
-  uint64_t bound_2 = bound >> (uint32_t)1U;
-  uint64_t candidate = expected - (expected & (bound - (uint64_t)1U)) + (uint64_t)npn;
-  uint64_t bound_2_le_expected = secret_is_le_64(bound_2, expected);
-  uint64_t
-  cond_1 =
-    bound_2_le_expected
-    * secret_is_le_64(candidate, bound_2_le_expected * expected - bound_2_le_expected * bound_2)
-    * secret_is_lt_64(candidate, (uint64_t)4611686018427387904U - bound);
-  uint64_t
-  cond_2 =
-    (cond_1 ^ (uint64_t)(uint8_t)1U)
-    * secret_is_lt_64(expected + bound_2, candidate)
-    * secret_is_le_64(bound, candidate);
-  return candidate + cond_1 * bound - cond_2 * bound;
-}
-
-static uint64_t read_packet_number(uint64_t last, uint32_t pn_len, uint8_t *b)
-{
-  uint32_t x = read_u32(b);
-  uint32_t pn_len_1 = pn_len - (uint32_t)1U;
-  uint32_t op10 = x << (uint32_t)0U;
-  uint32_t op11 = x << (uint32_t)0U;
-  uint32_t op1 = x << (uint32_t)0U;
-  uint32_t
-  npn =
-    secrets_are_equal_32_2(pn_len_1,
-      (uint32_t)0U)
-    * (op10 >> (uint32_t)24U)
-    + secrets_are_equal_32_2(pn_len_1, (uint32_t)1U) * (op11 >> (uint32_t)16U)
-    + secrets_are_equal_32_2(pn_len_1, (uint32_t)2U) * (op1 >> (uint32_t)8U)
-    + secrets_are_equal_32_2(pn_len_1, (uint32_t)3U) * x;
-  return expand_pn(pn_len, last, npn);
-}
-
-static uint32_t reduce_pn(uint32_t pn_len, uint64_t pn)
-{
-  uint64_t mask = bound_npn(pn_len) - (uint64_t)1U;
-  return (uint32_t)(pn & mask);
-}
-
-static void write_u32(uint32_t x, uint8_t *b)
-{
-  uint8_t *b_ = b;
-  b_[0U] = (uint8_t)(x >> (uint32_t)24U);
-  b_[1U] = (uint8_t)(x >> (uint32_t)16U);
-  b_[2U] = (uint8_t)(x >> (uint32_t)8U);
-  b_[3U] = (uint8_t)x;
-}
-
-static uint32_t set_left_bitfield(uint32_t pn_len, uint32_t before, uint32_t x)
-{
-  uint32_t op00 = (uint32_t)0xFFFFFFFFU;
-  uint32_t op1 = op00 >> (uint32_t)24U;
-  uint32_t op2 = op1 << (uint32_t)24U;
-  uint32_t op3 = op2 ^ (uint32_t)0xFFFFFFFFU;
-  uint32_t op4 = before & op3;
-  uint32_t op50 = (x & (uint32_t)255U) << (uint32_t)24U;
-  uint32_t op01 = (uint32_t)0xFFFFFFFFU;
-  uint32_t op10 = op01 >> (uint32_t)16U;
-  uint32_t op20 = op10 << (uint32_t)16U;
-  uint32_t op30 = op20 ^ (uint32_t)0xFFFFFFFFU;
-  uint32_t op40 = before & op30;
-  uint32_t op51 = (x & (uint32_t)65535U) << (uint32_t)16U;
-  uint32_t op0 = (uint32_t)0xFFFFFFFFU;
-  uint32_t op11 = op0 >> (uint32_t)8U;
-  uint32_t op21 = op11 << (uint32_t)8U;
-  uint32_t op31 = op21 ^ (uint32_t)0xFFFFFFFFU;
-  uint32_t op41 = before & op31;
-  uint32_t op5 = (x & (uint32_t)16777215U) << (uint32_t)8U;
-  return
-    secrets_are_equal_32_2(pn_len - (uint32_t)1U,
-      (uint32_t)0U)
-    * (op4 | op50)
-    + secrets_are_equal_32_2(pn_len - (uint32_t)1U, (uint32_t)1U) * (op40 | op51)
-    + secrets_are_equal_32_2(pn_len - (uint32_t)1U, (uint32_t)2U) * (op41 | op5)
-    + secrets_are_equal_32_2(pn_len - (uint32_t)1U, (uint32_t)3U) * x;
-}
-
-static void write_bounded_integer(uint32_t pn_len, uint32_t x, uint8_t *b)
-{
-  uint8_t *b_ = b;
-  uint32_t before = read_u32(b_);
-  uint32_t after = set_left_bitfield(pn_len, before, x);
-  write_u32(after, b_);
-}
-
-static void write_packet_number(uint32_t pn_len, uint64_t pn, uint8_t *b)
-{
-  uint32_t npn = reduce_pn(pn_len, pn);
-  write_bounded_integer(pn_len, npn, b);
 }
 
 static uint64_t validate_header(uint32_t short_dcid_len, LowParse_Slice_slice sl, uint64_t pos)
@@ -1995,7 +1995,7 @@ static uint32_t pn_sizemask_ct_num(uint32_t pn_len)
 static void
 header_encrypt_ct_secret_preserving_not_retry(
   Spec_Agile_AEAD_alg a,
-  EverCrypt_CTR_state_s *s,
+  NotEverCrypt_CTR_state_s *s,
   uint8_t *k,
   bool is_short,
   uint32_t pn_offset,
@@ -2016,8 +2016,8 @@ header_encrypt_ct_secret_preserving_not_retry(
       {
         uint32_t ctr = load32_le(sample);
         uint8_t *iv = sample + (uint32_t)4U;
-        EverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
-        EverCrypt_CTR_update_block(s, dst_block, zeroes);
+        NotEverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
+        NotEverCrypt_CTR_update_block(s, dst_block, zeroes);
         uint8_t *dst_slice = dst_block;
         memcpy(mask, dst_slice, (uint32_t)16U * sizeof (uint8_t));
         break;
@@ -2026,8 +2026,8 @@ header_encrypt_ct_secret_preserving_not_retry(
       {
         uint32_t ctr = load32_be(sample + (uint32_t)12U);
         uint8_t *iv = sample;
-        EverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
-        EverCrypt_CTR_update_block(s, dst_block, zeroes);
+        NotEverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
+        NotEverCrypt_CTR_update_block(s, dst_block, zeroes);
         uint8_t *dst_slice = dst_block;
         memcpy(mask, dst_slice, (uint32_t)16U * sizeof (uint8_t));
       }
@@ -2072,7 +2072,7 @@ header_encrypt_ct_secret_preserving_not_retry(
 static void
 header_encrypt(
   Spec_Agile_AEAD_alg a,
-  EverCrypt_CTR_state_s *s,
+  NotEverCrypt_CTR_state_s *s,
   uint8_t *k,
   uint8_t *dst,
   bool is_short,
@@ -2105,7 +2105,7 @@ h_result;
 static void
 header_decrypt_aux_ct_secret_preserving_not_retry(
   Spec_Agile_AEAD_alg a,
-  EverCrypt_CTR_state_s *s,
+  NotEverCrypt_CTR_state_s *s,
   uint8_t *k,
   bool is_short,
   uint32_t pn_offset,
@@ -2128,8 +2128,8 @@ header_decrypt_aux_ct_secret_preserving_not_retry(
       {
         uint32_t ctr = load32_le(sample);
         uint8_t *iv = sample + (uint32_t)4U;
-        EverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
-        EverCrypt_CTR_update_block(s, dst_block, zeroes);
+        NotEverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
+        NotEverCrypt_CTR_update_block(s, dst_block, zeroes);
         uint8_t *dst_slice = dst_block;
         memcpy(mask, dst_slice, (uint32_t)16U * sizeof (uint8_t));
         break;
@@ -2138,8 +2138,8 @@ header_decrypt_aux_ct_secret_preserving_not_retry(
       {
         uint32_t ctr = load32_be(sample + (uint32_t)12U);
         uint8_t *iv = sample;
-        EverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
-        EverCrypt_CTR_update_block(s, dst_block, zeroes);
+        NotEverCrypt_CTR_init(s, k, iv, (uint32_t)12U, ctr);
+        NotEverCrypt_CTR_update_block(s, dst_block, zeroes);
         uint8_t *dst_slice = dst_block;
         memcpy(mask, dst_slice, (uint32_t)16U * sizeof (uint8_t));
       }
@@ -2191,7 +2191,7 @@ typedef uint8_t header_decrypt_aux_result;
 static header_decrypt_aux_result
 header_decrypt_aux(
   Spec_Agile_AEAD_alg a,
-  EverCrypt_CTR_state_s *s,
+  NotEverCrypt_CTR_state_s *s,
   uint8_t *k,
   uint32_t cid_len,
   uint8_t *dst,
@@ -2250,7 +2250,7 @@ static bool uu___is_None__uint32_t(option__uint32_t projectee)
 static h_result
 header_decrypt(
   Spec_Agile_AEAD_alg a,
-  EverCrypt_CTR_state_s *s,
+  NotEverCrypt_CTR_state_s *s,
   uint8_t *k,
   uint32_t cid_len,
   uint64_t last,
@@ -2372,6 +2372,11 @@ derive_secret(
         sw = (uint32_t)64U;
         break;
       }
+    case Spec_Hash_Definitions_SHA3_256:
+      {
+        sw = (uint32_t)32U;
+        break;
+      }
     case Spec_Hash_Definitions_Blake2S:
       {
         sw = (uint32_t)32U;
@@ -2440,7 +2445,7 @@ encrypt(
   Spec_Agile_AEAD_alg a,
   EverCrypt_AEAD_state_s *aead,
   uint8_t *siv,
-  EverCrypt_CTR_state_s *ctr,
+  NotEverCrypt_CTR_state_s *ctr,
   uint8_t *hpk,
   uint8_t *dst,
   EverQuic_header h,
@@ -2518,7 +2523,7 @@ decrypt(
   Spec_Agile_AEAD_alg a,
   EverCrypt_AEAD_state_s *aead,
   uint8_t *siv,
-  EverCrypt_CTR_state_s *ctr,
+  NotEverCrypt_CTR_state_s *ctr,
   uint8_t *hpk,
   uint8_t *dst,
   uint32_t dst_len,
@@ -2608,7 +2613,7 @@ typedef struct EverQuic_state_s_s
   uint8_t *iv;
   uint8_t *hp_key;
   uint64_t *pn;
-  EverCrypt_CTR_state_s *ctr_state;
+  NotEverCrypt_CTR_state_s *ctr_state;
 }
 EverQuic_state_s;
 
@@ -2643,7 +2648,7 @@ create_in_core(
   uint64_t initial_pn,
   uint8_t *traffic_secret,
   EverCrypt_AEAD_state_s *aead_state,
-  EverCrypt_CTR_state_s *ctr_state
+  NotEverCrypt_CTR_state_s *ctr_state
 )
 {
   uint8_t *iv = KRML_HOST_CALLOC((uint32_t)12U, sizeof (uint8_t));
@@ -2677,7 +2682,7 @@ EverQuic_create_in(
   uint8_t aead_key[key_len32(i.aead_alg)];
   memset(aead_key, 0U, key_len32(i.aead_alg) * sizeof (uint8_t));
   EverCrypt_AEAD_state_s *aead_state = NULL;
-  EverCrypt_CTR_state_s *ctr_state = NULL;
+  NotEverCrypt_CTR_state_s *ctr_state = NULL;
   uint8_t dummy_iv[12U] = { 0U };
   derive_secret(i.hash_alg,
     aead_key,
@@ -2688,7 +2693,7 @@ EverQuic_create_in(
   EverCrypt_Error_error_code ret = EverCrypt_AEAD_create_in(i.aead_alg, &aead_state, aead_key);
   EverCrypt_Error_error_code
   ret_ =
-    EverCrypt_CTR_create_in(Spec_Agile_AEAD_cipher_alg_of_supported_alg(i.aead_alg),
+    NotEverCrypt_CTR_create_in(Spec_Agile_AEAD_cipher_alg_of_supported_alg(i.aead_alg),
       &ctr_state,
       aead_key,
       dummy_iv,
@@ -2710,8 +2715,8 @@ EverQuic_create_in(
             }
           case EverCrypt_Error_Success:
             {
-              EverCrypt_AEAD_state_s *aead_state1 = *&aead_state;
-              EverCrypt_CTR_state_s *ctr_state1 = *&ctr_state;
+              EverCrypt_AEAD_state_s *aead_state1 = aead_state;
+              NotEverCrypt_CTR_state_s *ctr_state1 = ctr_state;
               create_in_core(i, dst, initial_pn, traffic_secret, aead_state1, ctr_state1);
               return EverCrypt_Error_Success;
             }
@@ -2747,7 +2752,7 @@ EverQuic_encrypt(
   uint8_t *iv = scrut.iv;
   uint8_t *hp_key = scrut.hp_key;
   uint64_t *bpn = scrut.pn;
-  EverCrypt_CTR_state_s *ctr_state = scrut.ctr_state;
+  NotEverCrypt_CTR_state_s *ctr_state = scrut.ctr_state;
   uint64_t last_pn = *bpn;
   uint64_t pn = last_pn + (uint64_t)1U;
   bpn[0U] = pn;
@@ -2833,7 +2838,7 @@ EverQuic_decrypt(
   uint8_t *iv = scrut.iv;
   uint8_t *hp_key = scrut.hp_key;
   uint64_t *bpn = scrut.pn;
-  EverCrypt_CTR_state_s *ctr_state = scrut.ctr_state;
+  NotEverCrypt_CTR_state_s *ctr_state = scrut.ctr_state;
   uint64_t last_pn = *bpn;
   EverCrypt_Error_error_code
   res =

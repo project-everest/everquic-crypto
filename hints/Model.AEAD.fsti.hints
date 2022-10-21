@@ -1,5 +1,5 @@
 [
-  ">€ Z\u001b+ÿÒ”‰—Â\u0006Xı0",
+  "C¨<äÉ\tÓ˝´±\rÏﬁ,eÖ",
   [
     [
       "Model.AEAD.tag_len",
@@ -31,7 +31,7 @@
         "typing_Mem.quic_region"
       ],
       0,
-      "f2acd174d957870f8584997e49aa8a7e"
+      "0be65a7860beaf012b7142f4bda669a8"
     ],
     [
       "Model.AEAD.plain_pkg",
@@ -40,7 +40,7 @@
       0,
       [ "@query" ],
       0,
-      "6d03803d21f6b3729e2175a69a4992f0"
+      "936d034f02d93e9c48cac85b49daa89b"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__as_bytes",
@@ -49,7 +49,7 @@
       0,
       [ "@query" ],
       0,
-      "a0f44e97f3283db8981eee32e3f27b8b"
+      "121b28b937696b603e41c788d0c42f73"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__as_bytes",
@@ -64,7 +64,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "8c442fd2c6ee94de937c24a9936e2c14"
+      "7e53bc6b2cf1478cdda0e5646da18c7c"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__repr",
@@ -73,7 +73,7 @@
       0,
       [ "@query" ],
       0,
-      "e8e61d2318c181bfcf9aec6d7265a6a0"
+      "cd82322ae90e3f918c6d51a7c47162e0"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__repr",
@@ -91,7 +91,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "fda87da3ee434e965d65b148495274ff"
+      "fe94cbdbb2ef345f2f8c3671ca8bf9b6"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__mk",
@@ -100,7 +100,7 @@
       0,
       [ "@query" ],
       0,
-      "9ca4903d76e46d0fb09b668d0e86147f"
+      "73bba19c0e5cdaaf66f7030a8b909837"
     ],
     [
       "Model.AEAD.__proj__PlainPkg__item__mk",
@@ -118,7 +118,7 @@
         "token_correspondence_Model.AEAD.__proj__PlainPkg__item__plain"
       ],
       0,
-      "17a4cf5f59228b463b98954e1e52efcd"
+      "b9b7795f0b496ec944edbbcaa86fd501"
     ],
     [
       "Model.AEAD.plain_as_bytes",
@@ -127,7 +127,7 @@
       0,
       [ "@query" ],
       0,
-      "113eeead75ad6d156bc88792ce794e94"
+      "1bbfce0439f014bf7331a6d97f675de8"
     ],
     [
       "Model.AEAD.plain_repr",
@@ -136,7 +136,7 @@
       0,
       [ "@query", "equation_Model.AEAD.plain_as_bytes" ],
       0,
-      "f1d4aab51122d19200120fcd593b2e44"
+      "5b480b89b4eed6ba0319c311fb3fc715"
     ],
     [
       "Model.AEAD.cipher",
@@ -164,7 +164,7 @@
         "typing_FStar.UInt32.v", "typing_Model.AEAD.tag_len"
       ],
       0,
-      "ea825cd6c481bb6cefd264438d166462"
+      "fc3dba2f4383cb258465f0f77be8c8ce"
     ],
     [
       "Model.AEAD.ad",
@@ -176,7 +176,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "4232ef59df078bcf128b74d9e3dcfc68"
+      "ed76e079569223a243a6ff2ca9288d2a"
     ],
     [
       "Model.AEAD.nonce",
@@ -197,7 +197,7 @@
         "typing_FStar.UInt8.t"
       ],
       0,
-      "71a2e33aeafad8e20386191ba944ee44"
+      "065de63b81b860410e6ed0ee6978c666"
     ],
     [
       "Model.AEAD.lemma_max_hash_len",
@@ -207,18 +207,37 @@
       [
         "@MaxIFuel_assumption",
         "@fuel_correspondence_Prims.pow2.fuel_instrumented", "@query",
-        "constructor_distinct_Tm_unit", "equation_Prims.nat",
+        "constructor_distinct_FStar.Pervasives.Native.None",
+        "constructor_distinct_Lib.IntTypes.S16",
+        "constructor_distinct_Lib.IntTypes.S32",
+        "constructor_distinct_Lib.IntTypes.S8",
+        "constructor_distinct_Lib.IntTypes.U16",
+        "constructor_distinct_Lib.IntTypes.U32",
+        "constructor_distinct_Lib.IntTypes.U8",
+        "constructor_distinct_Tm_unit",
+        "disc_equation_FStar.Pervasives.Native.Some",
+        "equality_tok_Lib.IntTypes.U1@tok",
+        "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.unsigned",
+        "equation_Prims.nat", "equation_Prims.pos", "equation_Spec.AES.gf8",
+        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
         "equation_Spec.Hash.Definitions.hash_length",
         "equation_Spec.Hash.Definitions.hash_word_length",
         "equation_Spec.Hash.Definitions.max_input_length",
         "equation_Spec.Hash.Definitions.word_length", "int_inversion",
         "primitive_Prims.op_Multiply", "primitive_Prims.op_Subtraction",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
+        "proj_equation_Spec.GaloisField.GF_t",
+        "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
+        "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
+        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t",
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "2f58be98d18a74a978b049e4cff6f74c"
+      "5e383acb37aae14138d480e97e81b482"
     ],
     [
       "Model.AEAD.traffic_secret",
@@ -235,7 +254,7 @@
         "typing_Spec.Hash.Definitions.word_length"
       ],
       0,
-      "6b23b724a34fcbfb0fad8518f8477dbc"
+      "f379adc85623f956a8c4d6355a3cedec"
     ],
     [
       "Model.AEAD.gen",
@@ -247,7 +266,7 @@
         "projection_inverse_BoxBool_proj_0"
       ],
       0,
-      "5a186ee5779ef6a177c08e3764cb64d2"
+      "2b98fb2d9397d0d7a7c20f283e2626bb"
     ],
     [
       "Model.AEAD.coerce",
@@ -256,7 +275,7 @@
       0,
       [ "@query" ],
       0,
-      "d4d3ded01dd11667c200c462a47f3c7e"
+      "8d701d4f8f410f8994b5b92b5c764feb"
     ],
     [
       "Model.AEAD.quic_coerce",
@@ -271,15 +290,22 @@
         "constructor_distinct_FStar.Integers.W32",
         "constructor_distinct_FStar.Integers.W8",
         "constructor_distinct_FStar.Integers.Winfinite",
+        "constructor_distinct_FStar.Pervasives.Native.Some",
+        "constructor_distinct_Lib.IntTypes.S32",
+        "constructor_distinct_Lib.IntTypes.S8",
         "constructor_distinct_Lib.IntTypes.U1",
         "constructor_distinct_Lib.IntTypes.U128",
         "constructor_distinct_Lib.IntTypes.U16",
+        "constructor_distinct_Lib.IntTypes.U32",
+        "constructor_distinct_Lib.IntTypes.U64",
         "constructor_distinct_Lib.IntTypes.U8",
         "constructor_distinct_Spec.AES.AES128",
         "constructor_distinct_Spec.AES.AES256",
         "constructor_distinct_Spec.Agile.Cipher.AES128",
         "constructor_distinct_Spec.Agile.Cipher.AES256",
         "constructor_distinct_Spec.Agile.Cipher.CHACHA20",
+        "disc_equation_FStar.Pervasives.Native.None",
+        "disc_equation_FStar.Pervasives.Native.Some",
         "equality_tok_FStar.Integers.W16@tok",
         "equality_tok_FStar.Integers.W32@tok",
         "equality_tok_FStar.Integers.W8@tok",
@@ -299,6 +325,7 @@
         "equation_Model.Indexing.ha",
         "equation_Model.Indexing.is_supported_aead",
         "equation_Model.Indexing.is_supported_hash", "equation_Prims.nat",
+        "equation_Prims.pos", "equation_Prims.squash",
         "equation_QUIC.Spec.Base.lbytes",
         "equation_QUIC.Spec.Crypto.keysized",
         "equation_QUIC.Spec.Crypto.supported_hash", "equation_Spec.AES.gf8",
@@ -306,23 +333,34 @@
         "equation_Spec.Agile.AEAD.cipher_alg_of_supported_alg",
         "equation_Spec.Agile.AEAD.key_length",
         "equation_Spec.Agile.AEAD.lbytes", "equation_Spec.Agile.AEAD.uint8",
+        "equation_Spec.Agile.AEAD.uu___2",
         "equation_Spec.Agile.Cipher.aes_alg_of_alg",
         "equation_Spec.Agile.Cipher.key_length",
         "equation_Spec.Chacha20.size_key", "equation_Spec.GaloisField.gf",
         "equation_Spec.Hash.Definitions.block_length",
         "equation_Spec.Hash.Definitions.block_word_length",
         "equation_Spec.Hash.Definitions.hash_length",
-        "equation_Spec.Hash.Definitions.word_length", "int_inversion",
+        "equation_Spec.Hash.Definitions.hash_word_length",
+        "equation_Spec.Hash.Definitions.less_than_max_input_length",
+        "equation_Spec.Hash.Definitions.max_input_length",
+        "equation_Spec.Hash.Definitions.word_length",
+        "fuel_guarded_inversion_Spec.Agile.AEAD.alg",
+        "function_token_typing_Spec.Agile.AEAD.uu___2", "int_inversion",
+        "inversion-interp", "lemma_FStar.Pervasives.invertOption",
         "lemma_FStar.UInt.pow2_values",
         "lemma_Model.AEAD.lemma_max_hash_len", "primitive_Prims.op_Addition",
-        "primitive_Prims.op_Multiply",
+        "primitive_Prims.op_LessThanOrEqual", "primitive_Prims.op_Multiply",
+        "proj_equation_FStar.Pervasives.Native.Some_v",
         "proj_equation_Model.AEAD.Mkinfo__halg",
         "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxBool_proj_0",
         "projection_inverse_BoxInt_proj_0",
         "projection_inverse_FStar.Integers.Signed__0",
         "projection_inverse_FStar.Integers.Unsigned__0",
+        "projection_inverse_FStar.Pervasives.Native.Some_a",
+        "projection_inverse_FStar.Pervasives.Native.Some_v",
         "projection_inverse_Spec.GaloisField.GF_t",
+        "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_51cadc3a2398a70dfd1dc2e32d65a998",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_8735ec84cea50366b5e7faa01ec2ed3b",
@@ -333,6 +371,8 @@
         "refinement_interpretation_Tm_refine_c8dd98bb91cb1ba6963e5299b3babaa4",
         "refinement_interpretation_Tm_refine_cf399e1cb8555167d1aa861a020e3133",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "refinement_kinding_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
+        "typing_FStar.Pervasives.Native.uu___is_Some",
         "typing_Model.AEAD.__proj__Mkinfo___item__alg",
         "typing_Model.AEAD.__proj__Mkinfo___item__halg",
         "typing_Model.AEAD.is_safe",
@@ -343,10 +383,11 @@
         "typing_Spec.Agile.Cipher.key_length",
         "typing_Spec.Chacha20.size_key",
         "typing_Spec.GaloisField.__proj__GF__item__t",
+        "typing_Spec.Hash.Definitions.max_input_length",
         "typing_tok_Spec.Agile.Cipher.AES256@tok"
       ],
       0,
-      "228bb7d6d5c81361aa3e2691e6fffd01"
+      "0d8005d21931a21a413e0cacf77e459e"
     ],
     [
       "Model.AEAD.fresh_nonce_snoc",
@@ -369,7 +410,7 @@
         "typing_Model.AEAD.wentry_for_nonce", "typing_Model.AEAD.wgetinfo"
       ],
       0,
-      "65feae07fb83a498a50d72efbf77e12a"
+      "3d4d0902ef38d4b0e1b97c9079d2fc15"
     ],
     [
       "Model.AEAD.encrypt",
@@ -482,7 +523,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "4681e122a2fb5d19170a7a4bcaa4b67d"
+      "4a5dc64e62cd3959eb7ff031e07c37a5"
     ],
     [
       "Model.AEAD.decrypt",
@@ -592,7 +633,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "6c06ff26305dfc42fb05581d8f261b41"
+      "5678c0c42eb72750afb0787a57aa5eca"
     ]
   ]
 ]

@@ -1,5 +1,5 @@
 [
-  "MãÃñÆt}h|yÀë…j„Ì",
+  "L„ðu$±†C›\u0015ŠÝ¨Â3w",
   [
     [
       "QUICTest.idx",
@@ -35,7 +35,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "3d75d6bb13b012b457411240c225ddc7"
+      "c3537c2f16fc83c60710c9c9391a4dda"
     ],
     [
       "QUICTest.traffic_secret_length_correct",
@@ -44,7 +44,7 @@
       1,
       [ "@query" ],
       0,
-      "27c4d78837ca38567e055c29a1f805ea"
+      "b06f3fb0db316585565ec88f99e29ed5"
     ],
     [
       "QUICTest.plain_length_correct",
@@ -53,7 +53,7 @@
       1,
       [ "@query" ],
       0,
-      "c4f652430f542f4fc43807b1993d9d39"
+      "5e9c79bc24f79a8e3374bd086169d911"
     ],
     [
       "QUICTest.is_success_body",
@@ -69,12 +69,7 @@
         "constructor_distinct_EverCrypt.Error.Success",
         "constructor_distinct_EverCrypt.Error.UnsupportedAlgorithm",
         "constructor_distinct_Lib.IntTypes.U8",
-        "disc_equation_EverCrypt.Error.AuthenticationFailure",
-        "disc_equation_EverCrypt.Error.DecodeError",
-        "disc_equation_EverCrypt.Error.InvalidIVLength",
-        "disc_equation_EverCrypt.Error.InvalidKey",
         "disc_equation_EverCrypt.Error.Success",
-        "disc_equation_EverCrypt.Error.UnsupportedAlgorithm",
         "equality_tok_EverCrypt.Error.AuthenticationFailure@tok",
         "equality_tok_EverCrypt.Error.DecodeError@tok",
         "equality_tok_EverCrypt.Error.InvalidIVLength@tok",
@@ -87,13 +82,12 @@
         "equation_FStar.Monotonic.HyperStack.mem",
         "equation_Lib.IntTypes.unsigned", "equation_Spec.AES.gf8",
         "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
-        "fuel_guarded_inversion_EverCrypt.Error.error_code",
         "proj_equation_Spec.GaloisField.GF_t",
-        "projection_inverse_BoxBool_proj_0",
         "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_05e15190c946858f68c69156f585f95a",
         "refinement_interpretation_Tm_refine_365abba901205a01d0ef28ebf2198c47",
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
+        "typing_EverCrypt.Error.uu___is_Success",
         "typing_FStar.Monotonic.HyperHeap.rid_freeable",
         "typing_FStar.Monotonic.HyperHeap.root",
         "typing_Lib.IntTypes.unsigned", "typing_Spec.AES.gf8",
@@ -101,7 +95,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "4cdf62a32eb44914e6eab27dd34f492b"
+      "b939fb87953153348345d21d0f35d2d0"
     ],
     [
       "QUICTest.is_success",
@@ -110,7 +104,7 @@
       1,
       [ "@query" ],
       0,
-      "74a2a091b029f5e96699baa2fde0bd4c"
+      "23cf02b2afe5665bcfe6d6128af74261"
     ],
     [
       "QUICTest.check_is_true_body",
@@ -132,7 +126,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "8aa0ccac1cd5ad809d8095e1578c5a4c"
+      "350d0a6393cd8b8e00db707fb7b6a193"
     ],
     [
       "QUICTest.check_is_true",
@@ -141,7 +135,7 @@
       1,
       [ "@query" ],
       0,
-      "ef08f54b79cd8255897fa38a4b72ab1f"
+      "b88cc9872f5c6eb5b4a869585c3cbea0"
     ],
     [
       "QUICTest.is_equal",
@@ -185,7 +179,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "d5b8e645da1fbac729dd79f72259cf15"
+      "70f8e1042f623bf10acd25bd850b4bd0"
     ],
     [
       "QUICTest.used_in_not_unused_in_disjoint",
@@ -194,7 +188,7 @@
       1,
       [ "@query" ],
       0,
-      "4e978decdb39a5fe6ba3fe907f43f90e"
+      "ff67b153d77c7e6ed46c80387f63fabb"
     ],
     [
       "QUICTest.test",
@@ -610,7 +604,7 @@
         "typing_tok_Spec.Hash.Definitions.SHA2_256@tok"
       ],
       0,
-      "7790c79facaa8f31d59c9a0cfe4ce9f4"
+      "67325447aa9f8b5210e67cbec03c4296"
     ]
   ]
 ]

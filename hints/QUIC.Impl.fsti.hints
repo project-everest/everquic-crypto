@@ -11,7 +11,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "e6b567572b76b07bf5f9f36dcffe0737"
+      "bb6423a6e21493ad322256dd364dbdf6"
     ],
     [
       "QUIC.Impl.encrypt_pre",
@@ -25,7 +25,7 @@
         "refinement_interpretation_Tm_refine_69c8dece313a8e5d48c4e41a27b5d1ae"
       ],
       0,
-      "2b558649aa13d603752f5cf27bc78923"
+      "e25928b6e785482ca38dcf9405510f85"
     ],
     [
       "QUIC.Impl.encrypt_post",
@@ -37,7 +37,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "cc6b2158b93703c6ef3bbd18792b12ca"
+      "6bcadd66452e09dfd56dcd3353c65270"
     ],
     [
       "QUIC.Impl.encrypt_post",
@@ -79,15 +79,16 @@
         "equality_tok_Lib.IntTypes.PUB@tok",
         "equality_tok_Lib.IntTypes.SEC@tok",
         "equality_tok_Lib.IntTypes.U1@tok",
-        "equality_tok_Lib.IntTypes.U8@tok", "equation_EverCrypt.CTR.state",
-        "equation_FStar.UInt.fits", "equation_FStar.UInt.max_int",
-        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
-        "equation_Lib.IntTypes.bits", "equation_Lib.IntTypes.int_t",
-        "equation_Lib.IntTypes.minint", "equation_Lib.IntTypes.pub_int_t",
-        "equation_Lib.IntTypes.uint8", "equation_Lib.IntTypes.unsigned",
-        "equation_Lib.Sequence.lseq", "equation_Lib.Sequence.seq",
-        "equation_LowStar.Buffer.buffer", "equation_LowStar.Buffer.pointer",
-        "equation_LowStar.Buffer.trivial_preorder", "equation_Prims.nat",
+        "equality_tok_Lib.IntTypes.U8@tok", "equation_FStar.UInt.fits",
+        "equation_FStar.UInt.max_int", "equation_FStar.UInt.size",
+        "equation_FStar.UInt.uint_t", "equation_Lib.IntTypes.bits",
+        "equation_Lib.IntTypes.int_t", "equation_Lib.IntTypes.minint",
+        "equation_Lib.IntTypes.pub_int_t", "equation_Lib.IntTypes.uint8",
+        "equation_Lib.IntTypes.unsigned", "equation_Lib.Sequence.lseq",
+        "equation_Lib.Sequence.seq", "equation_LowStar.Buffer.buffer",
+        "equation_LowStar.Buffer.pointer",
+        "equation_LowStar.Buffer.trivial_preorder",
+        "equation_NotEverCrypt.CTR.state", "equation_Prims.nat",
         "equation_QUIC.Impl.Header.Base.g_header",
         "equation_QUIC.Impl.Header.Base.is_retry",
         "equation_QUIC.Impl.Header.Base.pn_length",
@@ -139,9 +140,9 @@
         "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
         "refinement_interpretation_Tm_refine_df7141b051e9600374b6a7fbebd3eca8",
         "refinement_interpretation_Tm_refine_f13070840248fced9d9d60d77bdae3ec",
-        "typing_EverCrypt.CTR.state_s", "typing_FStar.UInt64.v",
-        "typing_LowStar.Buffer.trivial_preorder",
+        "typing_FStar.UInt64.v", "typing_LowStar.Buffer.trivial_preorder",
         "typing_LowStar.Monotonic.Buffer.as_seq",
+        "typing_NotEverCrypt.CTR.state_s",
         "typing_QUIC.Impl.Header.Base.__proj__BLong__item__spec",
         "typing_QUIC.Spec.Crypto.supported_aead", "typing_QUIC.UInt62.bound",
         "typing_Spec.AES.gf8",
@@ -151,7 +152,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "2ba8d3e8ae616b9410f04fa7f378c839"
+      "969ff44435ec24673b09a2113c1a3c35"
     ],
     [
       "QUIC.Impl.encrypt",
@@ -163,7 +164,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "4d9fd4b462578f77255fcc534a6f7831"
+      "8f8b93984128c78180dcd60ac5db544e"
     ],
     [
       "QUIC.Impl.decrypt_pre",
@@ -175,7 +176,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "67c7326d6dce3b3c204d1f809e49a5ae"
+      "e77a3e73bdaaf04afc5900622f341527"
     ],
     [
       "QUIC.Impl.decrypt_pre",
@@ -189,7 +190,7 @@
         "refinement_interpretation_Tm_refine_69c8dece313a8e5d48c4e41a27b5d1ae"
       ],
       0,
-      "bafa3ecebf2850014bd7f475f3aa6e56"
+      "d5e881f488341c5ef5c736547f156249"
     ],
     [
       "QUIC.Impl.decrypt_post",
@@ -201,7 +202,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "aa3cc09748e263e60a6d1e98cba79605"
+      "bb0ea5cba1455966f7d7bb76cbe1bf9f"
     ],
     [
       "QUIC.Impl.decrypt_post",
@@ -330,7 +331,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "d33d9d9ed259afaa7b203219bb2ce57e"
+      "bb9f9f6169391586bfdb592f7b5ea3e4"
     ],
     [
       "QUIC.Impl.decrypt",
@@ -342,7 +343,7 @@
         "equation_Spec.Agile.AEAD.is_supported_alg"
       ],
       0,
-      "e837999ebfdcc7e12ceadfc564aacb9e"
+      "efb73622ed4fbed83f835a0a20805e66"
     ]
   ]
 ]
