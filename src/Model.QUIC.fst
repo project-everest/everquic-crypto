@@ -203,6 +203,13 @@ let wframe_pnlog #k w t h0 l h1 =
 let rframe_pnlog #k #w r t h0 l h1 =
   PNE.frame_table w.pne l h0 h1
 
+(* HACK, the interleaving of `val coerce` into this file fails to verify
+without increasing the rlimit, but increasing it in the fsti wouldn't
+take effect here (see FStar issue #2854 and the others linked from
+there. So, increase rlimit here and pop it after `let coerce`, so we are
+sure to catch it. *)
+#push-options "--z3rlimit 20"
+
 let create k u u1 u2 init =
   let open Model.Helpers in
   let alg = u1.AEAD.alg in
@@ -238,6 +245,8 @@ let coerce k u u1 u2 init ts =
   AEAD.wframe_invariant M.loc_none ae h1 h3;
   PNE.frame_invariant pne M.loc_none h2 h3;
   Writer u init (reveal siv) ae u2 pne ctr
+
+#pop-options (* /HACK *)
 
 let createReader rgn #k w =
   let h0 = get () in
