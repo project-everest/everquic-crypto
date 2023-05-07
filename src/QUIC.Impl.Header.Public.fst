@@ -382,13 +382,13 @@ let read_header_body
   | (| Long, (| (), (| ZeroRTT, (protected_bits, ()) |) |) |) ->
     read_header_body_long_zero_rtt sl cid_len protected_bits len
 
-#push-options "--z3rlimit 512 --z3cliopt smt.arith.nl=false"
+#push-options "--z3rlimit 1024 --z3cliopt smt.arith.nl=false --fuel 4 --ifuel 4 --query_stats"
 
 let read_header packet packet_len cid_len =
   let h0 = HST.get () in
   let sl = LP.make_slice packet packet_len in
   LP.valid_facts (parse_header cid_len) h0 sl 0ul;
-  assert (B.as_seq h0 packet `Seq.equal` LP.bytes_of_slice_from h0 sl 0ul);
+  assert_spinoff (B.as_seq h0 packet `Seq.equal` LP.bytes_of_slice_from h0 sl 0ul);
   assert_norm (
     let k = parse_header_kind cid_len in
     Some? k.LP.parser_kind_high /\
@@ -859,7 +859,7 @@ val write_header_aux
     Seq.slice (B.as_seq h1 out) 0 (U32.v len) == s 
   ))
 
-#push-options "--z3rlimit 32"
+#push-options "--z3rlimit 64"
 
 #restart-solver
 

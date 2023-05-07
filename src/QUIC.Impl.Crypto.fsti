@@ -43,7 +43,7 @@ val label_hp : (label_hp : IB.ibuffer U8.t {
 /// Actual code
 /// -----------
 
-#push-options "--max_ifuel 1 --initial_ifuel 1"
+#push-options "--max_ifuel 1 --initial_ifuel 1 --z3rlimit 10"
 /// One ifuel for inverting on the hash algorithm for computing bounds (the
 /// various calls to assert_norm should help ensure this proof goes through
 /// reliably). Note that I'm breaking from the usual convention where lengths
@@ -67,4 +67,3 @@ val derive_secret: a: ha ->
       B.as_seq h1 dst == derive_secret a (B.as_seq h0 secret)
         (IB.as_seq h0 label) (U8.v dst_len))
 #pop-options
-

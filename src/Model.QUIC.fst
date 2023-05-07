@@ -208,7 +208,7 @@ without increasing the rlimit, but increasing it in the fsti wouldn't
 take effect here (see FStar issue #2854 and the others linked from
 there. So, increase rlimit here and pop it after `let coerce`, so we are
 sure to catch it. *)
-#push-options "--z3rlimit 20"
+#push-options "--z3rlimit 40"
 
 let create k u u1 u2 init =
   let open Model.Helpers in
@@ -246,7 +246,7 @@ let coerce k u u1 u2 init ts =
   PNE.frame_invariant pne M.loc_none h2 h3;
   Writer u init (reveal siv) ae u2 pne ctr
 
-#pop-options (* /HACK *)
+#push-options "--z3rlimit 400 --query_stats"
 
 let createReader rgn #k w =
   let h0 = get () in
@@ -256,10 +256,14 @@ let createReader rgn #k w =
   let aer = AEAD.gen_reader w.ae in
   Reader aer last
 
+(* Another HACK: set_pn gets interleaved here *)
+
+#pop-options
+#pop-options
+
+#push-options "--z3rlimit 256 --fuel 0"
 private let lemma_eq_add (a b c:nat) : Lemma (requires a == b - c)
   (ensures a + c == b) = ()
-
-#push-options "--z3rlimit 128 --fuel 0"
 
 let set_pne (h:Spec.header) (#ln:pnl) (pne:PNE.pne_cipher ln) (c1:Spec.bytes)
   : Pure Spec.packet
@@ -333,8 +337,9 @@ let encrypt #k w h #l p =
     let k1, k2 = writer_leak w in
     let plain = (writer_ae_info w).AEAD.plain_pkg.AEAD.repr (dfst k) l p in
     TSpec.encrypt alg (hide k1) (hide w.siv) (hide k2) h (reveal #l plain)
-#pop-options
 
 /// Decrypt follows in a similar fashion. A complete proof will be provided for the final version.
 
 let decrypt #_ #_ _ _ _ = admit ()
+
+#pop-options

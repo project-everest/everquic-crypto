@@ -183,12 +183,14 @@ let serialize32_reduced_pn
     PN.parse_packet_number_kind
     (LP.serialize32_bounded_integer (Declassify.uint_to_nat pn_len))
 
+#push-options "--z3rlimit 16"
 let synth_packet_number_recip'
   (last: PN.last_packet_number_t)
   (pn_len: PN.packet_number_length_t)
   (pn: PN.packet_number_t' last pn_len)
 : Tot (npn: LP.bounded_integer (Secret.v pn_len)  { npn == PN.synth_packet_number_recip last pn_len pn })
 = U32.uint_to_t (PN.reduce_pn' (Declassify.uint_to_nat pn_len - 1) (Declassify.uint_to_nat pn))
+#pop-options
 
 let serialize32_packet_number
   (last: PN.last_packet_number_t)
@@ -493,6 +495,7 @@ let pn_offset
   let (| ph, _ |) = synth_header_recip cid_len last h in
   Seq.length (LP.serialize_tot_seq_of_serializer32 (serialize32_public_header cid_len) ph)
 
+#push-options "--z3rlimit 32"
 let header_encrypt
   (a:ea)
   (hpk: Cipher.key (AEAD.cipher_alg_of_supported_alg a))
@@ -517,6 +520,7 @@ let header_encrypt
     let r = Lemmas.xor_inplace r pnmask pn_offset in
     let r = Seq.cons (U8.uint_to_t f') (Seq.slice r 1 (Seq.length r)) in
     r
+#pop-options
 
 [@"opaque_to_smt"]
 let putative_pn_offset
