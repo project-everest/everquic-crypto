@@ -72,6 +72,8 @@ let incrementable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
 let receivable (#i: index) (s: state i) (h: HS.mem { invariant h s }) =
   Secret.v (g_last_packet_number s h) + 1 < pow2 62
 
+#push-options "--z3rlimit 15"
+
 val encrypt: #i:(*G.erased *)index -> (
   //let i = G.reveal i in
   s: state i ->
@@ -121,6 +123,8 @@ val encrypt: #i:(*G.erased *)index -> (
           g_next_packet_number s h1 == pn)
       | _ ->
           False))
+
+#pop-options
 
 unfold
 let decrypt_post (i: index)

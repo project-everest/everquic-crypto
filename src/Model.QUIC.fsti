@@ -199,6 +199,8 @@ val create: k:id -> u:info ->
     ))
   )
 
+#push-options "--z3rlimit 15"
+
 val coerce: k:unsafe_id -> u:info ->
   u1:AEAD.info (dfst k) -> u2:PNE.info (dsnd k) ->  
   init: pn -> ts:AEAD.traffic_secret u1.AEAD.halg ->
@@ -225,6 +227,7 @@ val coerce: k:unsafe_id -> u:info ->
     Model.Helpers.hide k2 == QUIC.Spec.derive_secret u2.PNE.halg ts
         QUIC.Spec.label_hp (PNE.key_len u2)
   )
+#pop-options
 
 val createReader: parent:rgn -> #k:id -> w:stream_writer k ->
   ST (stream_reader w)
@@ -271,11 +274,13 @@ let set_pn_long (l:Spec.long_header_specifics{not (Spec.MRetry? l)}) (pn:PN.pack
   | MZeroRTT r p pnl _ -> MZeroRTT r p pnl pn
   | MHandshake r p pnl _ -> MHandshake r p pnl pn
 
+#push-options "--z3rlimit 200"
 let set_pn (h:Spec.header{not (Spec.is_retry h)}) (pn:nat{pn <= max_ctr}) =
   let pn : PN.packet_number_t = Secret.hide (U62.uint_to_t pn) in
   match h with 
   | Spec.MLong b d s l -> Spec.MLong b d s (set_pn_long l pn)
   | Spec.MShort r s k d pnl _ -> Spec.MShort r s k d pnl pn
+#pop-options
 
 val encrypt
   (#k:id)

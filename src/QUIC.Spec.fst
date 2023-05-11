@@ -90,6 +90,8 @@ let decrypt
       | None -> Failure
       | Some plain -> Success h (Seq.seq_reveal plain) rem
 
+#push-options "--z3rlimit 20"
+
 let lemma_encrypt_correct
   a k siv hpk h cid_len last plain
 =
@@ -114,3 +116,4 @@ let lemma_encrypt_correct
     AEAD.correctness #a k iv aad (Seq.seq_hide plain)
   end
 
+#pop-options
