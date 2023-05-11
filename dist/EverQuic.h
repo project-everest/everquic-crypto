@@ -3,9 +3,6 @@
 #ifndef __EverQuic_H
 #define __EverQuic_H
 
-
-
-#include "LowStar.h"
 #include "EverQuic_EverCrypt.h"
 #include "krml/internal/target.h"
 #include "krml/internal/types.h"
@@ -13,6 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
 #define EverQuic_BInitial 0
 #define EverQuic_BZeroRTT 1
 #define EverQuic_BHandshake 2

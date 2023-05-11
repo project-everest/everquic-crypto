@@ -59,7 +59,7 @@ bool QUICTest_check_is_true_body(bool e)
   return e;
 }
 
-exit_code QUICTest_test()
+exit_code QUICTest_test(void)
 {
   EverQuic_state_s *st_enc = NULL;
   EverQuic_state_s *st_dec = NULL;

@@ -2,8 +2,6 @@
 
 #include "internal/LowParse.h"
 
-
-
 uint8_t LowParse_BitFields_get_bitfield_gen8(uint8_t x, uint32_t lo, uint32_t hi)
 {
   uint8_t op1 = x << ((uint32_t)8U - hi);
@@ -23,7 +21,7 @@ uint8_t LowParse_BitFields_set_bitfield_gen8(uint8_t x, uint32_t lo, uint32_t hi
 
 #define VALIDATOR_MAX_LENGTH ((uint64_t)4294967295U)
 
-inline bool LowParse_Low_ErrorCode_is_error(uint64_t positionOrError)
+bool LowParse_Low_ErrorCode_is_error(uint64_t positionOrError)
 {
   return positionOrError > VALIDATOR_MAX_LENGTH;
 }

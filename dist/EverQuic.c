@@ -2,8 +2,8 @@
 
 #include "EverQuic.h"
 
-#include "internal/LowStar.h"
 #include "internal/LowParse.h"
+#include "internal/EverQuic_Krmllib.h"
 #include "internal/EverQuic_EverCrypt.h"
 
 static uint64_t min64(uint64_t x, uint64_t y)
@@ -2372,17 +2372,32 @@ derive_secret(
         sw = (uint32_t)64U;
         break;
       }
-    case Spec_Hash_Definitions_SHA3_256:
-      {
-        sw = (uint32_t)32U;
-        break;
-      }
     case Spec_Hash_Definitions_Blake2S:
       {
         sw = (uint32_t)32U;
         break;
       }
     case Spec_Hash_Definitions_Blake2B:
+      {
+        sw = (uint32_t)64U;
+        break;
+      }
+    case Spec_Hash_Definitions_SHA3_224:
+      {
+        sw = (uint32_t)28U;
+        break;
+      }
+    case Spec_Hash_Definitions_SHA3_256:
+      {
+        sw = (uint32_t)32U;
+        break;
+      }
+    case Spec_Hash_Definitions_SHA3_384:
+      {
+        sw = (uint32_t)48U;
+        break;
+      }
+    case Spec_Hash_Definitions_SHA3_512:
       {
         sw = (uint32_t)64U;
         break;
@@ -2662,7 +2677,6 @@ create_in_core(
       .the_hash_alg = i.hash_alg, .the_aead_alg = i.aead_alg, .aead_state = aead_state, .iv = iv,
       .hp_key = hp_key, .pn = pn, .ctr_state = ctr_state
     };
-  KRML_CHECK_SIZE(sizeof (EverQuic_state_s), (uint32_t)1U);
   EverQuic_state_s *s1 = KRML_HOST_MALLOC(sizeof (EverQuic_state_s));
   s1[0U] = s;
   derive_secret(i.hash_alg, iv, (uint8_t)12U, traffic_secret, label_iv, (uint8_t)2U);

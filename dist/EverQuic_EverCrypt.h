@@ -3,16 +3,13 @@
 #ifndef __EverQuic_EverCrypt_H
 #define __EverQuic_EverCrypt_H
 
-
-
-#include "LowStar.h"
-#include "EverQuic_Krmllib.h"
 #include "krml/internal/target.h"
 #include "krml/internal/types.h"
 #include "krml/lowstar_endianness.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
 #define Spec_Hash_Definitions_SHA2_224 0
 #define Spec_Hash_Definitions_SHA2_256 1
 #define Spec_Hash_Definitions_SHA2_384 2
@@ -22,6 +19,11 @@
 #define Spec_Hash_Definitions_Blake2S 6
 #define Spec_Hash_Definitions_Blake2B 7
 #define Spec_Hash_Definitions_SHA3_256 8
+#define Spec_Hash_Definitions_SHA3_224 9
+#define Spec_Hash_Definitions_SHA3_384 10
+#define Spec_Hash_Definitions_SHA3_512 11
+#define Spec_Hash_Definitions_Shake128 12
+#define Spec_Hash_Definitions_Shake256 13
 
 typedef uint8_t Spec_Hash_Definitions_hash_alg;
 

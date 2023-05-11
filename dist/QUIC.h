@@ -3,8 +3,6 @@
 #ifndef __QUIC_H
 #define __QUIC_H
 
-
-
 #include "EverQuic_EverCrypt.h"
 #include "EverQuic.h"
 #include "krml/internal/target.h"
@@ -13,6 +11,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
 typedef Prims_int QUIC_nat62;
 
 Prims_int QUIC_cipher_keysize(Spec_Agile_AEAD_alg a);

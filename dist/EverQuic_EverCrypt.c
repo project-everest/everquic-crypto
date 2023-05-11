@@ -2,7 +2,8 @@
 
 #include "internal/EverQuic_EverCrypt.h"
 
-
+#include "internal/LowStar.h"
+#include "internal/EverQuic_Krmllib.h"
 
 typedef Prims_list__uint8_t *bytes;
 
@@ -35,13 +36,13 @@ static Prims_int key_size(variant v)
 
 typedef uint64_t als_ret;
 
-extern bool EverCrypt_AutoConfig2_has_aesni();
+extern bool EverCrypt_AutoConfig2_has_aesni(void);
 
-extern bool EverCrypt_AutoConfig2_has_pclmulqdq();
+extern bool EverCrypt_AutoConfig2_has_pclmulqdq(void);
 
-extern bool EverCrypt_AutoConfig2_has_avx();
+extern bool EverCrypt_AutoConfig2_has_avx(void);
 
-extern bool EverCrypt_AutoConfig2_has_sse();
+extern bool EverCrypt_AutoConfig2_has_sse(void);
 
 static variant aes_alg_of_alg(Spec_Agile_Cipher_cipher_alg a)
 {
@@ -284,13 +285,6 @@ static Spec_Agile_Cipher_cipher_alg cipher_alg_of_impl(impl i)
   }
 }
 
-typedef struct EverCrypt_AEAD_state_s_s
-{
-  impl impl;
-  uint8_t *ek;
-}
-EverCrypt_AEAD_state_s;
-
 extern uint64_t
 gctr128_bytes(
   uint8_t *x0,
@@ -375,7 +369,6 @@ NotEverCrypt_CTR_create_in(
             uint64_t scrut0 = aes128_keyhash_init(keys_b, hkeys_b);
             uint8_t *iv_ = KRML_HOST_CALLOC((uint32_t)16U, sizeof (uint8_t));
             memcpy(iv_, iv, iv_len * sizeof (uint8_t));
-            KRML_CHECK_SIZE(sizeof (NotEverCrypt_CTR_state_s), (uint32_t)1U);
             NotEverCrypt_CTR_state_s *p = KRML_HOST_MALLOC(sizeof (NotEverCrypt_CTR_state_s));
             p[0U]
             =
@@ -416,7 +409,6 @@ NotEverCrypt_CTR_create_in(
             uint64_t scrut0 = aes256_keyhash_init(keys_b, hkeys_b);
             uint8_t *iv_ = KRML_HOST_CALLOC((uint32_t)16U, sizeof (uint8_t));
             memcpy(iv_, iv, iv_len * sizeof (uint8_t));
-            KRML_CHECK_SIZE(sizeof (NotEverCrypt_CTR_state_s), (uint32_t)1U);
             NotEverCrypt_CTR_state_s *p = KRML_HOST_MALLOC(sizeof (NotEverCrypt_CTR_state_s));
             p[0U]
             =
@@ -444,7 +436,6 @@ NotEverCrypt_CTR_create_in(
         KRML_CHECK_SIZE(sizeof (uint8_t), iv_len);
         uint8_t *iv_ = KRML_HOST_CALLOC(iv_len, sizeof (uint8_t));
         memcpy(iv_, iv, iv_len * sizeof (uint8_t));
-        KRML_CHECK_SIZE(sizeof (NotEverCrypt_CTR_state_s), (uint32_t)1U);
         NotEverCrypt_CTR_state_s *p = KRML_HOST_MALLOC(sizeof (NotEverCrypt_CTR_state_s));
         p[0U]
         =

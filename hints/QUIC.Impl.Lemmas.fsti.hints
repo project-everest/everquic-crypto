@@ -24,7 +24,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "029fb72f182a9d03eccbbc4cd6da6633"
+      "1bacfadfd1afa5cce51674d495cf2e1c"
     ],
     [
       "QUIC.Impl.Lemmas.hash_is_keysized_",
@@ -32,33 +32,17 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query",
-        "constructor_distinct_FStar.Integers.W64",
-        "constructor_distinct_FStar.Integers.W8",
-        "constructor_distinct_Lib.IntTypes.U1",
-        "constructor_distinct_Lib.IntTypes.U64",
-        "constructor_distinct_Lib.IntTypes.U8",
-        "equality_tok_FStar.Integers.W64@tok",
-        "equality_tok_FStar.Integers.W8@tok",
-        "equality_tok_Lib.IntTypes.U1@tok",
-        "equality_tok_Lib.IntTypes.U8@tok", "equation_QUIC.Spec.Crypto.ha",
-        "equation_Spec.AES.gf8", "equation_Spec.AES.irred",
-        "equation_Spec.GaloisField.gf",
-        "equation_Spec.Hash.Definitions.hash_length",
-        "equation_Spec.Hash.Definitions.hash_word_length",
-        "equation_Spec.Hash.Definitions.word_length",
-        "fuel_guarded_inversion_Spec.Hash.Definitions.hash_alg",
-        "primitive_Prims.op_Multiply", "proj_equation_Spec.GaloisField.GF_t",
-        "projection_inverse_BoxInt_proj_0",
-        "projection_inverse_FStar.Integers.Signed__0",
-        "projection_inverse_FStar.Integers.Unsigned__0",
-        "projection_inverse_Spec.GaloisField.GF_t",
+        "@MaxIFuel_assumption", "@query", "bool_inversion",
+        "equation_QUIC.Spec.Crypto.ha",
+        "equation_QUIC.Spec.Crypto.supported_hash",
+        "equation_Spec.Hash.Definitions.is_shake",
+        "projection_inverse_BoxBool_proj_0",
         "refinement_interpretation_Tm_refine_837aaa25c6967f53b930fd73a3026b51",
-        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
-        "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
+        "typing_QUIC.Spec.Crypto.supported_hash",
+        "typing_Spec.Hash.Definitions.is_shake"
       ],
       0,
-      "79efb5e2c1303bbb647c2681d84fd493"
+      "518efa18ef0642899565e0884181b9f4"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice",
@@ -84,7 +68,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "9634c741db2be8849f9ea392b59e7bc1"
+      "abfc799d9a5a4173083712cd0f549a9e"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice3",
@@ -110,7 +94,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e85f68659e8a8803782dfcde12d84308"
+      "05215934b4e22c535aeb344574fbf5fe"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice0",
@@ -135,7 +119,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "d808037cb7c6b850543abc1ca62743ca"
+      "9d5fdce9ec2656f5bf76730a41d49e11"
     ],
     [
       "QUIC.Impl.Lemmas.lemma_slice1",
@@ -161,7 +145,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "e741bebc4c94a583422c79902c10bb96"
+      "42016e5ff30b318547bd8a6929d50629"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_upd",
@@ -178,7 +162,7 @@
         "typing_FStar.Seq.Base.length"
       ],
       0,
-      "b74033fe372ec9ec8b1997900ef2707c"
+      "c321adcd582ab3f4a8e649451a7838ef"
     ],
     [
       "QUIC.Impl.Lemmas.pointwise_seq_map2",
@@ -207,7 +191,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "7a4036e8530427b7aeef960e324fffe6"
+      "b3508172c6d4a4702e32b3466150b8fb"
     ],
     [
       "QUIC.Impl.Lemmas.and_inplace_commutative",
@@ -224,7 +208,7 @@
         "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
       ],
       0,
-      "f815fe9c5a7c0c4dd73396f61f88285e"
+      "63dabdfe4bd864d34a32b30d94f921fa"
     ],
     [
       "QUIC.Impl.Lemmas.seq_map2_xor0",
@@ -245,7 +229,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "86b37fbdb7179ba914f218672d7fb422"
+      "a0d78a2becc3e8357436137139502c63"
     ],
     [
       "QUIC.Impl.Lemmas.upd_op_inplace",
@@ -263,7 +247,7 @@
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2"
       ],
       0,
-      "75b3119fe80f469018b330ccc6882f26"
+      "6989a7522f0058dd76211161791e68e3"
     ],
     [
       "QUIC.Impl.Lemmas.be_to_n_slice",
@@ -297,7 +281,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "5b66b24f8425ee64f4177afda96f5e34"
+      "3e09c70006c42f7757bef59b0ddd6d9c"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower",
@@ -323,7 +307,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "585316eb315b2f0e8e06f2f86534d863"
+      "c83ebc0ca31b07eee1551086ff8b8613"
     ],
     [
       "QUIC.Impl.Lemmas.n_to_be_lower'",
@@ -347,7 +331,7 @@
         "typing_Spec.AES.gf8", "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "d81959033d8a3f26c7721075073f5d04"
+      "9716cd7c9f8e4b44a9a8348d6824370a"
     ],
     [
       "QUIC.Impl.Lemmas.op_inplace",
@@ -383,7 +367,7 @@
         "typing_Spec.GaloisField.__proj__GF__item__t"
       ],
       0,
-      "41a3400008cea39be7ba4ec631c32f2c"
+      "56fbc08dba37d9c371af889fd8f1148d"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace",
@@ -392,7 +376,7 @@
       1,
       [ "@query" ],
       0,
-      "cf785fbc451e6b7f194bdcfaf5afac8f"
+      "d39229d525966f7fea812fc8e8dc2255"
     ],
     [
       "QUIC.Impl.Lemmas.secret_and_inplace_eq",
@@ -420,7 +404,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "a1c78770e79ab37314fff969fd25a628"
+      "e935c26ff805c899dbb1d71298d679a0"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace",
@@ -429,7 +413,7 @@
       1,
       [ "@query" ],
       0,
-      "7b90b5a3a5191e75caa56e7680846fca"
+      "b46cdf389515e1c026ed31b105a95d49"
     ],
     [
       "QUIC.Impl.Lemmas.secret_xor_inplace_eq",
@@ -457,7 +441,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "b4b5a2ed693028904374244d0d4b90f0"
+      "b92602d111e91976c8a79c19cdebd4da"
     ]
   ]
 ]

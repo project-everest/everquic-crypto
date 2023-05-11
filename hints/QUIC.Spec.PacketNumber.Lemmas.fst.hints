@@ -16,7 +16,7 @@
         "refinement_interpretation_Tm_refine_59a09d3c32ea205d2c3ab2f791e22038"
       ],
       0,
-      "2a02a8054b3ade620280b4e524fbe78f"
+      "daec3cd009f451354fde2642bb342d54"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound_aux",
@@ -38,7 +38,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "00340251407d67ff3d3ebc3dd8c7be35"
+      "4615c73e1e74b4c9af7d30abec33f188"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.lemma_replace_modulo_bound",
@@ -53,9 +53,9 @@
         "equation_QUIC.Spec.PacketNumber.Lemmas.replace_modulo_",
         "equation_with_fuel_Prims.pow2.fuel_instrumented", "int_inversion",
         "int_typing", "lemma_FStar.UInt.pow2_values",
-        "primitive_Prims.op_Addition", "primitive_Prims.op_Modulus",
-        "primitive_Prims.op_Multiply", "primitive_Prims.op_Subtraction",
-        "projection_inverse_BoxInt_proj_0",
+        "primitive_Prims.op_Addition", "primitive_Prims.op_Division",
+        "primitive_Prims.op_Modulus", "primitive_Prims.op_Multiply",
+        "primitive_Prims.op_Subtraction", "projection_inverse_BoxInt_proj_0",
         "projection_inverse_FStar.Pervasives.Native.Mktuple2__1",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_774ba3f728d91ead8ef40be66c9802e5",
@@ -65,7 +65,7 @@
         "typing_Prims.pow2"
       ],
       0,
-      "5cd22afc8d28018d9c52e88cc8f4a4dc"
+      "fec5aab88662a8b0ea67178728180902"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -74,7 +74,7 @@
       1,
       [ "@query" ],
       0,
-      "8e51b18067d10639bc01bc2a222edb8f"
+      "a9cd33b7a29ba99e830dd88627ca6750"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.logand_mask",
@@ -105,7 +105,7 @@
         "typing_Prims.pow2", "unit_inversion", "unit_typing"
       ],
       0,
-      "1bce603200e56732b6796ca1028cf3cc"
+      "eba88218186e2283481a5214b9bef415"
     ],
     [
       "QUIC.Spec.PacketNumber.Lemmas.replace_modulo",
@@ -200,7 +200,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "ffdfba0ea10177112f641098c3a29334"
+      "5d2334dfe715cb1888d8f000e51ac412"
     ]
   ]
 ]
