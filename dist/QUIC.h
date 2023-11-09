@@ -12,9 +12,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-typedef Prims_int QUIC_nat62;
+typedef krml_checked_int_t QUIC_nat62;
 
-Prims_int QUIC_cipher_keysize(Spec_Agile_AEAD_alg a);
+krml_checked_int_t QUIC_cipher_keysize(Spec_Agile_AEAD_alg a);
 
 typedef uint8_t QUIC_u2;
 

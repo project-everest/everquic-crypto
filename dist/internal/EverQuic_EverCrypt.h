@@ -19,7 +19,7 @@
 
 typedef uint8_t Spec_Agile_Cipher_cipher_alg;
 
-Prims_int Spec_Agile_Cipher_key_length(Spec_Agile_Cipher_cipher_alg a);
+krml_checked_int_t Spec_Agile_Cipher_key_length(Spec_Agile_Cipher_cipher_alg a);
 
 Spec_Agile_Cipher_cipher_alg
 Spec_Agile_AEAD_cipher_alg_of_supported_alg(Spec_Agile_AEAD_alg a);

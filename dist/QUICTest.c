@@ -66,45 +66,37 @@ exit_code QUICTest_test(void)
   uint8_t
   traffic_secret[32U] =
     {
-      (uint8_t)0x48U, (uint8_t)0xc4U, (uint8_t)0x30U, (uint8_t)0x9bU, (uint8_t)0x5fU, (uint8_t)0x27U,
-      (uint8_t)0x52U, (uint8_t)0xe8U, (uint8_t)0x12U, (uint8_t)0x7bU, (uint8_t)0x1U, (uint8_t)0x66U,
-      (uint8_t)0x5U, (uint8_t)0x5aU, (uint8_t)0x9aU, (uint8_t)0x56U, (uint8_t)0xe5U, (uint8_t)0xf9U,
-      (uint8_t)0x6U, (uint8_t)0x31U, (uint8_t)0xe0U, (uint8_t)0x84U, (uint8_t)0x85U, (uint8_t)0xe0U,
-      (uint8_t)0xf8U, (uint8_t)0x9eU, (uint8_t)0x9cU, (uint8_t)0xecU, (uint8_t)0x4aU, (uint8_t)0xdeU,
-      (uint8_t)0xb6U, (uint8_t)0x50U
+      0x48U, 0xc4U, 0x30U, 0x9bU, 0x5fU, 0x27U, 0x52U, 0xe8U, 0x12U, 0x7bU, 0x1U, 0x66U, 0x5U, 0x5aU,
+      0x9aU, 0x56U, 0xe5U, 0xf9U, 0x6U, 0x31U, 0xe0U, 0x84U, 0x85U, 0xe0U, 0xf8U, 0x9eU, 0x9cU,
+      0xecU, 0x4aU, 0xdeU, 0xb6U, 0x50U
     };
-  uint64_t initial_pn = (uint64_t)0U;
-  uint8_t
-  plain[10U] =
-    {
-      (uint8_t)0U, (uint8_t)1U, (uint8_t)2U, (uint8_t)3U, (uint8_t)4U, (uint8_t)5U, (uint8_t)6U,
-      (uint8_t)7U, (uint8_t)8U, (uint8_t)9U
-    };
-  uint32_t plain_len = (uint32_t)10U;
-  uint8_t dcil8 = (uint8_t)20U;
+  uint64_t initial_pn = 0ULL;
+  uint8_t plain[10U] = { 0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 9U };
+  uint32_t plain_len = 10U;
+  uint8_t dcil8 = 20U;
   uint32_t dcil = (uint32_t)dcil8;
   KRML_CHECK_SIZE(sizeof (uint8_t), dcil);
   uint8_t dcid[dcil];
   memset(dcid, 0U, dcil * sizeof (uint8_t));
-  uint32_t scil = (uint32_t)20U;
+  uint32_t scil = 20U;
   KRML_CHECK_SIZE(sizeof (uint8_t), scil);
   uint8_t scid[scil];
   memset(scid, 0U, scil * sizeof (uint8_t));
-  uint32_t token_len = (uint32_t)16U;
+  uint32_t token_len = 16U;
   KRML_CHECK_SIZE(sizeof (uint8_t), token_len);
   uint8_t token[token_len];
   memset(token, 0U, token_len * sizeof (uint8_t));
-  uint32_t cipher_len = plain_len + (uint32_t)16U;
-  uint32_t pn_len = (uint32_t)3U;
+  uint32_t cipher_len = plain_len + 16U;
+  uint32_t pn_len = 3U;
   uint32_t payload_and_pn_len = cipher_len + pn_len;
-  uint32_t version = (uint32_t)0xff000017U;
+  uint32_t version = 0xff000017U;
   EverQuic_long_header_specifics
   hdr_spec =
     {
       .tag = EverQuic_BInitial,
       {
         .case_BInitial = {
-          .reserved_bits = (uint8_t)0U, .payload_and_pn_length = (uint64_t)payload_and_pn_len,
+          .reserved_bits = 0U, .payload_and_pn_length = (uint64_t)payload_and_pn_len,
           .packet_number_length = pn_len, .token = token, .token_length = token_len
         }
       }
@@ -128,11 +120,7 @@ exit_code QUICTest_test(void)
   memset(enc_dst, 0U, enc_dst_len * sizeof (uint8_t));
   uint64_t enc_dst_pn = initial_pn;
   EverQuic_result
-  dec_dst =
-    {
-      .pn = (uint64_t)0U, .header = hdr, .header_len = (uint32_t)0U, .plain_len = (uint32_t)0U,
-      .total_len = (uint32_t)0U
-    };
+  dec_dst = { .pn = 0ULL, .header = hdr, .header_len = 0U, .plain_len = 0U, .total_len = 0U };
   EverCrypt_Error_error_code
   r = EverQuic_create_in(QUICTest_idx, &st_enc, initial_pn, traffic_secret);
   LowStar_Printf_print_string("Performing ");

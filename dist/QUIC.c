@@ -4,7 +4,7 @@
 
 #include "internal/EverQuic_EverCrypt.h"
 
-Prims_int QUIC_cipher_keysize(Spec_Agile_AEAD_alg a)
+krml_checked_int_t QUIC_cipher_keysize(Spec_Agile_AEAD_alg a)
 {
   return Spec_Agile_Cipher_key_length(Spec_Agile_AEAD_cipher_alg_of_supported_alg(a));
 }
@@ -18,7 +18,7 @@ typedef EverQuic_state_s *raise;
 
 static EverQuic_state_s *istate(EverQuic_index i, EverQuic_state_s *s)
 {
-  EverQuic_index x0 = iid(i);
+  iid(i);
   return s;
 }
 
@@ -46,6 +46,11 @@ QUIC_decrypt(
   uint8_t uu___5
 )
 {
+  KRML_MAYBE_UNUSED_VAR(uu___1);
+  KRML_MAYBE_UNUSED_VAR(uu___2);
+  KRML_MAYBE_UNUSED_VAR(uu___3);
+  KRML_MAYBE_UNUSED_VAR(uu___4);
+  KRML_MAYBE_UNUSED_VAR(uu___5);
   KRML_HOST_EPRINTF("KaRaMeL abort at %s:%d\n%s\n", __FILE__, __LINE__, "");
   KRML_HOST_EXIT(255U);
 }
