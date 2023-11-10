@@ -91,6 +91,8 @@ typedef struct EverQuic_header_s
 }
 EverQuic_header;
 
+typedef struct EverQuic_result_s EverQuic_result;
+
 typedef struct EverQuic_result_s
 {
   uint64_t pn;
