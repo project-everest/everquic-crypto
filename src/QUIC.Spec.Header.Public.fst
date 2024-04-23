@@ -492,12 +492,14 @@ let serialize_set_protected_bits
   serialize_header_eq
     short_dcid_len
     h';
+  FStar.Pure.BreakVC.break_vc ();
   LP.serialize_u8_spec (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h));
   LP.serialize_u8_spec (LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h'));
   LPB.set_valid_bitfield_correct first_byte (first_byte_of_header short_dcid_len h) 0 (if PShort? h then 5 else 4) new_pb;
   mk_header_body_set_valid_bitfield short_dcid_len h new_pb;
   assert (LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h'))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h') h') == LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h));
   assert (Seq.tail sq' `Seq.equal` LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h'))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h') h'));
+  FStar.Pure.BreakVC.break_vc ();
   assert (Seq.tail sq `Seq.equal` LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h))
 
 #pop-options
