@@ -319,7 +319,7 @@ let set_left_bitfield_aux
 
 #pop-options
 
-#push-options "--z3rlimit 128"
+#push-options "--z3rlimit 160"
 
 #restart-solver
 
