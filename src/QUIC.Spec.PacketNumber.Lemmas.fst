@@ -40,6 +40,7 @@ let lemma_replace_modulo_bound (a mod_pow new_mod up_pow:nat) : Lemma
   let (pmod,umod) = (pow2 mod_pow, pow2 up_pow) in
   lemma_div_mod a pmod;
   multiple_modulo_lemma (a / pmod) pmod;
+  assert_spinoff (a-a%pow2 mod_pow >= 0);
   lemma_replace_modulo_bound_aux up_pow (a-a%pow2 mod_pow) new_mod mod_pow
 
 module U64 = FStar.UInt64
