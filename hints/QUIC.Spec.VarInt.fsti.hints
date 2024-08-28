@@ -18,7 +18,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "4dfdf720916d49d2ece312ce0bdf70e0"
+      "4e357ed17acff51443f1b00ac7f39dce"
     ],
     [
       "QUIC.Spec.VarInt.serialize_varint",
@@ -37,7 +37,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "d6a8350f3b38741c6ed76524e18b115c"
+      "ad2b89a8ea97101ce57beed14a4758e3"
     ],
     [
       "QUIC.Spec.VarInt.parse_bounded_varint",
@@ -56,7 +56,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "821b9e433f9110e99ea44fd512d387ab"
+      "96037061255125d50ee9c2afb0f1047e"
     ],
     [
       "QUIC.Spec.VarInt.serialize_bounded_varint",
@@ -75,7 +75,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "ff33c7ef03016148ec45743504df9f17"
+      "0e0db93a007df73d03aa80202f4a576f"
     ],
     [
       "QUIC.Spec.VarInt.varint_len_correct",
@@ -94,7 +94,7 @@
         "projection_inverse_LowParse.Spec.Base.Mkparser_kind__parser_kind_low"
       ],
       0,
-      "929dcc99b8fefbbff36c9e608ea074c1"
+      "fef9b532058c704c85d5d20afbff4731"
     ],
     [
       "QUIC.Spec.VarInt.bounded_varint_len_correct",
@@ -132,7 +132,7 @@
         "typing_FStar.UInt32.v", "typing_LowParse.Spec.BoundedInt.in_bounds"
       ],
       0,
-      "8352aa09d5a30cdc5fb68a1082d53607"
+      "dd73958ab6c8fd0dc5f020d0d095dd59"
     ]
   ]
 ]
