@@ -4,6 +4,14 @@ F\*/Low\* implementation of QUIC header and packet protection, verified
 for memory safety, functional correctness and constant-time execution,
 and compiled to C.
 
+This work is described in the following paper:
+   * A Security Model and Fully Verified Implementation for the IETF QUIC Record Layer
+      - Antoine Delignat-Lavaud; Cédric Fournet; Bryan Parno; Jonathan Protzenko; Tahina Ramananandro; Jay Bosamiya
+      - https://ieeexplore.ieee.org/document/9519466
+        
+The paper references a Dafny implementation of some protocol aspects of QUIC, available at this repository: 
+https://github.com/secure-foundations/everquic-dafny
+
 ## How to verify, extract and build
 
 EverQuic is implemented in F\* in `src/`, and extracted to C in
