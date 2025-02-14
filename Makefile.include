@@ -1,5 +1,7 @@
 EVERQUIC_HOME ?= $(realpath .)
 
+FSTAR_EXE ?= fstar.exe
+
 KRML_HOME ?= $(EVERQUIC_HOME)/../karamel
 HACL_HOME ?= $(EVERQUIC_HOME)/../hacl-star
 EVERPARSE_HOME ?= $(EVERQUIC_HOME)/../everparse
@@ -30,7 +32,7 @@ FSTAR_FLAGS=$(FSTAR_CHILL_FLAGS) \
 	--already_cached '*,-QUIC,-QUICTest,-Mem,-Model,-NotEverCrypt,-EverCrypt.CTR' \
 	--warn_error @241 \
 
-FSTAR=$(FSTAR_HOME)/bin/fstar.exe $(FSTAR_FLAGS)
+FSTAR=$(FSTAR_EXE) $(FSTAR_FLAGS)
 
 %.fst-in %.fsti-in:
 	@echo $(FSTAR_CHILL_FLAGS)

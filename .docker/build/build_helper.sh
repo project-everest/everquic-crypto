@@ -6,7 +6,7 @@ threads=$3
 branchname=$4
 fstarVersion=$5
 
-export FSTAR_HOME=$(pwd)/FStar
+export FSTAR_EXE=$(pwd)/FStar/bin/fstar.exe
 export HACL_HOME=$(pwd)/hacl-star
 # FIXME: The HACL* image should have been built on top of a KaRaMeL
 # image.  But currently this is not the case, so we reuse the KaRaMeL

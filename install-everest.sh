@@ -10,7 +10,7 @@ git checkout b0d4d92bff399618e751881771f5b49f57069cbe
 ./everest --yes reset
 ./everest --yes z3
 export PATH=$everest_home/z3/bin:$PATH
-export FSTAR_HOME=$everest_home/FStar
+export FSTAR_EXE=$everest_home/FStar/bin/fstar.exe
 export KRML_HOME=$everest_home/karamel
 export EVERPARSE_HOME=$everest_home/everparse
 export HACL_HOME=$everest_home/hacl-star
@@ -26,7 +26,7 @@ OTHERFLAGS='--admit_smt_queries true' make -j $(($EVEREST_THREADS/2+1)) -C hacl-
 cd "$old_pwd"
 cat >everest-env.sh <<EOF
 export PATH=$everest_home/z3/bin:\$PATH
-export FSTAR_HOME=$FSTAR_HOME
+export FSTAR_EXE=$FSTAR_EXE
 export KRML_HOME=$KRML_HOME
 export EVERPARSE_HOME=$EVERPARSE_HOME
 export HACL_HOME=$HACL_HOME
