@@ -285,7 +285,7 @@ let header_encrypt_ct_secret_preserving_not_retry_spec_correct
 
 #pop-options
 
-#push-options "--z3rlimit 32"
+#push-options "--z3rlimit 48"
 
 #restart-solver
 

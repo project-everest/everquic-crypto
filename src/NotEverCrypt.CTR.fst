@@ -332,6 +332,8 @@ fun p dst src ->
 
   admit ()
 
+(* This proof is very tough for some reason *)
+#push-options "--z3rlimit 150 --ext context_pruning=false"
 let update_block a p dst src =
   let State i g_iv iv iv_len g_key ek c0 = !*p in
   match i with
@@ -358,6 +360,7 @@ let update_block a p dst src =
       // There's a non-trivial proof of spec equivalence here. See discussion in
       // Spec.Chacha20.
       admit ()
+#pop-options
 
 let free a p =
   let State i g_iv iv iv_len g_key ek c0 = !*p in
