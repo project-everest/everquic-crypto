@@ -1,5 +1,5 @@
 [
-  "ä!\u0018¶Ý=iŽz!ûFägjÚ",
+  "e42118b6dd3d698e7a21fb46e4676ada",
   [
     [
       "QUIC.State.index",
@@ -14,7 +14,7 @@
         "haseqTm_refine_837aaa25c6967f53b930fd73a3026b51"
       ],
       0,
-      "f147d93bf305e7e5cb0a16ad052130c1"
+      "48af3b5a720008c771948b7b6a49aa2b"
     ],
     [
       "QUIC.State.g_traffic_secret",
@@ -42,7 +42,7 @@
         "typing_Spec.Hash.Definitions.is_shake"
       ],
       0,
-      "618e6465a34b188d0bb9a1bef4936dae"
+      "949e443e50b2c6944452bffc9f7b3efb"
     ],
     [
       "QUIC.State.hash_is_keysized",
@@ -124,7 +124,7 @@
         "typing_Spec.Hash.Definitions.less_than_max_input_length"
       ],
       0,
-      "700e1fc0354ebcde552f66acff592b33"
+      "076df28186bf0503af0a15bc45fef7ae"
     ],
     [
       "QUIC.State.invariant",
@@ -137,7 +137,7 @@
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e"
       ],
       0,
-      "77b0403f9f6d9fce55722f28a8a865ca"
+      "4a2c08dd06cf84604ec5982b5acbb479"
     ],
     [
       "QUIC.State.incrementable",
@@ -146,7 +146,7 @@
       1,
       [ "@query", "equation_QUIC.State.invariant" ],
       0,
-      "fddc866c9dfcd9e65cae9b7a27fa2466"
+      "598674c3ae0413ec21f4a4e6f72ae23a"
     ],
     [
       "QUIC.State.frame_invariant",
@@ -206,7 +206,7 @@
         "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "0acc5dde8ce607c519d78f3dfa02ad19"
+      "368f6952b10ff95cee1fc4e1714b82b8"
     ],
     [
       "QUIC.State.last_packet_number_of_state",
@@ -218,7 +218,7 @@
         "refinement_interpretation_Tm_refine_4d3bfe1e044e83bc33bdc513e15731f8"
       ],
       0,
-      "ff0dc9b9189b8d354b7bc81dd9f50abf"
+      "ecbd831799b953d85f578485cbace524"
     ],
     [
       "QUIC.State.create_in_st",
@@ -260,7 +260,7 @@
         "typing_Spec.Hash.Definitions.is_shake"
       ],
       0,
-      "2995f995de336cd6bde1177f82132d71"
+      "e11bab0b2f85454fbab7be851ef0cfa7"
     ],
     [
       "QUIC.State.derive_k",
@@ -269,31 +269,16 @@
       1,
       [
         "@MaxIFuel_assumption", "@query", "bool_inversion",
-        "constructor_distinct_FStar.Integers.W16",
-        "constructor_distinct_FStar.Integers.W8",
-        "constructor_distinct_Lib.IntTypes.S8",
-        "constructor_distinct_Lib.IntTypes.U1",
-        "constructor_distinct_Lib.IntTypes.U128",
-        "constructor_distinct_Lib.IntTypes.U16",
-        "constructor_distinct_Lib.IntTypes.U32",
-        "constructor_distinct_Lib.IntTypes.U64",
-        "constructor_distinct_Lib.IntTypes.U8",
         "constructor_distinct_Spec.AES.AES128",
         "constructor_distinct_Spec.AES.AES256",
         "constructor_distinct_Spec.Agile.Cipher.AES128",
         "constructor_distinct_Spec.Agile.Cipher.AES256",
         "constructor_distinct_Spec.Agile.Cipher.CHACHA20",
-        "data_elim_QUIC.State.Mkindex",
-        "equality_tok_FStar.Integers.W16@tok",
-        "equality_tok_FStar.Integers.W8@tok",
-        "equality_tok_Lib.IntTypes.U1@tok",
-        "equality_tok_Lib.IntTypes.U8@tok",
-        "equality_tok_Spec.AES.AES128@tok",
+        "data_elim_QUIC.State.Mkindex", "equality_tok_Spec.AES.AES128@tok",
         "equality_tok_Spec.AES.AES256@tok",
         "equality_tok_Spec.Agile.Cipher.AES128@tok",
         "equality_tok_Spec.Agile.Cipher.AES256@tok",
         "equality_tok_Spec.Agile.Cipher.CHACHA20@tok",
-        "equation_Lib.IntTypes.minint", "equation_Lib.IntTypes.unsigned",
         "equation_LowStar.Buffer.buffer", "equation_LowStar.Buffer.pointer",
         "equation_LowStar.Buffer.trivial_preorder",
         "equation_LowStar.Monotonic.Buffer.get", "equation_Prims.nat",
@@ -301,28 +286,22 @@
         "equation_QUIC.Spec.Crypto.ea", "equation_QUIC.Spec.Crypto.ha",
         "equation_QUIC.Spec.Crypto.supported_aead",
         "equation_QUIC.Spec.Crypto.supported_hash",
-        "equation_QUIC.State.state", "equation_Spec.AES.gf8",
-        "equation_Spec.AES.irred", "equation_Spec.AES.key_size",
+        "equation_QUIC.State.state", "equation_Spec.AES.key_size",
         "equation_Spec.Agile.AEAD.cipher_alg_of_supported_alg",
         "equation_Spec.Agile.AEAD.key_length",
-        "equation_Spec.Agile.AEAD.uu___2",
+        "equation_Spec.Agile.AEAD.uu___0",
         "equation_Spec.Agile.Cipher.aes_alg_of_alg",
         "equation_Spec.Agile.Cipher.key_length",
-        "equation_Spec.Chacha20.size_key", "equation_Spec.GaloisField.gf",
+        "equation_Spec.Chacha20.size_key",
         "equation_Spec.Hash.Definitions.is_shake",
         "fuel_guarded_inversion_QUIC.State.index",
-        "fuel_guarded_inversion_Spec.Agile.AEAD.alg",
-        "function_token_typing_Spec.Agile.AEAD.uu___2", "inversion-interp",
-        "lemma_LowStar.Monotonic.Buffer.length_null_1",
+        "function_token_typing_Spec.Agile.AEAD.uu___0", "int_typing",
+        "inversion-interp", "lemma_LowStar.Monotonic.Buffer.length_null_1",
         "lemma_LowStar.Monotonic.Buffer.length_null_2",
         "lemma_QUIC.State.hash_is_keysized",
         "proj_equation_QUIC.State.Mkindex_aead_alg",
         "proj_equation_QUIC.State.Mkindex_hash_alg",
-        "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxInt_proj_0",
-        "projection_inverse_FStar.Integers.Signed__0",
-        "projection_inverse_FStar.Integers.Unsigned__0",
-        "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e",
@@ -330,21 +309,16 @@
         "refinement_interpretation_Tm_refine_837aaa25c6967f53b930fd73a3026b51",
         "refinement_interpretation_Tm_refine_a9e6184981784a7b16f6d4a7df0cf8ae",
         "refinement_interpretation_Tm_refine_c16bc1b61f58b349bf6fc1c94dcaf83b",
-        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
-        "typing_Lib.IntTypes.minint",
         "typing_LowStar.Buffer.trivial_preorder",
         "typing_LowStar.Monotonic.Buffer.get",
         "typing_QUIC.Spec.Crypto.label_key",
         "typing_QUIC.Spec.Crypto.supported_aead",
         "typing_QUIC.Spec.Crypto.supported_hash",
         "typing_QUIC.State.__proj__Mkindex__item__hash_alg",
-        "typing_QUIC.State.state_s", "typing_Spec.AES.gf8",
-        "typing_Spec.GaloisField.__proj__GF__item__t",
-        "typing_Spec.Hash.Definitions.is_shake",
-        "typing_tok_Lib.IntTypes.U8@tok"
+        "typing_QUIC.State.state_s", "typing_Spec.Hash.Definitions.is_shake"
       ],
       0,
-      "1bf7f699705e300387f72f44e285cc7f"
+      "ab22c99ee2e3d31423120057625e4bc5"
     ],
     [
       "QUIC.State.derive_iv",
@@ -353,45 +327,33 @@
       1,
       [
         "@MaxIFuel_assumption", "@query", "bool_inversion",
-        "constructor_distinct_Lib.IntTypes.U8",
-        "equality_tok_Lib.IntTypes.U1@tok",
-        "equality_tok_Lib.IntTypes.U8@tok", "equation_Lib.IntTypes.minint",
-        "equation_Lib.IntTypes.unsigned", "equation_LowStar.Buffer.buffer",
-        "equation_LowStar.Buffer.pointer",
+        "equation_LowStar.Buffer.buffer", "equation_LowStar.Buffer.pointer",
         "equation_LowStar.Buffer.trivial_preorder",
         "equation_LowStar.Monotonic.Buffer.get", "equation_Prims.nat",
         "equation_QUIC.Spec.Base.lbytes", "equation_QUIC.Spec.Crypto.ha",
         "equation_QUIC.Spec.Crypto.supported_hash",
-        "equation_QUIC.State.state", "equation_Spec.AES.gf8",
-        "equation_Spec.AES.irred", "equation_Spec.GaloisField.gf",
+        "equation_QUIC.State.state",
         "equation_Spec.Hash.Definitions.is_shake",
-        "fuel_guarded_inversion_QUIC.State.index",
+        "fuel_guarded_inversion_QUIC.State.index", "int_typing",
         "lemma_LowStar.Monotonic.Buffer.length_null_1",
         "lemma_LowStar.Monotonic.Buffer.length_null_2",
         "lemma_QUIC.State.hash_is_keysized",
         "proj_equation_QUIC.State.Mkindex_hash_alg",
-        "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxInt_proj_0",
-        "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e",
         "refinement_interpretation_Tm_refine_837aaa25c6967f53b930fd73a3026b51",
         "refinement_interpretation_Tm_refine_a9e6184981784a7b16f6d4a7df0cf8ae",
         "refinement_interpretation_Tm_refine_c16bc1b61f58b349bf6fc1c94dcaf83b",
-        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
-        "typing_Lib.IntTypes.minint",
         "typing_LowStar.Buffer.trivial_preorder",
         "typing_LowStar.Monotonic.Buffer.get",
         "typing_QUIC.Spec.Crypto.label_iv",
         "typing_QUIC.Spec.Crypto.supported_hash",
         "typing_QUIC.State.__proj__Mkindex__item__hash_alg",
-        "typing_QUIC.State.state_s", "typing_Spec.AES.gf8",
-        "typing_Spec.GaloisField.__proj__GF__item__t",
-        "typing_Spec.Hash.Definitions.is_shake",
-        "typing_tok_Lib.IntTypes.U8@tok"
+        "typing_QUIC.State.state_s", "typing_Spec.Hash.Definitions.is_shake"
       ],
       0,
-      "daca7fda81d52a45f57ee7b3fbaf8bb8"
+      "2d5f9aa321d7b7991ed8ab65527297c3"
     ],
     [
       "QUIC.State.derive_pne",
@@ -400,27 +362,16 @@
       1,
       [
         "@MaxIFuel_assumption", "@query", "bool_inversion",
-        "constructor_distinct_FStar.Integers.W16",
-        "constructor_distinct_FStar.Integers.W8",
-        "constructor_distinct_Lib.IntTypes.U1",
-        "constructor_distinct_Lib.IntTypes.U16",
-        "constructor_distinct_Lib.IntTypes.U8",
         "constructor_distinct_Spec.AES.AES128",
         "constructor_distinct_Spec.AES.AES256",
         "constructor_distinct_Spec.Agile.Cipher.AES128",
         "constructor_distinct_Spec.Agile.Cipher.AES256",
         "constructor_distinct_Spec.Agile.Cipher.CHACHA20",
-        "data_elim_QUIC.State.Mkindex",
-        "equality_tok_FStar.Integers.W16@tok",
-        "equality_tok_FStar.Integers.W8@tok",
-        "equality_tok_Lib.IntTypes.U1@tok",
-        "equality_tok_Lib.IntTypes.U8@tok",
-        "equality_tok_Spec.AES.AES128@tok",
+        "data_elim_QUIC.State.Mkindex", "equality_tok_Spec.AES.AES128@tok",
         "equality_tok_Spec.AES.AES256@tok",
         "equality_tok_Spec.Agile.Cipher.AES128@tok",
         "equality_tok_Spec.Agile.Cipher.AES256@tok",
         "equality_tok_Spec.Agile.Cipher.CHACHA20@tok",
-        "equation_Lib.IntTypes.minint", "equation_Lib.IntTypes.unsigned",
         "equation_LowStar.Buffer.buffer", "equation_LowStar.Buffer.pointer",
         "equation_LowStar.Buffer.trivial_preorder",
         "equation_LowStar.Monotonic.Buffer.get", "equation_Prims.nat",
@@ -429,26 +380,21 @@
         "equation_QUIC.Spec.Crypto.ea", "equation_QUIC.Spec.Crypto.ha",
         "equation_QUIC.Spec.Crypto.supported_aead",
         "equation_QUIC.Spec.Crypto.supported_hash",
-        "equation_QUIC.State.state", "equation_Spec.AES.gf8",
-        "equation_Spec.AES.irred", "equation_Spec.AES.key_size",
+        "equation_QUIC.State.state", "equation_Spec.AES.key_size",
         "equation_Spec.Agile.AEAD.cipher_alg_of_supported_alg",
-        "equation_Spec.Agile.AEAD.uu___2",
+        "equation_Spec.Agile.AEAD.uu___0",
         "equation_Spec.Agile.Cipher.aes_alg_of_alg",
         "equation_Spec.Agile.Cipher.key_length",
-        "equation_Spec.Chacha20.size_key", "equation_Spec.GaloisField.gf",
+        "equation_Spec.Chacha20.size_key",
         "equation_Spec.Hash.Definitions.is_shake",
         "fuel_guarded_inversion_QUIC.State.index",
-        "function_token_typing_Spec.Agile.AEAD.uu___2", "inversion-interp",
-        "lemma_LowStar.Monotonic.Buffer.length_null_1",
+        "function_token_typing_Spec.Agile.AEAD.uu___0", "int_typing",
+        "inversion-interp", "lemma_LowStar.Monotonic.Buffer.length_null_1",
         "lemma_LowStar.Monotonic.Buffer.length_null_2",
         "lemma_QUIC.State.hash_is_keysized",
         "proj_equation_QUIC.State.Mkindex_aead_alg",
         "proj_equation_QUIC.State.Mkindex_hash_alg",
-        "proj_equation_Spec.GaloisField.GF_t",
         "projection_inverse_BoxInt_proj_0",
-        "projection_inverse_FStar.Integers.Signed__0",
-        "projection_inverse_FStar.Integers.Unsigned__0",
-        "projection_inverse_Spec.GaloisField.GF_t",
         "refinement_interpretation_Tm_refine_2de20c066034c13bf76e9c0b94f4806c",
         "refinement_interpretation_Tm_refine_542f9d4f129664613f2483a6c88bc7c2",
         "refinement_interpretation_Tm_refine_573cfed777dae20cc82e8fef9622857e",
@@ -456,21 +402,16 @@
         "refinement_interpretation_Tm_refine_837aaa25c6967f53b930fd73a3026b51",
         "refinement_interpretation_Tm_refine_a9e6184981784a7b16f6d4a7df0cf8ae",
         "refinement_interpretation_Tm_refine_c16bc1b61f58b349bf6fc1c94dcaf83b",
-        "refinement_interpretation_Tm_refine_de8080fdc4bd6678af723874a7d70466",
-        "typing_Lib.IntTypes.minint",
         "typing_LowStar.Buffer.trivial_preorder",
         "typing_LowStar.Monotonic.Buffer.get",
         "typing_QUIC.Spec.Crypto.label_hp",
         "typing_QUIC.Spec.Crypto.supported_aead",
         "typing_QUIC.Spec.Crypto.supported_hash",
         "typing_QUIC.State.__proj__Mkindex__item__hash_alg",
-        "typing_QUIC.State.state_s", "typing_Spec.AES.gf8",
-        "typing_Spec.GaloisField.__proj__GF__item__t",
-        "typing_Spec.Hash.Definitions.is_shake",
-        "typing_tok_Lib.IntTypes.U8@tok"
+        "typing_QUIC.State.state_s", "typing_Spec.Hash.Definitions.is_shake"
       ],
       0,
-      "2a553502bbb7400c0875044ccd1612ef"
+      "beca530d552f31f0b323df09b3f60e62"
     ],
     [
       "QUIC.State.encrypt",
@@ -669,7 +610,7 @@
         "typing_tok_Lib.IntTypes.U64@tok", "typing_tok_Lib.IntTypes.U8@tok"
       ],
       0,
-      "e64de17185a7b9ef0eff6b1ee2073f5d"
+      "f82bd56af62c5bbbb884aa592516589e"
     ],
     [
       "QUIC.State.initial_secrets",
@@ -692,7 +633,7 @@
         "typing_FStar.Monotonic.HyperHeap.root"
       ],
       0,
-      "0d3d42044bfa089b2a4128eb55c56426"
+      "1263498c8c358cfd6d795f8721e0172a"
     ],
     [
       "QUIC.State.decrypt_post",
@@ -838,7 +779,7 @@
         "typing_tok_Lib.IntTypes.U64@tok"
       ],
       0,
-      "6f4ece47f952ea4c9d9b95c72956b602"
+      "eb9d79281af38654f8811a85c9623fcc"
     ],
     [
       "QUIC.State.decrypt",
@@ -892,7 +833,7 @@
         "typing_tok_Lib.IntTypes.SEC@tok", "typing_tok_Lib.IntTypes.U32@tok"
       ],
       0,
-      "41e2709395b276ef28fcf7496a464e2c"
+      "6025f502289442c79dce7e3bbc5afb48"
     ]
   ]
 ]
