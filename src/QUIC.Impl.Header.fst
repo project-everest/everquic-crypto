@@ -119,6 +119,7 @@ let pn_sizemask_ct (pn_len:nat { pn_len < 4 }) : Tot (lbytes 4) =
   FStar.Math.Lemmas.pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
   FStar.Endianness.n_to_be 4 (pow2 32 - pow2 (24 - (8 `op_Multiply` pn_len)))
 
+#push-options "--z3rlimit 30"
 let index_pn_sizemask_ct_right
   (pn_len: nat { pn_len < 4 })
   (i: nat {i > pn_len /\ i < 4})
@@ -130,6 +131,7 @@ let index_pn_sizemask_ct_right
   pow2_lt_compat 32 (24 - (8 `op_Multiply` pn_len));
   pow2_plus (24 - (8 * pn_len)) (8 * (pn_len + 1));
   Lemmas.index_n_to_be_zero_right 4 (pow2 32 - pow2 (24 - (8 * pn_len))) i
+#pop-options
 
 let header_encrypt_ct
   (a:ea)
